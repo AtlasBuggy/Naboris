@@ -6,6 +6,7 @@ import pprint
 import threading
 import time
 import traceback
+import glob
 from multiprocessing import Lock, Queue, Value
 
 import serial
@@ -24,7 +25,8 @@ class RobotRunner(BaseInterface):
     loop_updates_per_second = 120  # How quickly the main thread should run
     port_updates_per_second = 1000  # How quickly each port process should run
 
-    def __init__(self, robot, joystick=None, log_data=True, log_name=None, log_dir=None, debug_prints=False):
+    def __init__(self, robot, joystick=None, log_data=True, log_name=None, log_dir=None, debug_prints=False,
+                 address_formats=None):
         """
         :param robot: a subclass instance of the atlasbuggy.robot.Robot class
         :param joystick: a subclass instance of the atlasbuggy.buggyjoystick.BuggyJoystick class
@@ -70,14 +72,18 @@ class RobotRunner(BaseInterface):
 
         # open all available ports
         self.ports = {}
-        threads = []
 
         # call _configure_port for each available serial port
         self.duplicate_id_error = [False, None]  # [did error occur, whoiam ID]
-        for port_info in serial.tools.list_ports.comports():
-            config_thread = threading.Thread(target=self._configure_port, args=(port_info, self.port_ups))
-            threads.append(config_thread)
-            config_thread.start()
+        port_addresses = []
+        try:
+            port_addresses = serial.tools.list_ports.comports()
+        except TypeError:
+            assert address_formats is not None
+            for address_format in address_formats:
+                port_addresses.extend(glob.glob(address_format))
+
+        threads = self._start_port_threads(port_addresses)
 
         # wait for threads to finish
         for thread in threads:
@@ -95,7 +101,6 @@ class RobotRunner(BaseInterface):
         # throw an error if a port isn't configured correctly
         for port_name, port in self.ports.items():
             if not port.configured:
-                self._print_port_info(port)
                 raise self._handle_error(
                     RobotSerialPortNotConfiguredError("Port not configured!", self.prev_packet_info, port),
                     traceback.format_stack()
@@ -264,7 +269,7 @@ class RobotRunner(BaseInterface):
         :param port_info: an instance of serial.tools.list_ports_common.ListPortInfo
         :param updates_per_second: how often the port should update
         """
-        if port_info.vid is not None:
+        if type(port_info) == str or port_info.vid is not None:
             # instantiate RobotSerialPort
             port = RobotSerialPort(port_info, self.debug_enabled,
                                    self.packet_queue, self.port_lock, self.packet_counter, updates_per_second)
@@ -354,14 +359,13 @@ class RobotRunner(BaseInterface):
 
     # ----- port management -----
 
-    def _print_port_info(self, port):
-        """
-        Print the crashed port's info
-        :param port:
-        """
-        if self.debug_enabled:
-            self._debug_print(pprint.pformat(port.port_info.__dict__) + "\n")
-            time.sleep(0.01)  # wait for error messages to print
+    def _start_port_threads(self, port_addresses):
+        threads = []
+        for port_info in port_addresses:
+            config_thread = threading.Thread(target=self._configure_port, args=(port_info, self.port_ups))
+            threads.append(config_thread)
+            config_thread.start()
+        return threads
 
     def _open_ports(self):
         """

@@ -33,7 +33,8 @@ def simulate(file_name, directory, robot, start_index=0, end_index=-1, debug_ena
     return robot_interface
 
 
-def run(robot, joystick=None, log_data=True, log_name=None, log_dir=None, debug_prints=False, blocking=True, extra_func=None):
+def run(robot, joystick=None, log_data=True, log_name=None, log_dir=None, debug_prints=False, blocking=True,
+        extra_func=None, address_formats=None):
     """
     Launch a live robot using the provided Robot object. The function will exit when the runner has finished
     Run on a separate thread if you don't want this behavior (see the close function)
@@ -48,7 +49,7 @@ def run(robot, joystick=None, log_data=True, log_name=None, log_dir=None, debug_
     :return: instance of RobotRunner class
     """
     global robot_interface
-    robot_interface = RobotRunner(robot, joystick, log_data, log_name, log_dir, debug_prints)
+    robot_interface = RobotRunner(robot, joystick, log_data, log_name, log_dir, debug_prints, address_formats)
     robot_interface.run(extra_func)
 
     return robot_interface

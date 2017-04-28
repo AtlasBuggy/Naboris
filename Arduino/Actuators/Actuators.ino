@@ -82,28 +82,56 @@ void set_turret(int servo1_angle, int servo2_angle)
 // top left, top right, bottom left, bottom right
 void set_motors(int speed2, int speed1, int speed3, int speed4)
 {
+    bool status_1 = verify_speed(speed1, m1_speed, m1_forward, motor_1);
+    bool status_2 = verify_speed(speed2, m2_speed, m2_forward, motor_2);
+    bool status_3 = verify_speed(speed3, m3_speed, m3_forward, motor_3);
+    bool status_4 = verify_speed(speed4, m4_speed, m4_forward, motor_4);
+    if (status_1 || status_2 || status_3 || status_4) {
+        delay(100);
+    }
+
     set_motor(speed1, m1_speed, m1_forward, motor_1);
     set_motor(speed2, m2_speed, m2_forward, motor_2);
     set_motor(speed3, m3_speed, m3_forward, motor_3);
     set_motor(speed4, m4_speed, m4_forward, motor_4);
 }
 
+bool verify_speed(int speed, int &recorded_speed, bool &recorded_direction, Adafruit_DCMotor *motor)
+{
+    recorded_speed = abs(speed);
+    if (speed > 0 && recorded_speed > 50) {
+        if (!recorded_direction) {
+            motor->setSpeed(0);
+            motor->run(BRAKE);
+            return true;
+        }
+    }
+    else {
+        if (recorded_direction) {
+            motor->setSpeed(0);
+            motor->run(BRAKE);
+            return true;
+        }
+    }
+    return false;
+}
+
 void set_motor(int speed, int &recorded_speed, bool &recorded_direction, Adafruit_DCMotor *motor)
 {
-    if (speed >= 0) {
-        if (!recorded_direction && speed > 50) {
-            motor->setSpeed(0);
-            motor->run(RELEASE);
-            delay(100);
-        }
+    recorded_speed = abs(speed);
+    if (speed > 0) {
         motor->run(FORWARD);
         recorded_direction = true;
+    }
+    else if (speed == 0) {
+        motor->setSpeed(0);
+        motor->run(BRAKE);
     }
     else {
         motor->run(BACKWARD);
         recorded_direction = false;
     }
-    recorded_speed = abs(speed);
+
     motor->setSpeed(recorded_speed);
 }
 
@@ -196,8 +224,8 @@ void loop()
         if (status == 0) {  // user command
             String command = buggy.getCommand();
             if (command.charAt(0) == 'p') {  // drive command
-                int angle = command.substring(2, 5).toInt();
-                int speed = command.substring(5, 8).toInt();
+                int angle = 360 - command.substring(2, 5).toInt();
+                int speed = -command.substring(5, 8).toInt();
                 if (command.charAt(1) == '1') {
                     speed *= -1;
                 }

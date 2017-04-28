@@ -36,7 +36,10 @@ class RobotSerialPort(Process):
         """
 
         # port info variables
-        self.address = port_info.device  # directory to open (in /dev)
+        if type(port_info) == str:
+            self.address = port_info
+        else:
+            self.address = port_info.device  # directory to open (in /dev)
         self.port_info = port_info
 
         # status variables
@@ -258,6 +261,8 @@ class RobotSerialPort(Process):
         for line in stack_trace:
             full_message += str(line)
 
+        self.debug_print(str(error))
+
         if type(error) == str:
             full_message += error
         else:
@@ -310,7 +315,7 @@ class RobotSerialPort(Process):
 
                 # close the process if the serial port isn't open
                 with self.serial_lock:
-                    if not self.serial_ref.is_open:
+                    if not self.serial_ref.isOpen():
                         self.stop()
                         raise RobotSerialPortClosedPrematurelyError("Serial port isn't open for some reason...", self)
 
@@ -379,7 +384,7 @@ class RobotSerialPort(Process):
         """
         try:
             # read every available character
-            if self.serial_ref.is_open:
+            if self.serial_ref.isOpen():
                 incoming = self.serial_ref.read(in_waiting)
             else:
                 self.handle_error("Serial port wasn't open for reading...", traceback.format_stack())
@@ -430,7 +435,7 @@ class RobotSerialPort(Process):
             return False
 
         try:
-            if self.serial_ref.is_open:
+            if self.serial_ref.isOpen():
                 with self.serial_lock:
                     self.serial_ref.write(data)
             else:
@@ -556,7 +561,7 @@ class RobotSerialPort(Process):
         self.debug_print("Acquiring serial lock")
         with self.serial_lock:
             if self.configured:
-                if self.serial_ref.is_open:
+                if self.serial_ref.isOpen():
                     self.serial_ref.close()
                     self.debug_print("Closing serial")
                 else:
