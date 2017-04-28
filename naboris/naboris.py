@@ -17,4 +17,4 @@ class Naboris(Robot):
 
 naboris = Naboris()
 run(naboris, log_dir=None, log_data=False, debug_prints=True)
-simulate("22", "2017_Mar_02", naboris)
+# simulate("22", "2017_Mar_02", naboris)

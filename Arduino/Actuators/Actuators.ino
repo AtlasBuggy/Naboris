@@ -44,6 +44,11 @@ int m2_speed = 0;
 int m3_speed = 0;
 int m4_speed = 0;
 
+bool m1_forward = true;
+bool m2_forward = true;
+bool m3_forward = true;
+bool m4_forward = true;
+
 uint32_t time0 = millis();
 uint32_t motor_command_delay = 0;
 bool new_motor_command = false;
@@ -77,41 +82,29 @@ void set_turret(int servo1_angle, int servo2_angle)
 // top left, top right, bottom left, bottom right
 void set_motors(int speed2, int speed1, int speed3, int speed4)
 {
-    if (speed1 >= 0) {
-        motor_1->run(FORWARD);
-    }
-    else {
-        motor_1->run(BACKWARD);
-    }
-    m1_speed = abs(speed1);
-    motor_1->setSpeed(m1_speed);
+    set_motor(speed1, m1_speed, m1_forward, motor_1);
+    set_motor(speed2, m2_speed, m2_forward, motor_2);
+    set_motor(speed3, m3_speed, m3_forward, motor_3);
+    set_motor(speed4, m4_speed, m4_forward, motor_4);
+}
 
-    if (speed2 >= 0) {
-        motor_2->run(FORWARD);
+void set_motor(int speed, int &recorded_speed, bool &recorded_direction, Adafruit_DCMotor *motor)
+{
+    if (speed >= 0) {
+        if (!recorded_direction && speed > 50) {
+            motor->setSpeed(0);
+            motor->run(RELEASE);
+            delay(100);
+        }
+        motor->run(FORWARD);
+        recorded_direction = true;
     }
     else {
-        motor_2->run(BACKWARD);
+        motor->run(BACKWARD);
+        recorded_direction = false;
     }
-    m2_speed = abs(speed2);
-    motor_2->setSpeed(m2_speed);
-
-    if (speed3 >= 0) {
-        motor_3->run(FORWARD);
-    }
-    else {
-        motor_3->run(BACKWARD);
-    }
-    m3_speed = abs(speed3);
-    motor_3->setSpeed(m3_speed);
-
-    if (speed4 >= 0) {
-        motor_4->run(FORWARD);
-    }
-    else {
-        motor_4->run(BACKWARD);
-    }
-    m4_speed = abs(speed4);
-    motor_4->setSpeed(m4_speed);
+    recorded_speed = abs(speed);
+    motor->setSpeed(recorded_speed);
 }
 
 void drive(int angle, int speed)
