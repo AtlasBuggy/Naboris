@@ -10,10 +10,11 @@ class Actuators(RobotObject):
     def receive(self, timestamp, packet):
         pass
 
-    def drive(self, angle, speed, for_ms=None):
+    def drive(self, speed, angle, for_ms=None):
         command = "p%d%03d%03d" % (int(-speed > 0), angle, abs(speed))
         if for_ms is not None:
             command += str(int(for_ms))
+
         self.send(command)
 
     def spin(self, speed, for_ms=None):
@@ -27,6 +28,9 @@ class Actuators(RobotObject):
 
     def release(self):
         self.send("d")
+
+    def do_circle(self):
+        self.send("x")
 
     def set_turret(self, yaw, azimuth):
         self.send("c%03d%03d" % (yaw, azimuth))
