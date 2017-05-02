@@ -256,6 +256,13 @@ void loop()
             else if (command.charAt(0) == 'd') {  // release command
                 release_motors();
             }
+            else if (command.charAt(0) == 'x') {  // circle demo
+                for (int angle = 0; angle < 360; angle += 5) {
+                    drive(angle, 255);
+                    delay(1);
+                }
+                hard_stop_motors();
+            }
             else if (command.charAt(0) == 'c') {  // camera command
                 int yaw = command.substring(1, 4).toInt();
                 int azimuth = command.substring(4, 7).toInt();
