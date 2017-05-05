@@ -1,15 +1,33 @@
 # This file is meant to collect data from manual control. Terminal interface only
 import argparse
 import cmd
-import math
-import time
-from threading import Thread
-import datetime
+# from threading import Thread
+import sys
+import asyncio
+from http.server import SimpleHTTPRequestHandler, HTTPServer
 
 from atlasbuggy.robot import Robot
 from atlasbuggy.interface.live import RobotRunner
 
 from actuators import Actuators
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-l", "--nolog", help="disable logging", action="store_false")
+parser.add_argument("-d", "--debug", help="enable debug prints", action="store_true")
+args = parser.parse_args()
+
+
+class Website:
+    def __init__(self):
+        self.protocol = "HTTP/1.0"
+        self.server_address = "127.0.0.1", 8000
+        self.server = HTTPServer(self.server_address, SimpleHTTPRequestHandler)
+
+    def run(self):
+        socket_info = self.server.socket.getsockname()
+        print("Serving HTTP on '%s' port %s..." % (socket_info[0], socket_info[1]))
+
+
 
 class Naboris(Robot):
     def __init__(self):
@@ -25,14 +43,6 @@ class Naboris(Robot):
         self.actuators.stop()
         self.actuators.release()
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-l", "--nolog", help="disable logging", action="store_false")
-parser.add_argument("-d", "--debug", help="enable debug prints", action="store_true")
-args = parser.parse_args()
-
-
-naboris = Naboris()
-runner = RobotRunner(naboris, log_dir=None, log_data=False, debug_prints=False, address_formats=["/dev/ttyUSB[0-9]*"])
 
 class AutonomousCommandline(cmd.Cmd):
     def do_circle(self, line):
@@ -79,15 +89,29 @@ class AutonomousCommandline(cmd.Cmd):
         runner.exit()
         return True
 
+
+naboris = Naboris()
+website = Website()
+runner = RobotRunner(naboris, log_dir=None, log_data=False, debug_prints=False, address_formats=["/dev/ttyUSB[0-9]*"])
 command_line = AutonomousCommandline()
 
 
-def run_commands():
+async def async_robot_run():
+    runner.run()
+
+
+async def async_command_line():
     command_line.cmdloop()
-    print("Command line exiting")
 
-t = Thread(target=run_commands)
-# t.daemon = True
-t.start()
 
-runner.run()
+async def async_website_run():
+    website.run()
+
+
+loop = asyncio.get_event_loop()
+
+asyncio.ensure_future(async_robot_run())
+asyncio.ensure_future(async_command_line())
+asyncio.ensure_future(async_website_run())
+
+loop.run_forever()

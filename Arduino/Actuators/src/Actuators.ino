@@ -49,6 +49,8 @@ int increment = 3;
 int increment_delay = 1;
 bool paused = true;
 
+#define MAX_SPEED 200
+
 int m1_speed = 0;
 int m2_speed = 0;
 int m3_speed = 0;
@@ -72,17 +74,12 @@ void setup() {
     // servo1.attach(10);
     // servo2.attach(9);
 
-    hard_stop_motors();
     release_motors();
 
     strip.begin();
     strip.show();
 
     buggy.begin();
-
-    fadeColors(0, 0, 0, 255, 255, 255, 1, SIGNAL_DELAY, SIGNAL_INCREMENT);
-    fadeColors(255, 255, 255, 0, 255, 0, SIGNAL_CYCLES, SIGNAL_DELAY, SIGNAL_INCREMENT);
-    fadeColors(255, 255, 255, 0, 0, 0, 1, SIGNAL_DELAY, SIGNAL_INCREMENT);
 }
 
 void set_turret(int servo1_angle, int servo2_angle)
@@ -105,6 +102,7 @@ void set_motors(int speed2, int speed1, int speed3, int speed4)
     bool status_3 = verify_speed(speed3, m3_speed, m3_forward, motor_3);
     bool status_4 = verify_speed(speed4, m4_speed, m4_forward, motor_4);
     if (status_1 || status_2 || status_3 || status_4) {
+        stop_motors();
         delay(100);
     }
 
@@ -117,26 +115,28 @@ void set_motors(int speed2, int speed1, int speed3, int speed4)
 bool verify_speed(int speed, int &recorded_speed, bool &recorded_direction, Adafruit_DCMotor *motor)
 {
     recorded_speed = abs(speed);
-    if (speed > 0 && recorded_speed > 50) {
-        if (!recorded_direction) {
-            motor->setSpeed(0);
-            motor->run(BRAKE);
-            return true;
+    if (recorded_speed > 0) {
+        if (speed > 0 && recorded_speed > 50) {
+            if (!recorded_direction) {
+                return true;
+            }
+        }
+        else {
+            if (recorded_direction) {
+                return true;
+            }
         }
     }
-    else {
-        if (recorded_direction) {
-            motor->setSpeed(0);
-            motor->run(BRAKE);
-            return true;
-        }
-    }
+
     return false;
 }
 
 void set_motor(int speed, int &recorded_speed, bool &recorded_direction, Adafruit_DCMotor *motor)
 {
     recorded_speed = abs(speed);
+    if (recorded_speed > MAX_SPEED) {
+        recorded_speed = MAX_SPEED;
+    }
     if (speed > 0) {
         motor->run(FORWARD);
         recorded_direction = true;
@@ -201,6 +201,12 @@ void stop_motors()
         }
         delay(increment_delay);
     }
+
+    m1_speed = 0;
+    m2_speed = 0;
+    m3_speed = 0;
+    m4_speed = 0;
+
     motor_1->setSpeed(m1_speed);
     motor_2->setSpeed(m2_speed);
     motor_3->setSpeed(m3_speed);
@@ -296,10 +302,10 @@ void loop()
         }
         else if (status == 2) {  // start event
             set_motors(0, 0, 0, 0);
-            set_turret(0, 0);
 
             fadeColors(255, 255, 255, 1, SIGNAL_DELAY, SIGNAL_INCREMENT);
             fadeColors(255, 255, 255, 0, 0, 255, SIGNAL_CYCLES, SIGNAL_DELAY, SIGNAL_INCREMENT);
+            fadeColors(0, 0, 0, 1, SIGNAL_DELAY, SIGNAL_INCREMENT);
         }
     }
 
