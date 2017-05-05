@@ -40,10 +40,8 @@ class RobotRunner(BaseInterface):
         super(RobotRunner, self).__init__(robot, debug_prints, "Interface")
 
         # clock properties
-        self.loop_ups = RobotRunner.loop_updates_per_second
-        self.port_ups = RobotRunner.port_updates_per_second
         self.lag_warning_thrown = False  # prevents the terminal from being spammed
-        self.clock = Clock(self.loop_ups)
+        self.clock = Clock(RobotRunner.loop_updates_per_second)
         self.start_time = 0
 
         # keep the last packet info for crash info
@@ -362,7 +360,8 @@ class RobotRunner(BaseInterface):
     def _start_port_threads(self, port_addresses):
         threads = []
         for port_info in port_addresses:
-            config_thread = threading.Thread(target=self._configure_port, args=(port_info, self.port_ups))
+            config_thread = threading.Thread(target=self._configure_port,
+                                             args=(port_info, RobotRunner.port_updates_per_second))
             threads.append(config_thread)
             config_thread.start()
         return threads
@@ -398,7 +397,7 @@ class RobotRunner(BaseInterface):
             self._debug_print("[%s] Port previous packets: read: %s, write %s" % (
                 robot_port.whoiam,
                 robot_port.prev_read_packets, repr(robot_port.prev_write_packet))
-            )
+                              )
 
         # check if the port exited properly
         for port in self.ports.values():
