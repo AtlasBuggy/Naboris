@@ -79,6 +79,18 @@ class AutonomousCommandline(cmd.Cmd):
         runner.exit()
         return True
 
+    def do_red(self, line):
+        naboris.actuators.set_all_leds(255, 0, 0)
+
+    def do_green(self, line):
+        naboris.actuators.set_all_leds(0, 255, 0)
+
+    def do_blue(self, line):
+        naboris.actuators.set_all_leds(0, 0, 255)
+
+    def do_white(self, line):
+        naboris.actuators.set_all_leds(255, 255, 255)
+
 command_line = AutonomousCommandline()
 
 
