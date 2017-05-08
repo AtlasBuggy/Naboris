@@ -5,30 +5,27 @@ class Actuators(RobotObject):
         self.num_leds = None
         self.speed_increment = None
         self.speed_delay = None
+
         super(Actuators, self).__init__("naboris actuators", enabled)
 
     def receive_first(self, packet):
         data = packet.split("\t")
         assert len(data) == 3
 
-        self.num_leds = data[0]
-        self.speed_increment = data[1]
-        self.speed_delay = data[2]
+        self.num_leds = int(data[0])
+        self.speed_increment = int(data[1])
+        self.speed_delay = int(data[2])
 
     def receive(self, timestamp, packet):
         pass
 
-    def drive(self, speed, angle, for_ms=None):
+    def drive(self, speed, angle):
         command = "p%d%03d%03d" % (int(-speed > 0), angle, abs(speed))
-        if for_ms is not None:
-            command += str(int(for_ms))
 
         self.send(command)
 
-    def spin(self, speed, for_ms=None):
+    def spin(self, speed):
         command = "r%d%03d" % (int(-speed > 0), abs(speed))
-        if for_ms is not None:
-            command += str(int(for_ms))
         self.send(command)
 
     def stop(self):
@@ -41,6 +38,16 @@ class Actuators(RobotObject):
         self.send("x")
 
     def set_turret(self, yaw, azimuth):
+        if azimuth < 30:
+            azimuth = 30
+        if azimuth > 100:
+            azimuth = 100
+
+        if yaw < 30:
+            yaw = 30
+        if yaw > 150:
+            yaw = 150
+
         self.send("c%03d%03d" % (yaw, azimuth))
 
     @staticmethod
@@ -56,22 +63,26 @@ class Actuators(RobotObject):
             rgb = rgb[0]
         return list(map(self.constrain_value, rgb))
 
-    def set_led(self, num_leds, *rgb):
+    def set_led(self, num_leds, *rgb, show=True):
         r, g, b = self.constrain_input(rgb)
         num_leds = int(abs(num_leds))
         self.send("o%03d%03d%03d%03d" % (num_leds, r, g, b))
+        if show:
+            self.show()
 
-    def set_leds(self, start, end, *rgb):
+    def set_leds(self, start, end, *rgb, show=True):
         r, g, b = self.constrain_input(rgb)
         start = int(abs(start))
         end = int(abs(end))
 
         assert end <= self.num_leds and 0 <= start and start < end
 
-        self.send("o%3.0d%3.0d%3.0d%3.0d%3.0d" % (start, r, g, b, end))
+        self.send("o%03d%03d%03d%03d%03d" % (start, r, g, b, end))
+        if show:
+            self.show()
 
-    def set_all_leds(self, *rgb):
-        self.set_leds(0, self.num_leds, rgb)
+    def set_all_leds(self, *rgb, show=True):
+        self.set_leds(0, self.num_leds, rgb, show=show)
 
     def show(self):
         self.send("x")

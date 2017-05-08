@@ -17,7 +17,9 @@ class Naboris(Robot):
 
         super(Naboris, self).__init__(self.actuators)
 
-    # def start(self):
+    def start(self):
+        self.actuators.set_all_leds(5, 5, 5)
+
     # def received(self):
     # def loop(self):
 
@@ -38,36 +40,57 @@ class AutonomousCommandline(cmd.Cmd):
     def do_circle(self, line):
         naboris.actuators.do_circle()
 
-    def spin(self, speed, line):
-        if len(line) > 0:
-            for_ms = int(line)
-        else:
-            for_ms = None
-        naboris.actuators.spin(speed, for_ms)
-
     def do_sl(self, line):
-        self.spin(255, line)
+        if len(line) > 0:
+            line = int(line)
+        else:
+            line = 75
+        naboris.actuators.spin(line)
 
     def do_sr(self, line):
-        self.spin(-255, line)
+        if len(line) > 0:
+            line = int(line)
+        else:
+            line = 75
+        naboris.actuators.spin(-line)
 
     def do_d(self, line):
         line = line.split(" ")
         try:
-            speed = int(line[0])
-            if len(line) > 1:
-                for_ms = int(line[1])
+            if len(line) > 0:
+                angle = int(line[0])
             else:
-                for_ms = None
-            naboris.actuators.drive(255, speed, for_ms)
+                angle = 0
+
+            if len(line) > 1:
+                speed = int(line[1])
+            else:
+                speed = 75
+            naboris.actuators.drive(speed, angle)
         except ValueError:
             print("Failed to parse input:", repr(line))
 
     def do_look(self, line):
-        line = line.split(" ")
-        if len(line) == 2:
-            yaw, azimuth = line
-            naboris.actuators.set_turret(int(yaw), int(azimuth))
+        if line == "":
+            naboris.actuators.set_turret(90, 90)
+            print("looking straight")
+        elif line == "down":
+            naboris.actuators.set_turret(90, 100)
+            print("looking down")
+        elif line == "up":
+            naboris.actuators.set_turret(90, 30)
+            print("looking up")
+        elif line == "left":
+            naboris.actuators.set_turret(30, 90)
+            print("looking left")
+        elif line == "right":
+            naboris.actuators.set_turret(150, 90)
+            print("looking right")
+        else:
+            line = line.split(" ")
+            if len(line) == 2:
+                yaw, azimuth = line
+                naboris.actuators.set_turret(int(yaw), int(azimuth))
 
     def do_s(self, line):
         naboris.actuators.stop()
@@ -80,16 +103,32 @@ class AutonomousCommandline(cmd.Cmd):
         return True
 
     def do_red(self, line):
-        naboris.actuators.set_all_leds(255, 0, 0)
+        if len(line) > 0:
+            line = int(line)
+        else:
+            line = 255
+        naboris.actuators.set_all_leds(line, 0, 0)
 
     def do_green(self, line):
-        naboris.actuators.set_all_leds(0, 255, 0)
+        if len(line) > 0:
+            line = int(line)
+        else:
+            line = 255
+        naboris.actuators.set_all_leds(0, line, 0)
 
     def do_blue(self, line):
-        naboris.actuators.set_all_leds(0, 0, 255)
+        if len(line) > 0:
+            line = int(line)
+        else:
+            line = 255
+        naboris.actuators.set_all_leds(0, 0, line)
 
     def do_white(self, line):
-        naboris.actuators.set_all_leds(255, 255, 255)
+        if len(line) > 0:
+            line = int(line)
+        else:
+            line = 255
+        naboris.actuators.set_all_leds(line, line, line)
 
 command_line = AutonomousCommandline()
 

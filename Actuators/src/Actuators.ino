@@ -86,6 +86,7 @@ void detach_turret()
 void set_turret(int yaw, int azimuth)
 {
     servo1.write(yaw);
+    delay(250);
     servo2.write(azimuth);
 }
 
@@ -235,12 +236,14 @@ void loop()
             stop_motors();
             release_motors();
             detach_turret();
+            for (int index = 0; index < NUM_LEDS; index++) {
+                strip.setPixelColor(index, 0);
+            }
             strip.show();
         }
         else if (status == 2) {  // start event
             stop_motors();
             attach_turret();
-            strip.show();
         }
     }
 
