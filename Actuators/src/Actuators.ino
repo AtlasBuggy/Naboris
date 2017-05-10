@@ -44,6 +44,10 @@ MotorStruct init_motor(int motor_num) {
 #define AZIMUTH_PIN 9
 #define YAW_PIN 10
 #define NUM_MOTORS 4
+#define TOPLEFT_OFFSET 5
+#define BOTLEFT_OFFSET 5
+#define TOPRIGHT_OFFSET 0
+#define BOTRIGHT_OFFSET 0
 int speed_increment = 10;
 int speed_delay = 1;
 MotorStruct* motors = new MotorStruct[NUM_MOTORS];
@@ -104,13 +108,38 @@ void set_motor_speed(int motor_num)
     motors[motor_num].af_motor->setSpeed(abs(motors[motor_num].speed));
 }
 
+void set_motor_goal(int motor_num, int speed, int offset) {
+    motors[motor_num].goal_speed = speed;
+    if (abs(motors[motor_num].goal_speed) > offset) {
+        if (motors[motor_num].goal_speed > 0) {
+            motors[motor_num].goal_speed -= offset;
+
+            if (motors[motor_num].goal_speed < 0) {
+                motors[motor_num].goal_speed = 0;
+            }
+            if (motors[motor_num].goal_speed > 255) {
+                motors[motor_num].goal_speed = 255;
+            }
+        }
+        else {
+            motors[motor_num].goal_speed += offset;
+            if (motors[motor_num].goal_speed > 0) {
+                motors[motor_num].goal_speed = 0;
+            }
+            if (motors[motor_num].goal_speed < -255) {
+                motors[motor_num].goal_speed = -255;
+            }
+        }
+    }
+}
+
 // top left, top right, bottom left, bottom right
 void set_motor_goals(int speed2, int speed1, int speed3, int speed4)
 {
-    motors[0].goal_speed = speed1;
-    motors[1].goal_speed = speed2;
-    motors[2].goal_speed = speed3;
-    motors[3].goal_speed = speed4;
+    set_motor_goal(0, speed1, TOPRIGHT_OFFSET);  // top right
+    set_motor_goal(1, speed2, TOPLEFT_OFFSET);  // top left
+    set_motor_goal(2, speed3, BOTLEFT_OFFSET);  // bottom left
+    set_motor_goal(3, speed4, BOTRIGHT_OFFSET);  // bottom right
 }
 
 void drive(int angle, int speed)
