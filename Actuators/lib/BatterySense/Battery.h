@@ -53,6 +53,8 @@ class Battery {
 		 */
 		uint16_t voltage();
 
+		void setMinMax(uint16_t newMin, uint16_t newMax);
+
 	private:
 		uint16_t refVoltage;
 		uint16_t minVoltage;

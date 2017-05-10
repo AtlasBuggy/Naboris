@@ -17,6 +17,7 @@ Connect a hobby servo to SERVO1
 #include <Adafruit_NeoPixel.h>
 #include "utility/Adafruit_MS_PWMServoDriver.h"
 #include <Servo.h>
+#include <Battery.h>
 #include <Atlasbuggy.h>
 
 // Create the motor shield object with the default I2C address
@@ -58,10 +59,15 @@ Servo servo2;
 #define LED_SIGNAL_PIN 6
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_SIGNAL_PIN, NEO_GRB + NEO_KHZ800);
 
+uint16_t lower_V = 4800;
+uint16_t upper_V = 5000;
+Battery battery(lower_V, upper_V, A0);
+
 void setup() {
     robot.begin();
     AFMS.begin();
     strip.begin();
+    battery.begin();
 
     strip.show();
 
@@ -72,7 +78,19 @@ void setup() {
     String ledNumStr = String(NUM_LEDS);
     String speedIncreStr = String(speed_increment);
     String speedDelayStr = String(speed_delay);
-    robot.setInitData(ledNumStr + "\t" + speedIncreStr + "\t" + speedDelayStr);
+    String lowerVstr = String(lower_V);
+    String upperVstr = String(upper_V);
+    String voltageLevelStr = String(battery.voltage());
+    String voltageValueStr = String(battery.level());
+    robot.setInitData(
+        ledNumStr + "\t" +
+        speedIncreStr + "\t" +
+        speedDelayStr + "\t" +
+        lowerVstr + "\t" +
+        upperVstr + "\t" +
+        voltageLevelStr + "\t" +
+        voltageValueStr
+    );
 }
 
 void attach_turret()
@@ -259,6 +277,21 @@ void loop()
             }
             else if (command.charAt(0) == 'x') {  // show command
                 strip.show();
+            }
+            else if (command.charAt(0) == 'b') {
+                if (command.length() == 1)
+                {
+                    Serial.print('b');
+                    Serial.print(battery.voltage());
+                    Serial.print('\t');
+                    Serial.print(battery.level());
+                    Serial.print('\n');
+                }
+                else {
+                    lower_V = command.substring(1, 5).toInt();
+                    upper_V = command.substring(5, 9).toInt();
+                    battery.setMinMax(lower_V, upper_V);
+                }
             }
         }
         else if (status == 1) {  // stop event

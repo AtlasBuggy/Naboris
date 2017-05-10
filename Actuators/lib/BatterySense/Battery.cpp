@@ -60,3 +60,8 @@ uint16_t Battery::voltage() {
 	}
 	return reading;
 }
+
+void Battery::setMinMax(uint16_t newMin, uint16_t newMax) {
+	this->minVoltage = newMin;
+	this->maxVoltage = newMax;
+}
