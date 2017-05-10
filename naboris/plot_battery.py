@@ -25,7 +25,7 @@ class BatteryPlotter(Robot):
 
 battery_plotter = BatteryPlotter()
 
-file_name = "16;43;13"
+file_name = "17;24;05"
 directory = "2017_May_10"
 simulator = RobotSimulator(file_name, directory, battery_plotter, debug_enabled=True)
 simulator.run()

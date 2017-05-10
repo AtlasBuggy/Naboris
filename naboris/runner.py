@@ -16,7 +16,7 @@ args = parser.parse_args()
 
 
 naboris = Naboris()
-runner = RobotRunner(naboris, log_dir=None, log_data=True, debug_prints=False, address_formats=["/dev/ttyUSB[0-9]*"])
+runner = RobotRunner(naboris, log_dir=None, log_data=False, debug_prints=False, address_formats=["/dev/ttyUSB[0-9]*"])
 
 class AutonomousCommandline(cmd.Cmd):
     def do_l(self, line):
