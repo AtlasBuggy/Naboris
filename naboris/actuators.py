@@ -9,6 +9,8 @@ class Actuators(RobotObject):
         self.upper_V = None
         self.percentage_V = None
         self.value_V = None
+        self.turret_yaw = 90
+        self.turret_azimuth = 90
 
         super(Actuators, self).__init__("naboris actuators", enabled)
 
@@ -61,6 +63,28 @@ class Actuators(RobotObject):
             yaw = 150
 
         self.send("c%03d%03d" % (yaw, azimuth))
+
+    def set_yaw(self, yaw):
+        self.turret_yaw = yaw
+        self.set_turret(self.turret_yaw, self.turret_azimuth)
+
+    def set_azimuth(self, azimuth):
+        self.turret_azimuth = azimuth
+        self.set_turret(self.turret_yaw, self.turret_azimuth)
+
+    def look_up(self, azimuth=70):
+        self.set_azimuth(azimuth)
+
+    def look_left(self, yaw=110):
+        self.set_yaw(yaw)
+
+    def look_right(self, yaw=70):
+        self.set_yaw(yaw)
+
+    def look_straight(self):
+        self.turret_yaw = 90
+        self.turret_azimuth = 90
+        self.set_turret(self.turret_yaw, self.turret_azimuth)
 
     @staticmethod
     def constrain_value(value):

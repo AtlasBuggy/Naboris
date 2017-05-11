@@ -50,21 +50,33 @@ class AutonomousCommandline(cmd.Cmd):
         naboris.actuators.drive(speed, angle)
 
     def do_look(self, line):
-        if line == "":
-            naboris.actuators.set_turret(90, 90)
-            print("looking straight")
-        elif line == "down":
-            naboris.actuators.set_turret(90, 100)
-            print("looking down")
-        elif line == "up":
-            naboris.actuators.set_turret(90, 70)
-            print("looking up")
-        elif line == "left":
-            naboris.actuators.set_turret(70, 90)
-            print("looking left")
-        elif line == "right":
-            naboris.actuators.set_turret(110, 90)
-            print("looking right")
+        data = line.split(" ")
+        if data[0] == "":
+            naboris.actuators.look_straight()
+        elif data[0] == "down":
+            if len(data) > 1:
+                value = int(data[1])
+                naboris.actuators.look_up(value)
+            else:
+                naboris.actuators.look_up(100)
+        elif data[0] == "up":
+            if len(data) > 1:
+                value = int(data[1])
+                naboris.actuators.look_up(value)
+            else:
+                naboris.actuators.look_up()
+        elif data[0] == "left":
+            if len(data) > 1:
+                value = int(data[1])
+                naboris.actuators.look_left(value)
+            else:
+                naboris.actuators.look_left()
+        elif data[0] == "right":
+            if len(data) > 1:
+                value = int(data[1])
+                naboris.actuators.look_right(value)
+            else:
+                naboris.actuators.look_right()
         else:
             line = line.split(" ")
             if len(line) == 2:

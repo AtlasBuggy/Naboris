@@ -1,6 +1,6 @@
 +++ readlink -f ./start.sh
-++ dirname /home/pi/Naboris/RPi_Cam_Web_Interface/start.sh
-+ cd /home/pi/Naboris/RPi_Cam_Web_Interface
+++ dirname /home/pi/Naboris/Streaming/RPi_Cam_Web_Interface/start.sh
++ cd /home/pi/Naboris/Streaming/RPi_Cam_Web_Interface
 + source ./config.txt
 ++ rpicamdir=html
 ++ webserver=apache
