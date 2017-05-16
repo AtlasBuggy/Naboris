@@ -119,7 +119,7 @@ class NaborisCommandline(cmd.Cmd):
 
 naboris = Naboris(True, True)
 cmd_line = NaborisCommandline()
-runner = RobotRunner(naboris, log_dir=None, log_data=False, debug_prints=False, address_formats=["/dev/ttyUSB[0-9]*"])
+# runner = RobotRunner(naboris, log_dir=None, log_data=False, debug_prints=False, address_formats=["/dev/ttyUSB[0-9]*"])
 
 
 def run_commands():

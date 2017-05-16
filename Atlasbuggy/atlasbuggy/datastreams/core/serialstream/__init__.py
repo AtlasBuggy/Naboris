@@ -12,7 +12,7 @@ from atlasbuggy.datastreams.core.serialstream.object import SerialObject
 
 
 class SerialStream(DataStream):
-    def __init__(self, serial_objects, log=True, debug=False):
+    def __init__(self, *serial_objects, log=True, debug=False):
         super(SerialStream, self).__init__("Serial Manager", log, debug)
 
         self.objects = {}
@@ -49,6 +49,7 @@ class SerialStream(DataStream):
         discovered_ports = []
         for port_address in self.list_ports():
             discovered_ports.append(SerialPort(port_address, self.debug))
+        self.debug_print("Discovered ports:", discovered_ports)
 
         threads = []
         error_messages = []
@@ -69,10 +70,10 @@ class SerialStream(DataStream):
         if self.ports.keys() != self.objects.keys():
             unassigned_ids = self.objects.keys() - self.ports.keys()
             if len(unassigned_ids) == 1:
-                message = "Failed to assign object with ID"
+                message = "Failed to assign object with ID "
             else:
-                message = "Failed to assign objects with IDs"
-            raise RobotObjectNotFoundError(message, str(list(unassigned_ids))[1:-1])
+                message = "Failed to assign objects with IDs "
+            raise RobotObjectNotFoundError(message + str(list(unassigned_ids))[1:-1])
 
         self.validate_ports()
 
@@ -109,9 +110,9 @@ class SerialStream(DataStream):
             errors.append((1, "Port not configured! '%s'" % port.address))
 
         # disable ports if the corresponding object if disabled
-        elif self.objects[port.whoiam].enabled:
+        elif not self.objects[port.whoiam].enabled:
             port.stop()
-            self.debug("Ignoring port with ID: %s (Disabled by user)" % port.whoiam)
+            self.debug_print("Ignoring port with ID: %s (Disabled by user)" % port.whoiam)
 
         # add the port if configured and abides protocol
         else:
@@ -144,8 +145,8 @@ class SerialStream(DataStream):
 
         # return the port if 'USB' is in the description
         for port_no, description, address in ports:
-            if 'USB' in description:
-                port_addresses.append(address)
+            if 'USB' in address:
+                port_addresses.append(port_no)
         return port_addresses
 
     def first_packets(self):
@@ -190,7 +191,7 @@ class SerialStream(DataStream):
 
         self.debug_print("SerialStream is starting")
 
-    def stream_update(self):
+    def update(self):
 
         for port in self.ports.values():
             self.check_port(port)

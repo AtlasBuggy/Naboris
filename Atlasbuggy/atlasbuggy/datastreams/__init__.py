@@ -25,7 +25,7 @@ class DataStream:
     def stream_start(self):
         pass
 
-    def stream_update(self):
+    def update(self):
         pass
 
     def debug_print(self, *values, ignore_flag=False):
