@@ -37,9 +37,6 @@ class StaticPlotter(BasePlotter):
                         for subplot in plot.plots:
                             self.lines[plot.name][subplot.name] = None
 
-    def plot(self):
-        pass
-
     def close(self, block=True):
         """
         To be called in a simulator's close function after all data has been compiled.

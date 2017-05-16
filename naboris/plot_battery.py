@@ -21,11 +21,12 @@ class BatteryPlotter(Robot):
         self.battery_plot.append(self.dt(), self.actuators.value_V)
 
     def close(self, reason):
+        print(sum(self.battery_plot.data[1]) / len(self.battery_plot.data[1]))
         self.plotter.close()
 
 battery_plotter = BatteryPlotter()
 
-file_name = "16;43;13"
+file_name = "16;42;39"
 directory = "2017_May_10"
 simulator = RobotSimulator(file_name, directory, battery_plotter, debug_enabled=True)
 simulator.run()

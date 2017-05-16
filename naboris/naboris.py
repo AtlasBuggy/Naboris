@@ -11,6 +11,8 @@ class Naboris(Robot):
         super(Naboris, self).__init__(serial)
 
     def start(self):
+        self.actuators.set_turret(90, 70)
+        self.actuators.set_turret(90, 90)
         self.actuators.set_all_leds(5, 5, 5)
         self.actuators.set_battery(4800, 5039)
 
