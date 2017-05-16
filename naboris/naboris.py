@@ -1,14 +1,14 @@
-
 from atlasbuggy.robot import Robot
+from atlasbuggy.datastreams.core.serialstream import SerialStream
 from actuators import Actuators
+
 
 class Naboris(Robot):
     def __init__(self):
         self.actuators = Actuators()
+        serial = SerialStream(self.actuators)
 
-        super(Naboris, self).__init__(self.actuators)
-
-        self.link_reoccuring(1.0, self.request_battery)
+        super(Naboris, self).__init__(serial)
 
     def start(self):
         self.actuators.set_all_leds(5, 5, 5)

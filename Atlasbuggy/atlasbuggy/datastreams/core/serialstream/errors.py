@@ -4,7 +4,7 @@ Possible errors robot ports, objects and interface might face.
 
 
 class RobotPortBaseError(Exception):
-    def __init__(self, error_message, prev_packet_info, port=None):
+    def __init__(self, error_message, prev_timestamp=None, prev_packet=None, port=None):
         if port is not None:
             full_messages = []
             with port.message_lock:
@@ -25,9 +25,8 @@ class RobotPortBaseError(Exception):
                 port_error_info += "\nAddress: '%s', ID: %s" % (
                     port.address, whoiam_info
                 )
-                if any(prev_packet_info):  # if any values evaluate to True, print info
-                    port_error_info += "\n\nPrevious packet sent (ID: %s, time: %s):\n%s" % (
-                        prev_packet_info[0], prev_packet_info[1], repr(prev_packet_info[2]))
+                if prev_packet is not None:
+                    port_error_info += "\n\nPrevious packet sent @ %ss:\n%s" % (prev_timestamp, prev_packet)
         else:
             port_error_info = ""
         super(RobotPortBaseError, self).__init__(error_message + port_error_info)

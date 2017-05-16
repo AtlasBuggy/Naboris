@@ -13,37 +13,39 @@ import serial
 import serial.tools.list_ports
 from serial.serialutil import SerialException
 
-from atlasbuggy.robot.clock import Clock
-from atlasbuggy.robot.errors import *
+from atlasbuggy.datastreams.core.serialstream.clock import Clock
+from atlasbuggy.datastreams.core.serialstream.errors import *
 
 
-class RobotSerialPort(Process):
+class SerialPort(Process):
     """
     A multiprocessing based wrapper for an instance of pyserial Serial.
     A RobotInterface class manages all instances of this class.
     This class is for internal use only
     """
 
-    def __init__(self, port_info, debug_prints, queue, lock, counter, updates_per_second):
+    port_updates_per_second = 1000
+
+    def __init__(self, port_address, debug):
         """
 
-        :param port_info: A ListPortInfo object returned by serial.tools.list_ports.comports()
-        :param debug_prints: Enable verbose print statements
+        :param debug: Enable verbose print statements
         :param queue: a multiprocessing queue to which packets are passed
         :param lock: a shared lock to prevent multiple sources accessing the queue
         :param counter: a queue size counter. Keeps track of the number of packets in the queue
         :param updates_per_second: How often the port should update. This is passed to a Clock instance
         """
 
-        # port info variables
-        if type(port_info) == str:
-            self.address = port_info
-        else:
-            self.address = port_info.device  # directory to open (in /dev)
-        self.port_info = port_info
+        self.address = port_address
+
+        self.packet_queue = Queue()
+        self.counter = Value('i', 0)
+        self.lock = Lock()
+
+        self.queue_len = 0
 
         # status variables
-        self.debug_enabled = debug_prints
+        self.debug_enabled = debug
         self.configured = True
         self.abides_protocols = True
         self.port_assigned = False
@@ -57,7 +59,6 @@ class RobotSerialPort(Process):
         # time variables
         self.start_time = 0.0
         self.loop_time = 0.0
-        self.updates_per_second = updates_per_second
 
         # whoiam ID info
         self.whoiam = None  # ID tag of the microcontroller
@@ -98,6 +99,13 @@ class RobotSerialPort(Process):
 
         self.serial_lock = Lock()
 
+        self.serial_ref = None
+
+        super(SerialPort, self).__init__(target=self.update)
+
+    # ----- initialization methods -----
+
+    def initialize(self):
         # attempt to open the serial port
         try:
             self.serial_ref = serial.Serial(port=self.address, baudrate=self.baud_rate.value)
@@ -116,10 +124,6 @@ class RobotSerialPort(Process):
                 self.debug_print("whoiam ID was None, skipping find_first_packet")
         else:
             self.debug_print("Port not configured. Skipping find_whoiam")
-
-        super(RobotSerialPort, self).__init__(target=self.update, args=(queue, lock, counter))
-
-    # ----- initialization methods -----
 
     def send_start(self):
         """
@@ -278,18 +282,15 @@ class RobotSerialPort(Process):
 
     # ----- run methods -----
 
-    def update(self, queue, lock, counter):
+    def update(self):
         """
         Called when RobotSerialPort.start is called
 
-        :param queue: A reference to the queue to pass data to
-        :param lock: The packet queue lock
-        :param counter: Number of packets
         :return: None
         """
 
         self.start_time = time.time()
-        clock = Clock(self.updates_per_second)
+        clock = Clock(SerialPort.port_updates_per_second)
         clock.start(self.start_time)
 
         # with self.start_event_lock:
@@ -322,7 +323,8 @@ class RobotSerialPort(Process):
                     in_waiting = self.in_waiting()
                     if in_waiting is None:
                         self.stop()
-                        raise RobotSerialPortClosedPrematurelyError("Failed to check serial. Is there a loose connection?", self)
+                        raise RobotSerialPortClosedPrematurelyError(
+                            "Failed to check serial. Is there a loose connection?", self)
                     elif in_waiting > 0:
                         # read every possible character available and split them into packets
                         packets = self.read_packets(in_waiting)
@@ -331,22 +333,23 @@ class RobotSerialPort(Process):
                             raise RobotSerialPortReadPacketError("Failed to read packets", self)
 
                         # put data found into the queue
-                        with lock:
+                        with self.lock:
                             for packet in packets:
                                 put_on_queue = True
                                 for header in self.protocol_packets:
                                     if len(packet) >= len(header) and packet[:len(header)] == header:
                                         if header == self.stop_packet_header:
                                             self.stop()
-                                            raise RobotSerialPortClosedPrematurelyError("Port signalled to exit (stop flag was found)", self)
+                                            raise RobotSerialPortClosedPrematurelyError(
+                                                "Port signalled to exit (stop flag was found)", self)
                                         else:
                                             self.debug_print("Misplaced protocol packet:", repr(packet))
                                         put_on_queue = False
                                 if put_on_queue:
-                                    queue.put((self.whoiam, time.time(), packet))
-                                # start_time isn't used. The main process has its own initial time reference
+                                    self.packet_queue.put((time.time(), packet))
+                                    # start_time isn't used. The main process has its own initial time reference
 
-                            counter.value += len(packets)
+                            self.counter.value += len(packets)
 
                 clock.update()  # maintain a constant loop speed
         # except BaseException as error:

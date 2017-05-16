@@ -7,8 +7,8 @@ also defined on the microcontroller.
 from multiprocessing import Queue
 
 
-class RobotObject:
-    def __init__(self, whoiam, enabled=True):
+class SerialObject:
+    def __init__(self, whoiam, enabled=True, baud=None):
         """
         A container for data received from the corresponding microcontroller.
 
@@ -22,7 +22,7 @@ class RobotObject:
         """
         self.whoiam = whoiam
         self.enabled = enabled
-        self.baud = None  # set this externally AFTER super().__init__ is called if a different baud rate is desired
+        self.baud = baud  # set this if a different baud rate is desired
         self.is_live = None
         self.command_packets = Queue(maxsize=255)
 
