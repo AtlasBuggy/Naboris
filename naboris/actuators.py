@@ -1,6 +1,6 @@
-from atlasbuggy.robot.object import RobotObject
+from atlasbuggy.datastreams.core.serialstream.object import SerialObject
 
-class Actuators(RobotObject):
+class Actuators(SerialObject):
     def __init__(self, enabled=True):
         self.num_leds = None
         self.speed_increment = None
