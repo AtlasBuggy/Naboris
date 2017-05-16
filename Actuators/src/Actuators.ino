@@ -58,6 +58,8 @@ Servo servo2;
 #define NUM_LEDS 24
 #define LED_SIGNAL_PIN 6
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_SIGNAL_PIN, NEO_GRB + NEO_KHZ800);
+uint32_t led_time = millis();
+bool cycle_paused = false;
 
 uint16_t lower_V = 4800;
 uint16_t upper_V = 5000;
@@ -220,6 +222,18 @@ void update_motors()
     delay(speed_delay);
 }
 
+int current_index = 0;
+int prev_index = 0;
+void update_leds()
+{
+    strip.setPixelColor(prev_index, strip.Color(5, 5, 5));
+    strip.setPixelColor(current_index, strip.Color(0, 5, 0));
+
+    prev_index = current_index;
+    current_index = (current_index + 1) % NUM_LEDS;
+    strip.show();
+}
+
 void loop()
 {
     while (robot.available())
@@ -254,25 +268,31 @@ void loop()
                 set_turret(yaw, azimuth);
             }
             else if (command.charAt(0) == 'o') {  // pixel command
-                int led_num = command.substring(1, 4).toInt();
-                if (led_num < 0) {
-                    led_num = 0;
+                if (command.length() == 1) {
+                    cycle_paused = !cycle_paused;
                 }
-                int r = command.substring(4, 7).toInt();
-                int g = command.substring(7, 10).toInt();
-                int b = command.substring(10, 13).toInt();
-                if (command.length() > 13)
+                else
                 {
-                    int stop_num = command.substring(13, 16).toInt();
-                    if (stop_num > NUM_LEDS) {
-                        stop_num = NUM_LEDS;
+                    int led_num = command.substring(1, 4).toInt();
+                    if (led_num < 0) {
+                        led_num = 0;
                     }
-                    for (int index = led_num; index < stop_num; index++) {
-                        strip.setPixelColor(index, strip.Color(r, g, b));
+                    int r = command.substring(4, 7).toInt();
+                    int g = command.substring(7, 10).toInt();
+                    int b = command.substring(10, 13).toInt();
+                    if (command.length() > 13)
+                    {
+                        int stop_num = command.substring(13, 16).toInt();
+                        if (stop_num > NUM_LEDS) {
+                            stop_num = NUM_LEDS;
+                        }
+                        for (int index = led_num; index < stop_num; index++) {
+                            strip.setPixelColor(index, strip.Color(r, g, b));
+                        }
                     }
-                }
-                else {
-                    strip.setPixelColor(led_num, strip.Color(r, g, b));
+                    else {
+                        strip.setPixelColor(led_num, strip.Color(r, g, b));
+                    }
                 }
             }
             else if (command.charAt(0) == 'x') {  // show command
@@ -311,5 +331,13 @@ void loop()
 
     if (!robot.isPaused()) {
         update_motors();
+
+        if (!cycle_paused) {
+            if (led_time > millis()) led_time = millis();
+            if ((millis() - led_time) > 50) {
+                update_leds();
+                led_time = millis();
+            }
+        }
     }
 }

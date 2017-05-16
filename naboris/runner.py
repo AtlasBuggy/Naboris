@@ -3,10 +3,9 @@ import cmd
 import math
 import time
 from threading import Thread
-import datetime
+# import app
 
 from naboris import Naboris
-
 from atlasbuggy.interface.live import RobotRunner
 
 parser = argparse.ArgumentParser()
@@ -14,11 +13,7 @@ parser.add_argument("-l", "--nolog", help="disable logging", action="store_false
 parser.add_argument("-d", "--debug", help="enable debug prints", action="store_true")
 args = parser.parse_args()
 
-
-naboris = Naboris()
-runner = RobotRunner(naboris, log_dir=None, log_data=False, debug_prints=False, address_formats=["/dev/ttyUSB[0-9]*"])
-
-class AutonomousCommandline(cmd.Cmd):
+class NaborisCommandline(cmd.Cmd):
     def do_l(self, line):
         if len(line) > 0:
             line = int(line)
@@ -121,14 +116,16 @@ class AutonomousCommandline(cmd.Cmd):
     def do_battery(self, line):
         naboris.actuators.ask_battery()
 
-command_line = AutonomousCommandline()
+
+naboris = Naboris(True, True)
+cmd_line = NaborisCommandline()
+runner = RobotRunner(naboris, log_dir=None, log_data=False, debug_prints=False, address_formats=["/dev/ttyUSB[0-9]*"])
 
 
 def run_commands():
-    command_line.cmdloop()
-    print("Command line exiting")
+    cmd_line.cmdloop()
 
-t = Thread(target=run_commands)
-t.start()
+
+Thread(target=run_commands).start()
 
 runner.run()

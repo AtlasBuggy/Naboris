@@ -99,10 +99,10 @@ class Actuators(RobotObject):
             rgb = rgb[0]
         return list(map(self.constrain_value, rgb))
 
-    def set_led(self, num_leds, *rgb, show=True):
+    def set_led(self, led_index, *rgb, show=True):
         r, g, b = self.constrain_input(rgb)
-        num_leds = int(abs(num_leds))
-        self.send("o%03d%03d%03d%03d" % (num_leds, r, g, b))
+        led_index = int(abs(led_index))
+        self.send("o%03d%03d%03d%03d" % (led_index, r, g, b))
         if show:
             self.show()
 
@@ -119,6 +119,9 @@ class Actuators(RobotObject):
 
     def set_all_leds(self, *rgb, show=True):
         self.set_leds(0, self.num_leds, rgb, show=show)
+
+    def toggle_led_cycle(self):
+        self.send("o")
 
     def show(self):
         self.send("x")
