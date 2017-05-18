@@ -6,7 +6,7 @@ from atlasbuggy.datastreams.iostream.cmdline import CommandLine
 from atlasbuggy.robot import Robot
 
 actuators = Actuators()
-serial = SerialStream("serial", actuators, debug=True)
+serial = SerialStream("serial", actuators, log=True, debug=True)
 cmdline = NaborisCLI("cmdline", actuators)
 
 naboris = Robot(serial)

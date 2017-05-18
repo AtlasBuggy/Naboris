@@ -313,18 +313,19 @@ class SerialStream(DataStream):
                         traceback.format_stack())
 
     def handle_error(self, error, traceback):
-        for port in self.ports.values():
-            self.record_debug_prints(self.timestamp, port)
-        self.debug_print("Port debug prints recorded")
-
         if self.log:
             error_message = "".join(traceback[:-1])
             error_message += "%s: %s" % (error.__class__.__name__, error.args[0])
             error_message += "\n".join(error.args[1:])
             self.record(self.timestamp, error.__class__.__name__, error_message, "error")
 
-        # close log
-        self.debug_print("logger closed")
+        self.close_log()
+
+    def close_log(self):
+        for port in self.ports.values():
+            self.record_debug_prints(self.timestamp, port)
+        self.debug_print("Port debug prints recorded")
+        self.logger.close()
 
     def stream_debug_print(self, string):
         self.record(self.timestamp, self.name, string, "debug")
@@ -378,3 +379,4 @@ class SerialStream(DataStream):
         self.debug_print("Sent last commands")
         self.stop_all_ports()
         self.debug_print("Closed ports successfully")
+        self.close_log()
