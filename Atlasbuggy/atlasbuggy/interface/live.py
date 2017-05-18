@@ -146,7 +146,7 @@ class RobotRunner(BaseInterface):
         Loop event. Update joystick (if not None) and call user's loop method
         """
         if self.joystick is not None:
-            status = self.joystick.update()
+            status = self.joystick.run()
             if status is not None:
                 self._debug_print("Joystick signalled to exit")
                 if status == "error":
@@ -173,7 +173,7 @@ class RobotRunner(BaseInterface):
 
         self._send_commands()  # sends all commands in each robot object's command queue
 
-        self.clock.update()  # maintain a constant loop speed
+        self.clock.run()  # maintain a constant loop speed
         if not self.lag_warning_thrown and self.robot.current_timestamp is not None and \
                         self.robot.current_timestamp > 0.1 and not self.clock.on_time:
             self._debug_print("Warning. Main loop is running slow. Clock is behind by %ss" % abs(self.clock.offset))

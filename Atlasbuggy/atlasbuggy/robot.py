@@ -1,3 +1,5 @@
+import asyncio
+
 
 class Robot:
     def __init__(self, *streams):
@@ -5,31 +7,30 @@ class Robot:
         :param robot_objects: instances of atlasbuggy.robot.object.RobotObject or
             atlasbuggy.robot.object.RobotObjectCollection
         """
-        self.streams = streams
 
-    def start(self):
+        self.streams = {}
+        for stream in streams:
+            self.streams[stream.name] = stream
+        self.loop = asyncio.get_event_loop()
+
+    def run(self):
         """
         Events to be run when the interface starts (receive_first has been for all enabled robot objects)
         :return: None if ok, "error", "exit", or "done" if the program should exit
         """
-        for stream in self.streams:
+        for stream in self.streams.values():
+            stream.asyncio_loop = self.loop
+            stream.streams = self.streams
             stream.start()
 
-    def update(self):
-        """
-        Events to be run on a loop
-        :return: None if ok, "error", "exit", or "done" if the program should exit
-        """
-        for stream in self.streams:
-            stream.update()
-
-    def close(self, reason):
-        """
-        Events to be run when the interface closes
-        :param reason: "error", "exit", or "done"
-            error - an error was thrown
-            exit - something requested an premature exit
-            done - something signalled to the program is done
-        """
-        for stream in self.streams:
-            stream.close()
+        try:
+            tasks = asyncio.gather(*[stream.run() for stream in self.streams.values()])
+            self.loop.run_until_complete(tasks)
+        except KeyboardInterrupt:
+            tasks.cancel()
+        except asyncio.CancelledError:
+            pass
+        finally:
+            for stream in self.streams.values():
+                stream.close()
+            self.loop.close()

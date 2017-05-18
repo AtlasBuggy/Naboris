@@ -77,12 +77,12 @@ class BaseInterface:
 
     def update_events(self):
         for event in self.robot.reoccuring_functions:
-            event.update(self.robot.dt())
+            event.run(self.robot.dt())
 
         index = 0
         while index < len(self.robot.delayed_functions):
             event = self.robot.delayed_functions[index]
-            event.update(self.robot.dt())
+            event.run(self.robot.dt())
             if event.function_called:
                 self.robot.delayed_functions.pop(index)
             else:

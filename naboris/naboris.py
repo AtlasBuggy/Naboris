@@ -1,6 +1,6 @@
-from atlasbuggy.robot import Robot
-from atlasbuggy.datastreams.core.serialstream import SerialStream
 from actuators import Actuators
+from atlasbuggy.datastreams.serialstream import SerialStream
+from atlasbuggy.robot import Robot
 
 
 class Naboris(Robot):

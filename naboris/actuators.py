@@ -1,4 +1,4 @@
-from atlasbuggy.datastreams.core.serialstream.object import SerialObject
+from atlasbuggy.datastreams.serialstream.object import SerialObject
 
 class Actuators(SerialObject):
     def __init__(self, enabled=True):
@@ -47,9 +47,6 @@ class Actuators(SerialObject):
 
     def release(self):
         self.send("d")
-
-    def do_circle(self):
-        self.send("x")
 
     def set_turret(self, yaw, azimuth):
         if azimuth < 30:
