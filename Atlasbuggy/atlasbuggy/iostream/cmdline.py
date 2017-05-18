@@ -1,10 +1,10 @@
 import time
 import sys
-from atlasbuggy.iostream import IOstream
+from atlasbuggy.datastream import DataStream
 import asyncio
 
 
-class CommandLine(IOstream):
+class CommandLine(DataStream):
     def __init__(self, name, debug, enabled=True, prompt_text=">> "):
         super(CommandLine, self).__init__(name, enabled, debug, False)
         self.prompt_text = prompt_text

@@ -1,6 +1,43 @@
 from actuators import Actuators
 from atlasbuggy.serialstream import SerialStream
 from atlasbuggy.iostream.cmdline import CommandLine
+from flask import Flask, render_template, Response, request
+from camera_pi import Camera
+from atlasbuggy.uistream.website import Website
+
+class NaborisWebsite(Website):
+    def __init__(self, name, template_folder, actuators):
+        super(NaborisWebsite, self).__init__(name, template_folder)
+
+        self.app.add_url_rule("/video_feed", view_func=self.video_feed)
+        self.app.add_url_rule("/lights", view_func=self.lights, methods=['POST'])
+        # self.app.add_url_rule("/lights_off", view_func=self.lights_off)
+        self.actuators = actuators
+
+    def index(self):
+        return render_template('index.html')
+
+    def gen(self, camera):
+        """Video streaming generator function."""
+        while True:
+            frame = camera.get_frame()
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+    def video_feed(self):
+        """Video streaming route. Put this in the src attribute of an img tag."""
+        return Response(self.gen(Camera()),
+                        mimetype='multipart/x-mixed-replace; boundary=frame')
+
+    def set_lights(self, value):
+        self.actuators.set_all_leds(value, value, value)
+
+    def lights(self):
+        if request.form["lights"] == "on":
+            self.set_lights(255)
+        else:
+            self.set_lights(15)
+        return '', 200
 
 
 class NaborisCLI(CommandLine):
@@ -102,7 +139,6 @@ class NaborisCLI(CommandLine):
                 function = fn
                 current_command = command
         if function is not None:
-            print(line, current_command, repr(line[len(current_command):]))
             function(line[len(current_command):].strip(" "))
 
 
