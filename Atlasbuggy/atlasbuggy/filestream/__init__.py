@@ -6,7 +6,7 @@ import os
 import gzip
 import string
 import time
-from atlasbuggy.datastreams import DataStream
+from atlasbuggy.datastream import DataStream
 
 # from stat import S_ISREG, ST_CTIME, ST_MODE
 

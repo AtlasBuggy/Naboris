@@ -21,13 +21,13 @@ class DataStream:
         self.asyncio_loop = None
 
     def start(self):
+        pass
+
+    def stream_start(self):
         if not self.started.is_set():
             self.started.set()
             self.start_time = time.time()
-            return self.stream_start()
-
-    def stream_start(self):
-        pass
+            return self.start()
 
     def run(self):
         pass
@@ -44,12 +44,12 @@ class DataStream:
         pass
 
     def close(self):
-        if not self.closed.is_set():
-            self.closed.set()
-            self.stream_close()
+        pass
 
     def stream_close(self):
-        pass
+        if not self.closed.is_set():
+            self.closed.set()
+            self.close()
 
     def exit(self):
         for task in asyncio.Task.all_tasks():

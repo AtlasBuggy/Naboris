@@ -1,9 +1,12 @@
 import os
 import time
 import math
+import asyncio
 
 import pygame
 from atlasbuggy import get_platform
+
+from atlasbuggy.datastream import DataStream
 
 
 try:
@@ -18,12 +21,12 @@ class JoysticksNotFoundError(Exception):
     """No joysticks found"""
 
 
-class BuggyJoystick:
+class BuggyJoystick(DataStream):
     """
     A generic joystick class using pygame. This class captures any joystick events
     """
 
-    def __init__(self, axes_mapping, axes_dead_zones, button_mapping):
+    def __init__(self, name, axes_mapping, axes_dead_zones, button_mapping):
         """
         :param axes_mapping: A list of axis names that correspond to the axis number pygame assigns
         :param axes_dead_zones: If the corresponding axis number is less than a value in this list, it is considered zero
@@ -68,7 +71,7 @@ class BuggyJoystick:
         self.t0 = time.time()
         self.active = False
 
-        super(BuggyJoystick, self).__init__()
+        super(BuggyJoystick, self).__init__(name, False)
 
     @staticmethod
     def create_mapping(list_mapping):
@@ -84,7 +87,7 @@ class BuggyJoystick:
                 dict_mapping[name] = index
         return dict_mapping
 
-    def update(self):
+    async def run(self):
         """
         Go through every queued pygame event.
         If an event is JOYAXISMOTION, assign to the axes property list
@@ -96,64 +99,67 @@ class BuggyJoystick:
 
         :return: False if pygame signals the QUIT event
         """
-        # Go through every event pygame sees
-        for event in pygame.event.get():
-            self.t0 = time.time()
-            # if event.type != pygame.NOEVENT:
-                # print(event)
-            if event.type == pygame.QUIT:
-                return "exit"
+        while True:
+            await asyncio.sleep(0.001)
 
-            # if an axis event occurred
-            if event.type == pygame.JOYAXISMOTION:
-                self.active = True
-                # set value to the axis if it is outside the deadzone
-                # else set it to zero
-                if event.axis < len(self.axes):
-                    if abs(event.value) > self.dead_zones[event.axis]:
-                        value = self.axis_flipped[event.axis] * event.value
+            # Go through every event pygame sees
+            for event in pygame.event.get():
+                self.t0 = time.time()
+                # if event.type != pygame.NOEVENT:
+                    # print(event)
+                if event.type == pygame.QUIT:
+                    self.exit()
+
+                # if an axis event occurred
+                if event.type == pygame.JOYAXISMOTION:
+                    self.active = True
+                    # set value to the axis if it is outside the deadzone
+                    # else set it to zero
+                    if event.axis < len(self.axes):
+                        if abs(event.value) > self.dead_zones[event.axis]:
+                            value = self.axis_flipped[event.axis] * event.value
+                        else:
+                            value = 0.0
+
+                        # if the value changed
+                        if self.axes[event.axis] != value:
+                            # update the current value
+                            self.axes[event.axis] = value
+                            self.axis_changed[event.axis] = True
                     else:
-                        value = 0.0
+                        raise ValueError("Unregistered axis! '%s'. Please add "
+                                         "it to your joystick class." % event.axis)
 
-                    # if the value changed
-                    if self.axes[event.axis] != value:
-                        # update the current value
-                        self.axes[event.axis] = value
-                        self.axis_changed[event.axis] = True
-                else:
-                    raise ValueError("Unregistered axis! '%s'. Please add "
-                                     "it to your joystick class." % event.axis)
+                # if the dpad updated, set the current value and call the
+                # dpad callback
+                elif event.type == pygame.JOYHATMOTION:
+                    self.active = True
+                    self.dpad = event.value
 
-            # if the dpad updated, set the current value and call the
-            # dpad callback
-            elif event.type == pygame.JOYHATMOTION:
-                self.active = True
-                self.dpad = event.value
+                # if a button was pressed, set it to True and call the button
+                # down callback
+                elif event.type == pygame.JOYBUTTONDOWN:
+                    self.active = True
+                    if event.button < len(self.buttons):
+                        self.buttons[event.button] = True
+                    else:
+                        raise ValueError(
+                            "Unregistered button! '%s'. Please add "
+                            "it to your joystick class." % event.button)
 
-            # if a button was pressed, set it to True and call the button
-            # down callback
-            elif event.type == pygame.JOYBUTTONDOWN:
-                self.active = True
-                if event.button < len(self.buttons):
-                    self.buttons[event.button] = True
-                else:
-                    raise ValueError(
-                        "Unregistered button! '%s'. Please add "
-                        "it to your joystick class." % event.button)
-
-            # if a button was released, set it to False and call the button
-            # up callback
-            elif event.type == pygame.JOYBUTTONUP:
-                self.active = True
-                if event.button < len(self.buttons):
-                    self.buttons[event.button] = False
-                else:
-                    raise ValueError(
-                        "Unregistered button! '%s'. Please add "
-                        "it to your joystick class." % event.button)
-        # TODO: find better solution. Keeps listening to bumpers
-        # if self.active and (time.time() - self.t0) > 1:  # if no events received for more than timeout, signal stop
-            # return "error"
+                # if a button was released, set it to False and call the button
+                # up callback
+                elif event.type == pygame.JOYBUTTONUP:
+                    self.active = True
+                    if event.button < len(self.buttons):
+                        self.buttons[event.button] = False
+                    else:
+                        raise ValueError(
+                            "Unregistered button! '%s'. Please add "
+                            "it to your joystick class." % event.button)
+            # TODO: find better solution. Keeps listening to bumpers
+            # if self.active and (time.time() - self.t0) > 1:  # if no events received for more than timeout, signal stop
+                # return "error"
 
     def get_button(self, name):
         """

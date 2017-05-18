@@ -32,11 +32,13 @@ def video_feed():
     return Response(gen(Camera()),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
+
 class Website(Process):
     def __init__(self):
         super(Website, self).__init__(target=self.run)
 
     def run(self):
         app.run(host='0.0.0.0', debug=True, threaded=True)
+
 
 Website().start()

@@ -1,5 +1,5 @@
 
-from atlasbuggy.datastreams.filestream import *
+from atlasbuggy.filestream import *
 
 
 class Parser(BaseReadFile):
@@ -18,7 +18,7 @@ class Parser(BaseReadFile):
     return the IMU's data three times and then the GPS last
     """
 
-    def __init__(self, file_name, directory=None, start_index=0, end_index=-1):
+    def __init__(self, stream_name, file_name, directory=None, start_index=0, end_index=-1):
         """
         :param file_name: name to search for
             can be part of the name. If the desired file is named
@@ -28,7 +28,7 @@ class Parser(BaseReadFile):
         :param start_index: line number to start the log file from
         :param end_index: line number to end the log file on
         """
-        super(Parser, self).__init__("Serial File Parser", file_name, directory, True, log_file_type, log_dir)
+        super(Parser, self).__init__(stream_name, file_name, directory, True, log_file_type, log_dir)
         self.open()
 
         self.contents = self.contents.split("\n")

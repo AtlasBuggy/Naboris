@@ -3,13 +3,13 @@ Contains the Logger class. This class writes incoming packets and their correspo
 whoiam ID and timestamp to a text file. When the program ends, this text file is compressed into a gzip file.
 """
 
-from atlasbuggy.datastreams.filestream import *
+from atlasbuggy.filestream import *
 
 
 class Logger(BaseWriteFile):
     """A class for recording data from a robot to a logs file"""
 
-    def __init__(self, file_name=None, directory=None):
+    def __init__(self, stream_name, file_name=None, directory=None):
         """
         :param file_name: If None, the current time is used (hh;mm;ss)
         :param directory: If None, today's date is used (YYYY_Mmm_DD).
@@ -19,7 +19,7 @@ class Logger(BaseWriteFile):
         file_name, directory = self.format_path_as_time(
             file_name, directory, default_log_file_name, default_log_dir_name
         )
-        super(Logger, self).__init__("Serial File Logger", file_name, directory, True, log_file_type, log_dir, enable_dumping=False)
+        super(Logger, self).__init__(stream_name, file_name, directory, True, log_file_type, log_dir, enable_dumping=False)
 
         self.line_code = (("%s" * 6) + "\n")
 

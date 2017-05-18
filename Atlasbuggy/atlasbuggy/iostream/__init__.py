@@ -1,5 +1,5 @@
 
-from atlasbuggy.datastreams import DataStream
+from atlasbuggy.datastream import DataStream
 
 class IOstream(DataStream):
     def __init__(self, stream_name, debug):

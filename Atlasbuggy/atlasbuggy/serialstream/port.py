@@ -11,10 +11,10 @@ from multiprocessing import Event, Lock, Process, Queue, Value
 
 import serial
 import serial.tools.list_ports
-from atlasbuggy.datastreams.serialstream.clock import Clock
+from atlasbuggy.serialstream.clock import Clock
 from serial.serialutil import SerialException
 
-from atlasbuggy.datastreams.serialstream.errors import *
+from atlasbuggy.serialstream.errors import *
 
 
 class SerialPort(Process):

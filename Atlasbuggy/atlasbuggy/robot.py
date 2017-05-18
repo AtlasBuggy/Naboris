@@ -21,10 +21,11 @@ class Robot:
         for stream in self.streams.values():
             stream.asyncio_loop = self.loop
             stream.streams = self.streams
-            stream.start()
+            stream.stream_start()
+
+        tasks = asyncio.gather(*[stream.run() for stream in self.streams.values()])
 
         try:
-            tasks = asyncio.gather(*[stream.run() for stream in self.streams.values()])
             self.loop.run_until_complete(tasks)
         except KeyboardInterrupt:
             tasks.cancel()
@@ -32,5 +33,5 @@ class Robot:
             pass
         finally:
             for stream in self.streams.values():
-                stream.close()
+                stream.stream_close()
             self.loop.close()

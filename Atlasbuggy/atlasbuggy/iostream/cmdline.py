@@ -1,6 +1,6 @@
 import time
 import sys
-from atlasbuggy.datastreams.iostream import IOstream
+from atlasbuggy.iostream import IOstream
 import asyncio
 
 

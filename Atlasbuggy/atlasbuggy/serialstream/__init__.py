@@ -5,19 +5,19 @@ import traceback
 
 import serial.tools.list_ports
 
-from atlasbuggy.datastreams import DataStream
-from atlasbuggy.datastreams.serialstream.clock import Clock
-from atlasbuggy.datastreams.serialstream.errors import *
-from atlasbuggy.datastreams.serialstream.object import SerialObject
-from atlasbuggy.datastreams.serialstream.port import SerialPort
-from atlasbuggy.datastreams.serialstream.logger import Logger
+from atlasbuggy.datastream import DataStream
+from atlasbuggy.serialstream.clock import Clock
+from atlasbuggy.serialstream.errors import *
+from atlasbuggy.serialstream.object import SerialObject
+from atlasbuggy.serialstream.port import SerialPort
+from atlasbuggy.serialstream.logger import Logger
 
 
 class SerialStream(DataStream):
     def __init__(self, name, *serial_objects, log=True, debug=False, log_name=None, log_dir=None):
         super(SerialStream, self).__init__(name, debug)
         self.log = log
-        self.logger = Logger(log_name, log_dir)
+        self.logger = Logger(self.name + " > Serial Logger", log_name, log_dir)
         if self.log:
             self.logger.open()
 
@@ -31,6 +31,11 @@ class SerialStream(DataStream):
         self.object_list = serial_objects
 
     def link_callback(self, arg, callback_fn):
+        """
+        :param arg: 
+        :param callback_fn: function that takes the parameters timestamp and packet
+        :return: 
+        """
         if type(arg) == str and arg in self.objects.keys():
             whoiam = arg
         elif isinstance(arg, SerialObject):

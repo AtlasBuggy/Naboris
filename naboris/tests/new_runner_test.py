@@ -1,11 +1,11 @@
 import asyncio
 from actuators import Actuators
-from atlasbuggy.datastreams.serialstream import SerialStream
-from atlasbuggy.datastreams.iostream.cmdline import CommandLine
+from atlasbuggy.serialstream import SerialStream
+from atlasbuggy.iostream.cmdline import CommandLine
 
 actuators = Actuators()
 serial = SerialStream(actuators, debug=True)
-cmdline = CommandLine(True)
+cmdline = CommandLine(True, False)
 
 
 loop = asyncio.get_event_loop()
@@ -14,13 +14,12 @@ cmdline.asyncio_loop = loop
 serial.start()
 cmdline.start()
 
+tasks = asyncio.gather(serial.run(), cmdline.run())
+
 try:
-    tasks = asyncio.gather(serial.run(), cmdline.run())
     loop.run_until_complete(tasks)
 except KeyboardInterrupt:
     tasks.cancel()
-    loop.run_forever()
-    tasks.exception()
 finally:
     loop.close()
 
