@@ -1,12 +1,13 @@
 import time
 import asyncio
-from threading import Event
+from threading import Thread, Event
 
 
 class DataStream:
-    def __init__(self, stream_name, debug):
+    def __init__(self, stream_name, enabled, debug, threaded):
         self.name = stream_name
         self.debug = debug
+        self.enabled = enabled
 
         self.timestamp = None
         self.packet = ""
@@ -16,18 +17,32 @@ class DataStream:
         self.started = Event()
         self.closed = Event()
 
-        self.streams = None
-        self.tasks = None
         self.asyncio_loop = None
+
+        self.threaded = threaded
+        if self.threaded:
+            self.thread = Thread(target=self.run)
+            self.thread.daemon = True
+        else:
+            self.thread = None
 
     def start(self):
         pass
 
+    def not_daemon(self):
+        if self.threaded:
+            self.thread.daemon = False
+
     def stream_start(self):
+        if not self.enabled:
+            return
         if not self.started.is_set():
             self.started.set()
             self.start_time = time.time()
-            return self.start()
+            self.start()
+
+            if self.threaded:
+                self.thread.start()
 
     def run(self):
         pass
@@ -47,6 +62,8 @@ class DataStream:
         pass
 
     def stream_close(self):
+        if not self.enabled:
+            return
         if not self.closed.is_set():
             self.closed.set()
             self.close()

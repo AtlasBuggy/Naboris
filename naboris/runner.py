@@ -1,11 +1,11 @@
 from naboris import Naboris, NaborisCLI
-from naboris_site import app
 from atlasbuggy.robot import Robot
 from atlasbuggy.uistream.website import Website
+import os
 
 naboris = Naboris()
 cmdline = NaborisCLI(naboris.actuators)
-website = Website("naboris website", False, app)
+website = Website("naboris website", os.getcwd() + "/templates")
 
 robot = Robot(naboris, cmdline, website)
 robot.run()

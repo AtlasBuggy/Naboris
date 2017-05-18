@@ -10,16 +10,17 @@ from atlasbuggy.serialstream.clock import Clock
 from atlasbuggy.serialstream.errors import *
 from atlasbuggy.serialstream.object import SerialObject
 from atlasbuggy.serialstream.port import SerialPort
-from atlasbuggy.serialstream.logger import Logger
+from atlasbuggy.serialstream.files import Logger
 
 
 class SerialStream(DataStream):
-    def __init__(self, name, *serial_objects, log=True, debug=False, log_name=None, log_dir=None):
-        super(SerialStream, self).__init__(name, debug)
+    def __init__(self, name, *serial_objects, enabled=True, log=True, debug=False, log_name=None, log_dir=None):
+        super(SerialStream, self).__init__(name, enabled, debug, False)
         self.log = log
         self.logger = Logger(self.name + " > Serial Logger", log_name, log_dir)
         if self.log:
             self.logger.open()
+            print("Writing log to:", self.logger.full_path)
 
         self.objects = {}
         self.ports = {}
@@ -32,9 +33,9 @@ class SerialStream(DataStream):
 
     def link_callback(self, arg, callback_fn):
         """
-        :param arg: 
+        :param arg:
         :param callback_fn: function that takes the parameters timestamp and packet
-        :return: 
+        :return:
         """
         if type(arg) == str and arg in self.objects.keys():
             whoiam = arg

@@ -59,7 +59,7 @@ Servo servo2;
 #define LED_SIGNAL_PIN 6
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_SIGNAL_PIN, NEO_GRB + NEO_KHZ800);
 uint32_t led_time = millis();
-bool cycle_paused = false;
+bool cycle_paused = true;
 
 uint16_t lower_V = 4800;
 uint16_t upper_V = 5000;

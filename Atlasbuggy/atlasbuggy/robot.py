@@ -9,8 +9,13 @@ class Robot:
         """
 
         self.streams = {}
+        self.threads = {}
         for stream in streams:
-            self.streams[stream.name] = stream
+            if stream.enabled:
+                if stream.threaded:
+                    self.threads[stream.name] = stream
+                else:
+                    self.streams[stream.name] = stream
         self.loop = asyncio.get_event_loop()
 
     def run(self):
@@ -19,8 +24,11 @@ class Robot:
         :return: None if ok, "error", "exit", or "done" if the program should exit
         """
         for stream in self.streams.values():
-            stream.asyncio_loop = self.loop
-            stream.streams = self.streams
+            if not stream.threaded:
+                stream.asyncio_loop = self.loop
+            stream.stream_start()
+
+        for stream in self.threads.values():
             stream.stream_start()
 
         tasks = asyncio.gather(*[stream.run() for stream in self.streams.values()])
