@@ -1,6 +1,5 @@
 from flask import Flask, render_template, Response, request
 from atlasbuggy.uistream.website import Website
-from camera_pi import Camera
 
 
 class NaborisWebsite(Website):
@@ -25,8 +24,7 @@ class NaborisWebsite(Website):
 
     def video_feed(self):
         """Video streaming route. Put this in the src attribute of an img tag."""
-        return Response(self.gen(),
-                        mimetype='multipart/x-mixed-replace; boundary=frame')
+        return Response(self.gen(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
     def set_lights(self, value):
         self.actuators.set_all_leds(value, value, value)

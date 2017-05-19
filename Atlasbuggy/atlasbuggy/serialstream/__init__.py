@@ -17,7 +17,7 @@ class SerialStream(DataStream):
     def __init__(self, name, *serial_objects, enabled=True, log=True, debug=False, log_name=None, log_dir=None):
         super(SerialStream, self).__init__(name, enabled, debug, False, True)
         self.log = log
-        self.logger = Logger(self.name + " > Serial Logger", log_name, log_dir)
+        self.logger = Logger("serial logger", log_name, log_dir)
         if self.log:
             self.logger.open()
             print("Writing log to:", self.logger.full_path)
@@ -31,6 +31,8 @@ class SerialStream(DataStream):
         self.loop_delay = 1 / self.loops_per_second
         self.clock = Clock(self.loops_per_second)
         self.object_list = serial_objects
+
+        self.init_objects(self.object_list)
 
     def link_callback(self, arg, callback_fn):
         """
@@ -177,26 +179,28 @@ class SerialStream(DataStream):
         for whoiam in self.objects.keys():
             first_packet = self.ports[whoiam].first_packet
             if len(first_packet) > 0:
-                # different cases for objects and object collections, pass to receive_first
-                if self.objects[whoiam].receive_first(first_packet) is not None:
-                    status = False
-
-                if not status:
-                    self.debug_print("Closing all from first_packets()")
-                    self.close()
-                    raise self.handle_error(
-                        RobotObjectReceiveError(
-                            "receive_first signalled to exit. whoiam ID: '%s'" % whoiam, first_packet),
-                        traceback.format_stack()
-                    )
+                self.deliver_first_packet(whoiam, first_packet)
 
                 # record first packets
                 self.record(None, whoiam, first_packet, "object")
         self.debug_print("First packets sent")
 
+    def deliver_first_packet(self, whoiam, first_packet):
+        try:
+            if self.objects[whoiam].receive_first(first_packet) is not None:
+                self.debug_print("Closing all from first_packets()")
+                self.close()
+                self.exit()
+        except BaseException as error:
+            self.close()
+            self.exit()
+            raise self.handle_error(
+                RobotObjectReceiveError(whoiam, first_packet),
+                traceback.format_stack()
+            )
+
     def start(self):
         self.clock.start(self.start_time)
-        self.init_objects(self.object_list)
         self.init_ports()
 
         self.first_packets()
@@ -205,8 +209,8 @@ class SerialStream(DataStream):
             if not robot_port.send_start():
                 self.close()
                 raise self.handle_error(
-                    RobotSerialPortWritePacketError("Unable to send start packet!", self.timestamp, self.packet,
-                                                    robot_port),
+                    RobotSerialPortWritePacketError(
+                        "Unable to send start packet!", self.timestamp, self.packet, robot_port),
                     traceback.format_stack()
                 )
 
@@ -218,7 +222,9 @@ class SerialStream(DataStream):
         try:
             self.serial_start()
         except BaseException as error:
+            self.close()
             self.exit()
+            raise self.handle_error(error, traceback.format_stack())
 
     def serial_start(self):
         pass
@@ -229,7 +235,7 @@ class SerialStream(DataStream):
             for port in self.ports.values():
                 self.check_port_packets(port)
 
-            self.update_recurring()
+            self.update_recurring(time.time())
             self.send_commands()
 
             # if no packets have been received for a while, update the timestamp with the current clock time
@@ -239,9 +245,9 @@ class SerialStream(DataStream):
             await asyncio.sleep(self.loop_delay)
             # self.clock.update()  # maintain a constant loop speed
 
-    def update_recurring(self):
+    def update_recurring(self, timestamp):
         for event in self.recurring:
-            event.update(time.time())
+            event.update(timestamp)
 
     def check_port_packets(self, port):
         with port.lock:
@@ -251,8 +257,8 @@ class SerialStream(DataStream):
                 self.timestamp, self.packet = port.packet_queue.get()
                 port.counter.value -= 1
 
-                self.received(port)
-                self.deliver(port)
+                self.deliver(port.whoiam)
+                self.received(port.whoiam)
 
                 self.record(self.timestamp, port.whoiam, self.packet, "object")
                 self.record_debug_prints(self.timestamp, port)
@@ -286,13 +292,13 @@ class SerialStream(DataStream):
                     traceback.format_stack()
                 )
 
-    def received(self, port):
+    def received(self, whoiam):
         try:
-            if port.whoiam in self.callbacks:
-                if self.callbacks[port.whoiam](self.timestamp, self.packet) is not None:
+            if whoiam in self.callbacks:
+                if self.callbacks[whoiam](self.timestamp, self.packet) is not None:
                     self.debug_print(
                         "callback with whoiam ID: '%s' signalled to exit. Packet: %s" % (
-                            port.whoiam, repr(self.packet)))
+                            whoiam, repr(self.packet)))
                     self.close()
         except BaseException as error:
             self.debug_print("Closing all from received")
@@ -302,19 +308,19 @@ class SerialStream(DataStream):
                 traceback.format_stack()
             )
 
-    def deliver(self, port):
+    def deliver(self, whoiam):
         try:
-            if self.objects[port.whoiam].receive(self.timestamp, self.packet) is not None:
+            if self.objects[whoiam].receive(self.timestamp, self.packet) is not None:
                 self.debug_print(
                     "receive for object signalled to exit. whoiam ID: '%s', packet: %s" % (
-                        port.whoiam, repr(self.packet)))
+                        whoiam, repr(self.packet)))
                 self.close()
 
         except BaseException as error:
             self.debug_print("Closing from deliver")
             self.close()
             raise self.handle_error(
-                RobotObjectReceiveError(port.whoiam, self.packet),
+                RobotObjectReceiveError(whoiam, self.packet),
                 traceback.format_stack()
             )
 
@@ -359,6 +365,7 @@ class SerialStream(DataStream):
             self.record(self.timestamp, error.__class__.__name__, error_message, "error")
 
         self.close_log()
+        return error
 
     def close_log(self):
         for port in self.ports.values():

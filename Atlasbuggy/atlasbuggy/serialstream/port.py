@@ -596,3 +596,9 @@ class SerialPort(Process):
         :return:
         """
         return self.exit_event.is_set()
+
+    def __str__(self):
+        return "%s(port_address=%s)" % (self.__class__.__name__, self.address)
+
+    def __repr__(self):
+        return self.__str__()

@@ -31,7 +31,7 @@ class Actuators(SerialObject):
             data = packet[1:].split('\t')
             self.value_V = int(data[0])
             self.percentage_V = int(data[1])
-            print("Battery: %s%%, %s mV" % (self.percentage_V, self.value_V))
+            # print("Battery: %s%%, %s mV" % (self.percentage_V, self.value_V))
 
     def drive(self, speed, angle):
         command = "p%d%03d%03d" % (int(-speed > 0), angle, abs(speed))

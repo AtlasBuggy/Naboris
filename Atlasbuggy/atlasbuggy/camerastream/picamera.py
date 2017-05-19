@@ -23,6 +23,7 @@ class PiCamera(DataStream):
     def run(self):
         with picamera.PiCamera() as camera:
             self.camera = camera
+            self.init_camera(self.camera)
 
             # let camera warm up
             camera.start_preview()

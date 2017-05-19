@@ -9,18 +9,15 @@ class Naboris(SerialStream):
         super(Naboris, self).__init__("naboris serial", self.actuators, log=log, enabled=enabled)
 
         self.link_callback(self.actuators, self.receive_actuators)
-        self.link_recurring(1, self.request_battery)
+        self.link_recurring(10, self.request_battery)
 
         self.sounds = SoundStream("sounds", "/home/pi/Music/Bastion/")
 
     def serial_start(self):
-        self.actuators.set_turret(90, 70)
-        self.actuators.set_turret(90, 90)
         self.actuators.set_all_leds(15, 15, 15)
-        self.actuators.set_battery(5000, 5140)
+        self.actuators.set_battery(5050, 5180)
 
     def receive_actuators(self, timestamp, packet):
-        # print(packet)
         pass
 
     def request_battery(self):

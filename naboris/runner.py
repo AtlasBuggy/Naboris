@@ -5,7 +5,7 @@ from naboris_cam import NaborisCam
 from atlasbuggy.robot import Robot
 import os
 
-naboris = Naboris()
+naboris = Naboris(log=True)
 camera = NaborisCam()
 cmdline = NaborisCLI(naboris.actuators, naboris.sounds)
 website = NaborisWebsite(os.getcwd() + "/templates", naboris.actuators, camera)

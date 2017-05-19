@@ -122,6 +122,7 @@ class Parser(BaseReadFile):
         self.start_index = start_index
         self.end_index = end_index
         self.index = 0  # current packet number (or line number)
+        self.finished = False
 
         if self.end_index == -1:
             self.end_index = len(self.contents)
@@ -139,6 +140,8 @@ class Parser(BaseReadFile):
             if line is not None:
                 packet_type, timestamp, whoiam, packet = line
                 return self.index - 1, packet_type, timestamp, whoiam, packet
+        else:
+            self.finished = True
         return None
 
     def parse_line(self):

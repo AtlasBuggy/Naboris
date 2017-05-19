@@ -24,7 +24,9 @@ class Robot:
             stream.asyncio_loop = self.loop
             stream.stream_start()
             if not stream.threaded and stream.asynchronous:
-                tasks.append(stream.run())
+                task = stream.run()
+                tasks.append(task)
+                stream.task = task
 
         tasks = asyncio.gather(*tasks)
 

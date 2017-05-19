@@ -16,9 +16,11 @@ class DataStream:
 
         self.started = Event()
         self.closed = Event()
+        self.exited = Event()
 
         self.asynchronous = asynchronous
         self.asyncio_loop = None
+        self.task = None
 
         self.threaded = threaded
         if self.threaded:
@@ -72,6 +74,11 @@ class DataStream:
             self.closed.set()
             self.close()
 
-    def exit(self):
-        for task in asyncio.Task.all_tasks():
-            task.cancel()
+    def exit(self, exit_all=True):
+        if exit_all:
+            self.exited.set()
+            for task in asyncio.Task.all_tasks():
+                task.cancel()
+        elif not self.exited.is_set():
+            self.exited.set()
+            self.task.cancel()
