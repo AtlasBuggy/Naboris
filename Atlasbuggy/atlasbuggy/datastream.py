@@ -12,7 +12,7 @@ class DataStream:
         self.timestamp = None
         self.packet = ""
 
-        self.start_time = 0.0
+        self.start_time = None
 
         self.started = Event()
         self.closed = Event()

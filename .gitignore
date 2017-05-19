@@ -116,10 +116,6 @@ videos
 videos/
 images
 images/
-tunes
-tunes/
-pickled
-pickled/
 __pycache__/
 
 # Xcode Project Files #
@@ -139,10 +135,4 @@ xcuserdata/
 .swp
 \.*
 \#*
-Arduino/Tutorial2_reference/atlasbuggy
-Robots/dummy_robot/atlasbuggy
-Robots/lidarturret/atlasbuggy
-Robots/rccar/atlasbuggy
-Robots/rccar/images
-Robots/rccar/videos
-Robots/roboquasar0.1/atlasbuggy
+

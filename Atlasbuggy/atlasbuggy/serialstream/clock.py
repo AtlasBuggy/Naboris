@@ -59,7 +59,7 @@ class Clock:
             return False
 
 
-class ReoccuringEvent:
+class RecurringEvent:
     def __init__(self, repeat_time, current_time, function, args):
         self.repeat_time = repeat_time
         self.function = function
@@ -74,19 +74,6 @@ class ReoccuringEvent:
             self.function(*self.args)
             self.prev_time = timestamp
 
-
-class DelayedEvent:
-    def __init__(self, delay_time, current_time, function, args):
-        self.delay_time = delay_time
-        self.function = function
-        self.prev_time = current_time
-        self.function_called = False
-        self.args = args
-
-    def update(self, timestamp):
-        if not self.function_called and timestamp - self.prev_time > self.delay_time:
-            self.function(*self.args)
-            self.function_called = True
 
 class CommandPause:
     def __init__(self, delay_time):

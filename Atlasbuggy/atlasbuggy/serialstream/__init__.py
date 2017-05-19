@@ -6,7 +6,7 @@ import traceback
 import serial.tools.list_ports
 
 from atlasbuggy.datastream import DataStream
-from atlasbuggy.serialstream.clock import Clock, CommandPause
+from atlasbuggy.serialstream.clock import Clock, CommandPause, RecurringEvent
 from atlasbuggy.serialstream.errors import *
 from atlasbuggy.serialstream.object import SerialObject
 from atlasbuggy.serialstream.port import SerialPort
@@ -25,6 +25,7 @@ class SerialStream(DataStream):
         self.objects = {}
         self.ports = {}
         self.callbacks = {}
+        self.recurring = []
 
         self.loops_per_second = 200
         self.loop_delay = 1 / self.loops_per_second
@@ -46,8 +47,14 @@ class SerialStream(DataStream):
                                                  repr(arg))
         self.callbacks[whoiam] = callback_fn
 
-    def link_reoccurring(self, delay, callback_fn, *args):
-        pass
+    def link_recurring(self, repeat_time, callback_fn, *args):
+        self.recurring.append(RecurringEvent(repeat_time, time.time(), callback_fn, args))
+
+    def dt(self):
+        if self.start_time is None:
+            return 0.0
+        else:
+            return time.time() - self.start_time
 
     def init_objects(self, serial_objects):
         for serial_object in serial_objects:
@@ -140,7 +147,7 @@ class SerialStream(DataStream):
         for whoiam in self.ports.keys():
             if whoiam not in self.objects.keys():
                 self.debug_print("Warning! Port ['%s', %s] is unused!" %
-                                  (self.ports[whoiam].address, whoiam), ignore_flag=True)
+                                 (self.ports[whoiam].address, whoiam), ignore_flag=True)
             else:
                 # only append port if its used. Ignore it otherwise
                 used_ports[whoiam] = self.ports[whoiam]
@@ -222,6 +229,7 @@ class SerialStream(DataStream):
             for port in self.ports.values():
                 self.check_port_packets(port)
 
+            self.update_recurring()
             self.send_commands()
 
             # if no packets have been received for a while, update the timestamp with the current clock time
@@ -230,6 +238,10 @@ class SerialStream(DataStream):
                 self.timestamp = current_real_time
             await asyncio.sleep(self.loop_delay)
             # self.clock.update()  # maintain a constant loop speed
+
+    def update_recurring(self):
+        for event in self.recurring:
+            event.update(time.time())
 
     def check_port_packets(self, port):
         with port.lock:
