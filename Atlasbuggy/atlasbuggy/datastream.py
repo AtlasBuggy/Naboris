@@ -4,7 +4,7 @@ from threading import Thread, Event
 
 
 class DataStream:
-    def __init__(self, stream_name, enabled, debug, threaded):
+    def __init__(self, stream_name, enabled, debug, threaded, asynchronous):
         self.name = stream_name
         self.debug = debug
         self.enabled = enabled
@@ -17,6 +17,7 @@ class DataStream:
         self.started = Event()
         self.closed = Event()
 
+        self.asynchronous = asynchronous
         self.asyncio_loop = None
 
         self.threaded = threaded
@@ -25,6 +26,9 @@ class DataStream:
             self.thread.daemon = True
         else:
             self.thread = None
+
+        # can't be threaded and asynchronous at the same time
+        assert not (self.threaded and self.asynchronous)
 
     def start(self):
         pass

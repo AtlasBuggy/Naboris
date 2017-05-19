@@ -87,3 +87,16 @@ class DelayedEvent:
         if not self.function_called and timestamp - self.prev_time > self.delay_time:
             self.function(*self.args)
             self.function_called = True
+
+class CommandPause:
+    def __init__(self, delay_time):
+        self.delay_time = delay_time
+        self.prev_time = 0  # set later on just after being dequeued
+        self.activated = False
+
+    def update(self, timestamp=None):
+        if timestamp is None:
+            timestamp = time.time()
+        if not self.activated and timestamp - self.prev_time > self.delay_time:
+            self.activated = True
+        return self.activated

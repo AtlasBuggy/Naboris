@@ -23,6 +23,7 @@ packet_types = {
     "object"         : "<",  # from a robot object
     "user"           : "|",  # user logged
     "command"        : ">",  # command sent
+    "pause command"  : "-",  # pause command
 
     "error"          : "!",  # printed error message
     "error continued": "[",  # error message continued on next line

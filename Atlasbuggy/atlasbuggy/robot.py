@@ -9,13 +9,9 @@ class Robot:
         """
 
         self.streams = {}
-        self.threads = {}
         for stream in streams:
             if stream.enabled:
-                if stream.threaded:
-                    self.threads[stream.name] = stream
-                else:
-                    self.streams[stream.name] = stream
+                self.streams[stream.name] = stream
         self.loop = asyncio.get_event_loop()
 
     def run(self):
@@ -23,15 +19,14 @@ class Robot:
         Events to be run when the interface starts (receive_first has been for all enabled robot objects)
         :return: None if ok, "error", "exit", or "done" if the program should exit
         """
+        tasks = []
         for stream in self.streams.values():
-            if not stream.threaded:
-                stream.asyncio_loop = self.loop
+            stream.asyncio_loop = self.loop
             stream.stream_start()
+            if not stream.threaded and stream.asynchronous:
+                tasks.append(stream.run())
 
-        for stream in self.threads.values():
-            stream.stream_start()
-
-        tasks = asyncio.gather(*[stream.run() for stream in self.streams.values()])
+        tasks = asyncio.gather(*tasks)
 
         try:
             self.loop.run_until_complete(tasks)

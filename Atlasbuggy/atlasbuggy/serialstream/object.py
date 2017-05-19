@@ -5,6 +5,7 @@ also defined on the microcontroller.
 """
 
 from multiprocessing import Queue
+from atlasbuggy.serialstream.clock import CommandPause
 
 
 class SerialObject:
@@ -25,6 +26,7 @@ class SerialObject:
         self.baud = baud  # set this if a different baud rate is desired
         self.is_live = None
         self.command_packets = Queue(maxsize=255)
+        self._pause_command = None
 
     def receive_first(self, packet):
         """
@@ -61,6 +63,14 @@ class SerialObject:
         """
         if self.enabled and self.is_live:
             self.command_packets.put(packet)
+
+    def pause(self, gap_time):
+        """
+        Non-blocking pause for sending commands. When the serial async loop encounters this,
+        it will keep checking back until the timer has expired then move to the next command for the object
+        """
+        if self.enabled and self.is_live:
+            self.command_packets.put(CommandPause(gap_time))
 
     def __str__(self):
         return "%s(whoiam=%s)\n\t" % (self.__class__.__name__, self.whoiam)

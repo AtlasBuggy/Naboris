@@ -51,7 +51,7 @@ class BaseFile(DataStream):
 
         ext_index = self.file_name.rfind(".")
         self.file_name_no_ext = self.file_name[:ext_index]
-        super(BaseFile, self).__init__("Base File > " + filestream_name, enabled, False, False)
+        super(BaseFile, self).__init__("Base File > " + filestream_name, enabled, False, False, False)
 
     def get_abs_dir(self, directory):
         """
@@ -76,10 +76,12 @@ class BaseFile(DataStream):
 
             # use the most recent folder
             return directories[-1]
+        elif directory[0] == "~":
+            raise NotADirectoryError("Can't use '~' to refer to home directory... Requires full or relative path")
+        elif directory[0] == "/":
+            return directory
         elif directory[0] != "/":
             return os.path.join(abs_default_dir, directory)
-        elif directory[0] == "/" and os.path.exists(directory):
-            return directory
         else:
             raise NotADirectoryError("Input directory not found! '%s'" % self.input_dir)
 
@@ -120,6 +122,8 @@ class BaseFile(DataStream):
 
             # use the last file
             return files[-1]
+        elif file_name == "":
+            return file_name
         else:
             result_name = file_name
             if not os.path.isdir(self.directory):

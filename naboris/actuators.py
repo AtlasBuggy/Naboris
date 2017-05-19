@@ -72,6 +72,9 @@ class Actuators(SerialObject):
     def look_up(self, azimuth=70):
         self.set_azimuth(azimuth)
 
+    def look_down(self, azimuth=100):
+        self.set_azimuth(azimuth)
+
     def look_left(self, yaw=110):
         self.set_yaw(yaw)
 

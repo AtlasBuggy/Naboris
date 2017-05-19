@@ -6,7 +6,7 @@ import traceback
 import serial.tools.list_ports
 
 from atlasbuggy.datastream import DataStream
-from atlasbuggy.serialstream.clock import Clock
+from atlasbuggy.serialstream.clock import Clock, CommandPause
 from atlasbuggy.serialstream.errors import *
 from atlasbuggy.serialstream.object import SerialObject
 from atlasbuggy.serialstream.port import SerialPort
@@ -15,7 +15,7 @@ from atlasbuggy.serialstream.files import Logger
 
 class SerialStream(DataStream):
     def __init__(self, name, *serial_objects, enabled=True, log=True, debug=False, log_name=None, log_dir=None):
-        super(SerialStream, self).__init__(name, enabled, debug, False)
+        super(SerialStream, self).__init__(name, enabled, debug, False, True)
         self.log = log
         self.logger = Logger(self.name + " > Serial Logger", log_name, log_dir)
         if self.log:
@@ -45,6 +45,9 @@ class SerialStream(DataStream):
             raise RobotObjectInitializationError("Linked callback input is an invalid whoiam ID or invalid object:",
                                                  repr(arg))
         self.callbacks[whoiam] = callback_fn
+
+    def link_reoccurring(self, delay, callback_fn, *args):
+        pass
 
     def init_objects(self, serial_objects):
         for serial_object in serial_objects:
@@ -184,7 +187,7 @@ class SerialStream(DataStream):
                 self.record(None, whoiam, first_packet, "object")
         self.debug_print("First packets sent")
 
-    def stream_start(self):
+    def start(self):
         self.clock.start(self.start_time)
         self.init_objects(self.object_list)
         self.init_ports()
@@ -205,6 +208,13 @@ class SerialStream(DataStream):
             robot_port.start()
 
         self.debug_print("SerialStream is starting")
+        try:
+            self.serial_start()
+        except BaseException as error:
+            self.exit()
+
+    def serial_start(self):
+        pass
 
     async def run(self):
         self.debug_print("SerialStream is running")
@@ -303,20 +313,31 @@ class SerialStream(DataStream):
         for whoiam in self.objects.keys():
             # loop through all commands and send them
             while not self.objects[whoiam].command_packets.empty():
+                if self.objects[whoiam]._pause_command is not None:
+                    if self.objects[whoiam]._pause_command.update():
+                        self.objects[whoiam]._pause_command = None
+                    else:
+                        break
+
                 command = self.objects[whoiam].command_packets.get()
 
-                # log sent command
-                self.record(self.timestamp, whoiam, command, "command")
+                if isinstance(command, CommandPause):
+                    self.objects[whoiam]._pause_command = command
+                    self.objects[whoiam]._pause_command.prev_time = time.time()
+                    self.record(self.timestamp, whoiam, str(command.delay_time), "pause command")
+                else:
+                    # log sent command.
+                    self.record(self.timestamp, whoiam, command, "command")
 
-                # if write packet fails, throw an error
-                if not self.ports[whoiam].write_packet(command):
-                    self.debug_print("Closing all from _send_commands")
-                    self.close()
-                    raise self.handle_error(
-                        RobotSerialPortWritePacketError(
-                            "Failed to send command %s to '%s'" % (command, whoiam), self.timestamp, self.packet,
-                            self.ports[whoiam]),
-                        traceback.format_stack())
+                    # if write packet fails, throw an error
+                    if not self.ports[whoiam].write_packet(command):
+                        self.debug_print("Closing all from _send_commands")
+                        self.close()
+                        raise self.handle_error(
+                            RobotSerialPortWritePacketError(
+                                "Failed to send command %s to '%s'" % (command, whoiam), self.timestamp, self.packet,
+                                self.ports[whoiam]),
+                            traceback.format_stack())
 
     def handle_error(self, error, traceback):
         if self.log:
@@ -377,12 +398,25 @@ class SerialStream(DataStream):
                     port), traceback.format_stack())
         self.debug_print("All ports exited")
 
-    def stream_close(self):
+    def close(self):
         """
         Close all SerialPort processes and close their serial ports
         """
+        error = None
+        try:
+            self.serial_close()
+        except BaseException as error:
+            self.handle_error(error, traceback.format_stack())
+
         self.send_commands()
         self.debug_print("Sent last commands")
         self.stop_all_ports()
         self.debug_print("Closed ports successfully")
         self.close_log()
+
+        if error is not None:
+            self.exit()
+            raise error
+
+    def serial_close(self):
+        pass

@@ -1,13 +1,15 @@
+import time
 from actuators import Actuators
 from atlasbuggy.serialstream import SerialStream
 from atlasbuggy.iostream.cmdline import CommandLine
 from flask import Flask, render_template, Response, request
 from camera_pi import Camera
 from atlasbuggy.uistream.website import Website
+from atlasbuggy.filestream.soundfiles import SoundStream
 
 class NaborisWebsite(Website):
-    def __init__(self, name, template_folder, actuators):
-        super(NaborisWebsite, self).__init__(name, template_folder)
+    def __init__(self, name, template_folder, actuators, enabled=True):
+        super(NaborisWebsite, self).__init__(name, template_folder, enabled)
 
         self.app.add_url_rule("/video_feed", view_func=self.video_feed)
         self.app.add_url_rule("/lights", view_func=self.lights, methods=['POST'])
@@ -41,9 +43,10 @@ class NaborisWebsite(Website):
 
 
 class NaborisCLI(CommandLine):
-    def __init__(self, actuators, enabled=True):
+    def __init__(self, actuators, sounds, enabled=True):
         super(NaborisCLI, self).__init__("cmdline", False, enabled)
         self.actuators = actuators
+        self.sounds = sounds
 
     def spin_left(self, params):
         value = int(params) if len(params) > 0 else 75
@@ -78,7 +81,7 @@ class NaborisCLI(CommandLine):
                 value = int(data[1])
                 self.actuators.look_up(value)
             else:
-                self.actuators.look_up(100)
+                self.actuators.look_down()
         elif data[0] == "up":
             if len(data) > 1:
                 value = int(data[1])
@@ -131,6 +134,34 @@ class NaborisCLI(CommandLine):
     def my_stop(self, params):
         self.actuators.stop()
 
+    def say_hello(self, params):
+        self.sounds.play("emotes/hello")
+        self.actuators.set_all_leds(0, 0, 15)
+        self.actuators.pause(0.1)
+        self.actuators.look_straight()
+        self.actuators.pause(0.1)
+        for _ in range(2):
+            self.actuators.look_up()
+            self.actuators.pause(0.1)
+            self.actuators.look_down()
+            self.actuators.pause(0.1)
+        self.actuators.look_straight()
+        self.actuators.set_all_leds(15, 15, 15)
+
+    def say_alert(self, params):
+        self.sounds.play("alert/high_alert")
+        self.actuators.set_all_leds(15, 0, 0)
+        self.actuators.pause(0.05)
+        self.actuators.look_straight()
+        for _ in range(3):
+            self.actuators.look_left()
+            self.actuators.pause(0.1)
+            self.actuators.look_right()
+            self.actuators.pause(0.1)
+        self.actuators.look_straight()
+        self.actuators.pause(0.1)
+        self.actuators.set_all_leds(15, 15, 15)
+
     def check_commands(self, line, **commands):
         function = None
         current_command = ""
@@ -156,7 +187,9 @@ class NaborisCLI(CommandLine):
             blue=self.blue,
             white=self.white,
             rgb=self.rgb,
-            battery=self.battery
+            battery=self.battery,
+            hello=self.say_hello,
+            alert=self.say_alert,
         )
 
 class Naboris(SerialStream):
@@ -166,7 +199,9 @@ class Naboris(SerialStream):
 
         self.link_callback(self.actuators, self.receive_actuators)
 
-    def start(self):
+        self.sounds = SoundStream("sounds", "/home/pi/Music/Bastion/")
+
+    def serial_start(self):
         self.actuators.set_turret(90, 70)
         self.actuators.set_turret(90, 90)
         self.actuators.set_all_leds(15, 15, 15)
@@ -178,6 +213,6 @@ class Naboris(SerialStream):
     def request_battery(self):
         self.actuators.ask_battery()
 
-    def close(self):
+    def serial_close(self):
         self.actuators.stop()
         self.actuators.release()

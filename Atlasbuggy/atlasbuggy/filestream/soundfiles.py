@@ -1,26 +1,106 @@
 import os
-import pygame
+import logging
+from subprocess import Popen, PIPE, DEVNULL
 
-pygame.mixer.init()
+from atlasbuggy.filestream import BaseFile
+
+logger = logging.getLogger(__name__)
 
 
-class TunePlayer:
-    def __init__(self):
-        self.directory = "tunes"
+class SoundStream(BaseFile):
+    def __init__(self, name, sound_directory, enabled=True):
+        super(SoundStream, self).__init__(name, "", sound_directory, ["wav", "ogg"], "", False, enabled)
+
         self.tunes = {}
-        for tune_name in os.listdir(self.directory):
-            if tune_name.endswith(".wav"):
-                self.tunes[tune_name] = pygame.mixer.Sound(os.path.join(self.directory, tune_name))
+        self.paths = {}
+        for dirpath, dirnames, filenames in os.walk(self.directory):
+            for tune_name in filenames:
+                if any([tune_name.endswith(file_type) for file_type in self.file_types]):
+                    ext_index = tune_name.rfind(".")
+                    name = os.path.join(dirpath[len(self.directory):], tune_name[:ext_index])
+                    full_path = os.path.join(self.directory, dirpath, tune_name)
+
+                    if os.path.isfile(full_path):
+                        self.paths[name] = full_path
+                    else:
+                        raise FileNotFoundError("Couldn't find the file: '%s'" % full_path)
 
     def play(self, tune_name):
-        self.tunes[tune_name + ".wav"].play()
+        if tune_name not in self.tunes:
+            self.tunes[tune_name] = Player(self.paths[tune_name])
+        self.tunes[tune_name].start()
 
-    def is_playing(self):
-        return pygame.mixer.get_busy()
+    @staticmethod
+    def is_playing():
+        return self.tunes[tune_name].is_running()
 
     def stop(self, tune_name):
-        self.tunes[tune_name + ".wav"].stop()
+        self.tunes[tune_name].stop()
 
     def stop_all(self):
         for tune_name in self.tunes.keys():
             self.tunes[tune_name].stop()
+
+class Player:
+    """
+    1       Increase Speed
+    2       Decrease Speed
+    j       Previous Audio stream
+    k       Next Audio stream
+    i       Previous Chapter
+    o       Next Chapter
+    n       Previous Subtitle stream
+    m       Next Subtitle stream
+    s       Toggle subtitles
+    q       Exit OMXPlayer
+    Space or p  Pause/Resume
+    -       Decrease Volume
+    +       Increase Volume
+    Left    Seek -30
+    Right   Seek +30
+    Down    Seek -600
+    Up      Seek +600"""
+
+    toggle_command = b'p'
+    quit_command = b'q'
+
+    def __init__(self, sound):
+       self.sound = sound
+       self.process = None
+       self.output = None
+
+    def start(self):
+        self.stop()
+        self.process = Popen(['omxplayer', self.sound], stdin=PIPE,
+                             stdout=DEVNULL, close_fds=True, bufsize=0)
+        self.output = None
+
+    def is_running(self):
+        if self.process is not None:
+            self.output = self.process.poll()
+
+        return self.output is None
+
+    def stop(self):
+        if not self.is_running():
+            self.process = None
+
+        if self.process is not None:
+            self.output = 0
+            try:
+               self.process.stdin.write(Player.quit_command) # send quit command
+               self.process.terminate()
+               self.process.wait() # -> move into background thread if necessary
+            except EnvironmentError as e:
+            #    logger.error("can't stop %s: %s", self.sound, e)
+                pass
+            else:
+               self.process = None
+
+    def toggle(self):
+        p = self.process
+        if p is not None:
+           try:
+               p.stdin.write(Player.toggle_command) # pause/unpause
+           except EnvironmentError as e:
+               logger.warning("can't toggle %s: %s", self.sound, e)

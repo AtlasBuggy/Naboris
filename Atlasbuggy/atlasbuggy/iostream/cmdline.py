@@ -6,7 +6,7 @@ import asyncio
 
 class CommandLine(DataStream):
     def __init__(self, name, debug, enabled=True, prompt_text=">> "):
-        super(CommandLine, self).__init__(name, enabled, debug, False)
+        super(CommandLine, self).__init__(name, enabled, debug, False, True)
         self.prompt_text = prompt_text
         self.queue = asyncio.Queue()
 
