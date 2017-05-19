@@ -4,8 +4,10 @@ from threading import Thread, Event
 
 
 class DataStream:
-    def __init__(self, stream_name, enabled, debug, threaded, asynchronous):
-        self.name = stream_name
+    def __init__(self, enabled, debug, threaded, asynchronous, debug_name=None):
+        if debug_name is None:
+            debug_name = self.__class__.__name__
+        self.name = debug_name
         self.debug = debug
         self.enabled = enabled
 

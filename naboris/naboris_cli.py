@@ -3,7 +3,7 @@ from atlasbuggy.iostream.cmdline import CommandLine
 
 class NaborisCLI(CommandLine):
     def __init__(self, actuators, sounds, enabled=True):
-        super(NaborisCLI, self).__init__("naboris cmdline", False, enabled)
+        super(NaborisCLI, self).__init__(False, enabled)
         self.actuators = actuators
         self.sounds = sounds
 

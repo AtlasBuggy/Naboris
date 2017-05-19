@@ -4,7 +4,7 @@ from atlasbuggy.uistream.website import Website
 
 class NaborisWebsite(Website):
     def __init__(self, template_folder, actuators, camera, enabled=True):
-        super(NaborisWebsite, self).__init__("naboris website", template_folder, enabled)
+        super(NaborisWebsite, self).__init__(template_folder, enabled)
 
         self.app.add_url_rule("/video_feed", view_func=self.video_feed)
         self.app.add_url_rule("/lights", view_func=self.lights, methods=['POST'])

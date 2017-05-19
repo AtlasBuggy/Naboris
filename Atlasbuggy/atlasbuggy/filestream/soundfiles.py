@@ -8,8 +8,9 @@ logger = logging.getLogger(__name__)
 
 
 class SoundStream(BaseFile):
-    def __init__(self, name, sound_directory, enabled=True):
-        super(SoundStream, self).__init__(name, "", sound_directory, ["wav", "ogg"], "", False, enabled)
+    def __init__(self, name, sound_directory, enabled=True, debug=False):
+        super(SoundStream, self).__init__("", sound_directory, ["wav", "ogg"], "", False, enabled, debug,
+                                          False, False)
 
         self.tunes = {}
         self.paths = {}
@@ -30,8 +31,7 @@ class SoundStream(BaseFile):
             self.tunes[tune_name] = Player(self.paths[tune_name])
         self.tunes[tune_name].start()
 
-    @staticmethod
-    def is_playing():
+    def is_playing(self, tune_name):
         return self.tunes[tune_name].is_running()
 
     def stop(self, tune_name):

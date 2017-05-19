@@ -1,23 +1,23 @@
+import asyncio
 import threading
 import time
-import asyncio
 import traceback
 
 import serial.tools.list_ports
 
 from atlasbuggy.datastream import DataStream
+from atlasbuggy.filestream.logger import Logger
 from atlasbuggy.serialstream.clock import Clock, CommandPause, RecurringEvent
 from atlasbuggy.serialstream.errors import *
 from atlasbuggy.serialstream.object import SerialObject
 from atlasbuggy.serialstream.port import SerialPort
-from atlasbuggy.serialstream.files import Logger
 
 
 class SerialStream(DataStream):
-    def __init__(self, name, *serial_objects, enabled=True, log=True, debug=False, log_name=None, log_dir=None):
-        super(SerialStream, self).__init__(name, enabled, debug, False, True)
+    def __init__(self, *serial_objects, enabled=True, log=True, debug=False, log_name=None, log_dir=None, name=None):
+        super(SerialStream, self).__init__(enabled, debug, False, True, name)
         self.log = log
-        self.logger = Logger("serial logger", log_name, log_dir)
+        self.logger = Logger(log_name, log_dir)
         if self.log:
             self.logger.open()
             print("Writing log to:", self.logger.full_path)
