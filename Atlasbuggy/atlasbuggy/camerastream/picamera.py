@@ -5,8 +5,8 @@ from atlasbuggy.datastream import DataStream
 
 
 class PiCamera(DataStream):
-    def __init__(self, name, enabled=True):
-        super(PiCamera, self).__init__(name, enabled, False, True, False)
+    def __init__(self, enabled=True, name=None):
+        super(PiCamera, self).__init__(enabled, False, True, False, name)
         self.paused = False
         self.camera = None
         self.frame = None

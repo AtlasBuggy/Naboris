@@ -7,7 +7,7 @@ class NaborisWebsite(Website):
     def __init__(self, template_folder, actuators, camera, cmdline, enabled=True):
         # website hosted under http://naboris:5000
         # check /etc/hosts for host names
-        super(NaborisWebsite, self).__init__("naboris website", template_folder, enabled)
+        super(NaborisWebsite, self).__init__(template_folder, enabled)
 
         # self.app.add_url_rule("/lights", view_func=self.lights, methods=['POST'])
         self.app.add_url_rule("/cmd", view_func=self.command_response, methods=['POST'])

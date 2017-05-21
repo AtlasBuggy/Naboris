@@ -1,4 +1,3 @@
-
 """
 Contains functions that return important project directories
 """
@@ -13,9 +12,45 @@ number_characters = set(string.digits)
 whitespace_characters = set(string.whitespace)
 compressed_file_type = "gzip"
 
+# logs file data separators (end markers)
+time_whoiam_sep = ":"  # timestamp
+whoiam_packet_sep = ";"  # data name
+
+# all data before this date may not work correctly with the current code
+log_file_type = "txt"
+log_dir = "logs"
+
+default_log_file_name = "%H;%M;%S"
+default_log_dir_name = "%Y_%b_%d"
+
+no_timestamp = "-"
+
+packet_types = {
+    "object"         : "<",  # from a robot object
+    "user"           : "|",  # user logged
+    "command"        : ">",  # command sent
+    "pause command"  : "-",  # pause command
+
+    "error"          : "!",  # printed error message
+    "error continued": "[",  # error message continued on next line
+    "error end"      : "]",  # error message ends
+
+    "debug"          : "?",  # printed debug message
+    "debug continued": "(",  # debug message continued on next line
+    "debug end"      : ")",  # debug message ends
+}
+
+
+def make_reversible(d):
+    d.update({v: k for k, v in d.items()})
+
+
+make_reversible(packet_types)
+
 
 class BaseFile(DataStream):
-    def __init__(self, filestream_name, input_name, input_dir, file_types, default_dir, compressed, enabled):
+    def __init__(self, input_name, input_dir, file_types, default_dir, compressed, enabled, debug,
+                 threaded, asynchronous):
         """
         :param input_name: name to search for
             can be part of the name. If the desired file is named
@@ -51,7 +86,7 @@ class BaseFile(DataStream):
 
         ext_index = self.file_name.rfind(".")
         self.file_name_no_ext = self.file_name[:ext_index]
-        super(BaseFile, self).__init__("Base File > " + filestream_name, enabled, False, False, False)
+        super(BaseFile, self).__init__(enabled, debug, threaded, asynchronous, self.file_name)
 
     def get_abs_dir(self, directory):
         """
@@ -172,7 +207,8 @@ class BaseFile(DataStream):
 
 
 class BaseWriteFile(BaseFile):
-    def __init__(self, filestream_name, input_name, input_dir, compress, file_types, default_dir, enabled, enable_dumping=True):
+    def __init__(self, input_name, input_dir, compress, file_types, default_dir, enabled, debug,
+                 threaded, asynchronous, enable_dumping=True):
         """
         :param input_name: name to search for
             can be part of the name. If the desired file is named
@@ -184,7 +220,8 @@ class BaseWriteFile(BaseFile):
         :param default_dir: default directory to search in
         """
         super(BaseWriteFile, self).__init__(
-            "Base Write File > " + filestream_name, input_name, input_dir, file_types, default_dir, compress, enabled
+            input_name, input_dir, file_types, default_dir, compress,
+            enabled, debug, threaded, asynchronous
         )
 
         # make directories if they don't exit
@@ -266,7 +303,8 @@ class BaseWriteFile(BaseFile):
 
 
 class BaseReadFile(BaseFile):
-    def __init__(self, filestream_name, input_name, input_dir, decompress, file_types, default_dir, enabled):
+    def __init__(self, input_name, input_dir, decompress, file_types, default_dir, enabled, debug,
+                 threaded, asynchronous):
         """
         File is opened when AtlasReadFile is initialized
 
@@ -280,12 +318,10 @@ class BaseReadFile(BaseFile):
         :param default_dir: default directory to search in
         """
         super(BaseReadFile, self).__init__(
-            "Base Read File > " + filestream_name, input_name, input_dir, file_types, default_dir, decompress, enabled
+            input_name, input_dir, file_types, default_dir, decompress,
+            enabled, debug, threaded, asynchronous
         )
         self.decompress = decompress
-
-    def stream_start(self):
-        self.open()
 
     def open(self):
         """

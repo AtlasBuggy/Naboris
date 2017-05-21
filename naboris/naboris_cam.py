@@ -3,7 +3,7 @@ from atlasbuggy.camerastream.picamera import PiCamera
 
 class NaborisCam(PiCamera):
     def __init__(self):
-        super(NaborisCam, self).__init__("naboris camera")
+        super(NaborisCam, self).__init__()
 
     def init_camera(self, camera):
         camera.resolution = (320, 240)

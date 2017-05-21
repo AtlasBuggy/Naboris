@@ -8,10 +8,10 @@ class Robot:
             atlasbuggy.robot.object.RobotObjectCollection
         """
 
-        self.streams = {}
+        self.streams = []
         for stream in streams:
             if stream.enabled:
-                self.streams[stream.name] = stream
+                self.streams.append(stream)
         self.loop = asyncio.get_event_loop()
 
     def run(self):
@@ -20,7 +20,7 @@ class Robot:
         :return: None if ok, "error", "exit", or "done" if the program should exit
         """
         tasks = []
-        for stream in self.streams.values():
+        for stream in self.streams:
             stream.asyncio_loop = self.loop
             stream.stream_start()
             if not stream.threaded and stream.asynchronous:
@@ -37,6 +37,6 @@ class Robot:
         except asyncio.CancelledError:
             pass
         finally:
-            for stream in self.streams.values():
+            for stream in self.streams:
                 stream.stream_close()
             self.loop.close()

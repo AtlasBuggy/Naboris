@@ -1,10 +1,10 @@
 import re
-from atlasbuggy.files.atlasbuggyfile import AtlasReadFile, AtlasWriteFile
+from atlasbuggy.filestream import BaseReadFile, BaseWriteFile
 
 
-class MapFile(AtlasReadFile):
+class MapFile(BaseReadFile):
     def __init__(self, map_name, map_dir=None):
-        super(MapFile, self).__init__(map_name, map_dir, False, "gpx", "maps")
+        super(MapFile, self).__init__(map_name, map_dir, False, "gpx", "maps", True, False, False, False)
 
         self.open()
 
@@ -38,9 +38,9 @@ class MapFile(AtlasReadFile):
         return len(self.map)
 
 
-class MapMaker(AtlasWriteFile):
+class MapMaker(BaseWriteFile):
     def __init__(self, map_name, map_dir=None):
-        super(MapMaker, self).__init__(map_name, map_dir, False, "gpx", "maps")
+        super(MapMaker, self).__init__(map_name, map_dir, False, "gpx", "maps", True, False, False, False, False)
 
         self.map_header = ("<?xml version=\"1.0\" encoding=\"ISO-8859-1\" standalone=\"no\" ?>\n"
                            "<gpx creator=\"Atlasbuggy GPX maker\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns=\"http://www.topografix.com/GPX/1/1\" version=\"1.1\" xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\">\n"
