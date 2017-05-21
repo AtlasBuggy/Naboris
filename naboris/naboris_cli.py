@@ -132,20 +132,21 @@ class NaborisCLI(CommandLine):
             function(line[len(current_command):].strip(" "))
 
     def handle_input(self, line):
-        self.check_commands(
-            line,
-            q=self.my_exit,
-            l=self.spin_left,
-            r=self.spin_right,
-            d=self.drive,
-            look=self.look,
-            s=self.my_stop,
-            red=self.red,
-            green=self.green,
-            blue=self.blue,
-            white=self.white,
-            rgb=self.rgb,
-            battery=self.battery,
-            hello=self.say_hello,
-            alert=self.say_alert,
-        )
+        if type(line) == str:
+            self.check_commands(
+                line,
+                q=self.my_exit,
+                l=self.spin_left,
+                r=self.spin_right,
+                d=self.drive,
+                look=self.look,
+                s=self.my_stop,
+                red=self.red,
+                green=self.green,
+                blue=self.blue,
+                white=self.white,
+                rgb=self.rgb,
+                battery=self.battery,
+                hello=self.say_hello,
+                alert=self.say_alert,
+            )
