@@ -1,136 +1,23 @@
 <html>
+<link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.png') }}" />
+<link rel='mask-icon' href="{{ url_for('static', filename='favicon.svg') }}" color='orange'>
+
 <head>
-    <title>Video Streaming Demonstration</title>
+    <title>Naboris</title>
 </head>
 <body>
     <h1>Naboris Console</h1>
     <!-- <img src="{{ url_for('video_feed') }}"> -->
     <img src="video_feed">
     {% for label, command in commands.items() %}
-    <button class="command command-{{ command }}" value="{{ command }}">
+    <!-- <button class="command command-{{ command }}" value="{{ command }}"> -->
+    <button class="command_button {{ command }}" value="{{ command }}">
         {{ label }}
     </button>
     {% endfor %}
 </body>
 
-<script>
-// Only run what comes next *after* the page has loaded
-addEventListener("DOMContentLoaded", function() {
-    // Grab all of the elements with a class of command
-    // (which all of the buttons we just created have)
-    var commandButtons = document.querySelectorAll(".command");
-
-    for (var i=0, l=commandButtons.length; i<l; i++)
-    {
-        var button = commandButtons[i];
-
-        // For each button, listen for the "click" event
-        button.addEventListener("click", function(e) {
-            // When a click happens, stop the button
-            // from submitting our form (if we have one)
-            e.preventDefault();
-
-            var clickedButton = e.target;
-            var command = clickedButton.value;
-
-            requestCommand(command);
-        });
-    }
-}, true);
-
-
-motors_moving = false;
-lights_on = false;
-
-document.onkeydown = checkKeyDown;
-document.onkeyup = checkKeyUp;
-
-function checkKeyDown(e) {
-    e = e || window.event;
-
-    if (e.keyCode == '38') {
-        // up arrow
-        requestCommand("d_0");
-        motors_moving = true;
-    }
-    else if (e.keyCode == '40') {
-        // down arrow
-        requestCommand("d_180");
-        motors_moving = true;
-    }
-    else if (e.keyCode == '37') {
-       // left arrow
-       requestCommand("l");
-       motors_moving = true;
-    }
-    else if (e.keyCode == '39') {
-       // right arrow
-       requestCommand("r");
-       motors_moving = true;
-    }
-    else if (e.keyCode == '87') {
-        // w
-       requestCommand("d_0");
-       motors_moving = true;
-    }
-    else if (e.keyCode == '83') {
-        // s
-       requestCommand("d_180");
-       motors_moving = true;
-    }
-    else if (e.keyCode == '68') {
-        // d
-       requestCommand("d_270_150");
-       motors_moving = true;
-    }
-    else if (e.keyCode == '65') {
-        // a
-       requestCommand("d_90_150");
-       motors_moving = true;
-    }
-    else if (e.keyCode == '76') {
-        // l
-        if (lights_on) {
-            requestCommand("white_15");
-        }
-        else {
-            requestCommand("white_255");
-        }
-        lights_on = !lights_on;
-    }
-}
-
-function checkKeyUp(e) {
-    e = e || window.event;
-
-    if (motors_moving) {
-        motors_moving = false;
-        requestCommand("s");
-    }
-}
-
-
-function requestCommand(command) {
-    // Now we need to send the data to our server
-    // without reloading the page - this is the domain of
-    // AJAX (Asynchronous JavaScript And XML)
-    // We will create a new request object
-    // and set up a handler for the response
-    var request = new XMLHttpRequest();
-
-    // request.onload = function() {
-    //     // We could do more interesting things with the response
-    //     // or, we could ignore it entirely
-    //     alert(request.responseText);
-    // };
-
-    // We point the request at the appropriate command
-    request.open("POST", "/cmd?command=" + command, true);
-
-    // and then we send it off
-    request.send();
-}
-
-</script>
+<script type=text/javascript src="{{ url_for('static', filename='naboris.js') }}"></script>
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
 
 </html>

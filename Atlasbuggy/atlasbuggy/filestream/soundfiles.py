@@ -31,6 +31,15 @@ class SoundStream(BaseFile):
             self.tunes[tune_name] = Player(self.paths[tune_name])
         self.tunes[tune_name].start()
 
+    def list_sounds(self, directory="."):
+        sounds = os.listdir(os.path.join(self.directory, directory))
+        result = []
+        for tune_name in sounds:
+            ext_index = tune_name.rfind(".")
+            result.append(os.path.join(directory, tune_name[:ext_index]))
+
+        return result
+
     def is_playing(self, tune_name):
         return self.tunes[tune_name].is_running()
 

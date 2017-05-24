@@ -8,7 +8,7 @@ import os
 naboris = Naboris(log=False)
 camera = NaborisCam()
 cmdline = NaborisCLI(naboris.actuators, naboris.sounds)
-website = NaborisWebsite(os.getcwd() + "/templates", naboris.actuators, camera, cmdline)
+website = NaborisWebsite(os.getcwd() + "/templates", os.getcwd() + "/static", naboris.actuators, camera, cmdline)
 
 robot = Robot(naboris, cmdline, website, camera)
 robot.run()

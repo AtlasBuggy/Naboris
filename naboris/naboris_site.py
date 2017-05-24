@@ -1,13 +1,17 @@
-from flask import Flask, render_template, Response, request
-from atlasbuggy.uistream.website import Website
 import time
+from flask import Flask, render_template, Response, request
+
+from atlasbuggy.uistream.website import Website
 
 
 class NaborisWebsite(Website):
-    def __init__(self, template_folder, actuators, camera, cmdline, enabled=True):
+    def __init__(self, template_folder, static_folder, actuators, camera, cmdline, enabled=True):
         # website hosted under http://naboris:5000
         # check /etc/hosts for host names
-        super(NaborisWebsite, self).__init__(template_folder, enabled)
+        super(NaborisWebsite, self).__init__(
+            dict(template_folder=template_folder, static_folder=static_folder),
+            enabled
+        )
 
         # self.app.add_url_rule("/lights", view_func=self.lights, methods=['POST'])
         self.app.add_url_rule("/cmd", view_func=self.command_response, methods=['POST'])
@@ -18,7 +22,8 @@ class NaborisWebsite(Website):
         self.cmdline = cmdline
 
         self.camera_paused = False
-        self.fps = 30
+        self.delay = 1.5 / float(self.camera.cam.framerate)
+        print("camera framerate:", self.camera.cam.framerate)
 
         self.commands = {
             "spin left": "l",
@@ -53,14 +58,15 @@ class NaborisWebsite(Website):
         """Video streaming generator function."""
         frame = None
         while True:
-            if self.camera_paused:
-                time.sleep(0.1)
-            else:
-                frame = self.camera.get_frame()
-                if frame is not None:
-                    yield (b'--frame\r\n'
-                           b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-                    time.sleep(1 / self.fps)
+            frame = self.camera.get_frame()
+            if frame is not None:
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+                if self.camera_paused:
+                    time.sleep(0.5)
+                else:
+                    time.sleep(self.delay)
 
     def video_feed(self):
         """Video streaming route. Put this in the src attribute of an img tag."""
