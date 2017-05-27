@@ -3,9 +3,9 @@ Contains the static plotter class. This class plots data retrieved from a log fi
 according to properties defined in RobotPlot.
 """
 
-from atlasbuggy.plotters.baseplotter import BasePlotter
-from atlasbuggy.plotters.plot import RobotPlot
-from atlasbuggy.plotters.collection import RobotPlotCollection
+from atlasbuggy.uistream.plotters.baseplotter import BasePlotter
+from atlasbuggy.uistream.plotters.plot import RobotPlot
+from atlasbuggy.uistream.plotters.collection import RobotPlotCollection
 
 
 class StaticPlotter(BasePlotter):
@@ -17,7 +17,7 @@ class StaticPlotter(BasePlotter):
         :param legend_args: dictionary of arguments to pass to plt.legend
         """
         super(StaticPlotter, self).__init__(
-            num_columns, legend_args, draw_legend, matplotlib_events, enabled, *robot_plots
+            num_columns, legend_args, draw_legend, matplotlib_events, enabled, False, *robot_plots
         )
 
         if self.enabled:
@@ -37,7 +37,7 @@ class StaticPlotter(BasePlotter):
                         for subplot in plot.plots:
                             self.lines[plot.name][subplot.name] = None
 
-    def close(self, block=True):
+    def start(self):
         """
         To be called in a simulator's close function after all data has been compiled.
         Call show once after all plots are done
@@ -75,4 +75,4 @@ class StaticPlotter(BasePlotter):
 
         self.init_legend()
 
-        self.plt.show(block=block)
+        self.plt.show()

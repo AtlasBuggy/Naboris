@@ -3,13 +3,15 @@ The base class shared by liveplotter and staticplotter. Contains properties shar
 """
 
 import numpy as np
-from atlasbuggy.plotters.plot import RobotPlot
-from atlasbuggy.plotters.collection import RobotPlotCollection
+from atlasbuggy.uistream.plotters.plot import RobotPlot
+from atlasbuggy.uistream.plotters.collection import RobotPlotCollection
+from atlasbuggy.datastream import DataStream
 
-class BasePlotter:
+
+class BasePlotter(DataStream):
     fig_num = 0
 
-    def __init__(self, num_columns, legend_args, draw_legend, matplotlib_events, enabled, *robot_plots):
+    def __init__(self, num_columns, legend_args, draw_legend, matplotlib_events, enabled, debug, asynchronous, *robot_plots):
         """
         A plotter is one matplotlib figure. Having multiple robot plots creates subplots
         :param num_columns: Configure how the subplots are arranged
@@ -20,12 +22,13 @@ class BasePlotter:
         :param enabled: enable or disable plot
         :param robot_plots: RobotPlot or RobotPlotCollection instances. Each one will be a subplot
         """
+        super(BasePlotter, self).__init__(enabled, debug, False, asynchronous)
+
         self.robot_plots = []
         for plot in robot_plots:
             if plot.enabled:  # only append plot if it is enabled
                 self.robot_plots.append(plot)
 
-        self.enabled = enabled
         if self.enabled:  # if plotter is enabled check if all the plots are enabled
             if len(self.robot_plots) == 0:
                 self.enabled = False
@@ -225,10 +228,3 @@ class BasePlotter:
                 self.lines[collection_name][plot_name].set(**kwargs)
             else:
                 self.lines[plot_name].set(**kwargs)
-
-    def plot(self):
-        """
-        Header method. Implemented in static and live plotter
-        :return: None, "error", "exit", or "done" depending on if the program should exit or not
-        """
-        pass

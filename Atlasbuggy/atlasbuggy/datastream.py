@@ -1,9 +1,10 @@
 import time
-import asyncio
 from threading import Thread, Event
 
 
 class DataStream:
+    all_exited = Event()
+
     def __init__(self, enabled, debug, threaded, asynchronous, debug_name=None):
         if debug_name is None:
             debug_name = self.__class__.__name__
@@ -23,6 +24,7 @@ class DataStream:
         self.asynchronous = asynchronous
         self.asyncio_loop = None
         self.task = None
+        self.coroutine = None
 
         self.threaded = threaded
         if self.threaded:
@@ -36,6 +38,9 @@ class DataStream:
 
     def start(self):
         pass
+
+    def are_others_running(self):
+        return not DataStream.all_exited.is_set()
 
     def not_daemon(self):
         if self.threaded:
@@ -53,6 +58,9 @@ class DataStream:
                 self.thread.start()
 
     def run(self):
+        pass
+
+    def update(self):
         pass
 
     def debug_print(self, *values, ignore_flag=False):
@@ -75,12 +83,10 @@ class DataStream:
         if not self.closed.is_set():
             self.closed.set()
             self.close()
+            DataStream.all_exited.set()
 
-    def exit(self, exit_all=True):
-        if exit_all:
+    def exit(self):
+        if not self.exited.is_set():
             self.exited.set()
-            for task in asyncio.Task.all_tasks():
-                task.cancel()
-        elif not self.exited.is_set():
-            self.exited.set()
-            self.task.cancel()
+            DataStream.all_exited.set()
+            self.coroutine.cancel()

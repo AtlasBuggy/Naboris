@@ -22,8 +22,8 @@ class NaborisWebsite(Website):
         self.cmdline = cmdline
 
         self.camera_paused = False
-        self.delay = 1.5 / float(self.camera.cam.framerate)
-        print("camera framerate:", self.camera.cam.framerate)
+        self.delay = 1.5 / float(self.camera.fps)
+        print("camera framerate:", self.camera.fps)
 
         self.commands = {
             "spin left": "l",
@@ -56,9 +56,8 @@ class NaborisWebsite(Website):
 
     def video(self):
         """Video streaming generator function."""
-        frame = None
         while True:
-            frame = self.camera.get_frame()
+            frame = self.camera.raw_frame
             if frame is not None:
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')

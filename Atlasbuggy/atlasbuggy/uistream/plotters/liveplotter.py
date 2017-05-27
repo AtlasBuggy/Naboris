@@ -5,10 +5,11 @@ according to properties defined in RobotPlot.
 
 import time
 import traceback
+import asyncio
 
-from atlasbuggy.plotters.baseplotter import BasePlotter
-from atlasbuggy.plotters.plot import RobotPlot
-from atlasbuggy.plotters.collection import RobotPlotCollection
+from atlasbuggy.uistream.plotters.baseplotter import BasePlotter
+from atlasbuggy.uistream.plotters.plot import RobotPlot
+from atlasbuggy.uistream.plotters.collection import RobotPlotCollection
 
 
 class LivePlotter(BasePlotter):
@@ -34,14 +35,14 @@ class LivePlotter(BasePlotter):
         LivePlotter.initialized = True
 
         super(LivePlotter, self).__init__(
-            num_columns, legend_args, draw_legend, matplotlib_events, enabled, *robot_plots
+            num_columns, legend_args, draw_legend, matplotlib_events, enabled, False, True, *robot_plots
         )
 
         self.time0 = None
         self.lag_cap = lag_cap
         self.plot_skip_count = skip_count
         self.skip_counter = 0
-        self.closed = False
+        self.is_closed = False
         self.is_paused = False
         self.active_window_resizing = active_window_resizing
 
@@ -107,68 +108,73 @@ class LivePlotter(BasePlotter):
             skip_status = True
         return lag_status and skip_status
 
-    def plot(self, timestamp=None, only_draw=False):
+    async def run(self):
         """
         Update plot using data supplied to the robot plot objects
         :return: True or False if the plotting operation was successful
         """
 
-        if self.closed:
-            return "exit"
+        while True:
+            if self.is_closed:
+                self.exit()
+                return
 
-        if not self.enabled or not self.should_update(timestamp):
-            return
+            if not self.enabled: #or not self.should_update(timestamp):
+                continue
 
-        if self.is_paused:
-            self.plt.pause(0.05)
-            return
+            if self.is_paused:
+                self.plt.pause(0.005)
+                await asyncio.sleep(0.05)
+                continue
 
-        for plot in self.robot_plots:
-            if isinstance(plot, RobotPlot):
-                self.lines[plot.name].set_xdata(plot.data[0])
-                self.lines[plot.name].set_ydata(plot.data[1])
-                if not plot.flat:
-                    self.lines[plot.name].set_3d_properties(plot.data[2])
-
-                if len(plot.changed_properties) > 0:
-                    self.lines[plot.name].set(**plot.changed_properties)
-                    plot.changed_properties = {}
-
-            elif isinstance(plot, RobotPlotCollection):
-                for subplot in plot.plots:
-                    # print(subplot.name, subplot.data[0][-1], subplot.data[1][-1])
-                    self.lines[plot.name][subplot.name].set_xdata(subplot.data[0])
-                    self.lines[plot.name][subplot.name].set_ydata(subplot.data[1])
+            for plot in self.robot_plots:
+                if isinstance(plot, RobotPlot):
+                    self.lines[plot.name].set_xdata(plot.data[0])
+                    self.lines[plot.name].set_ydata(plot.data[1])
                     if not plot.flat:
-                        self.lines[plot.name][subplot.name].set_3d_properties(subplot.data[2])
+                        self.lines[plot.name].set_3d_properties(plot.data[2])
 
-                    if len(subplot.changed_properties) > 0:
-                        self.lines[plot.name][subplot.name].set(**subplot.changed_properties)
-                        subplot.changed_properties = {}
+                    if len(plot.changed_properties) > 0:
+                        self.lines[plot.name].set(**plot.changed_properties)
+                        plot.changed_properties = {}
 
-            else:
-                return "exit"
+                elif isinstance(plot, RobotPlotCollection):
+                    for subplot in plot.plots:
+                        # print(subplot.name, subplot.data[0][-1], subplot.data[1][-1])
+                        self.lines[plot.name][subplot.name].set_xdata(subplot.data[0])
+                        self.lines[plot.name][subplot.name].set_ydata(subplot.data[1])
+                        if not plot.flat:
+                            self.lines[plot.name][subplot.name].set_3d_properties(subplot.data[2])
 
-            if self.active_window_resizing and plot.window_resizing:
-                if plot.flat:
-                    # print(plot.x_range, end=", ")
-                    # print(plot.y_range)
-                    self.axes[plot.name].set_xlim(plot.x_range)
-                    self.axes[plot.name].set_ylim(plot.y_range)
+                        if len(subplot.changed_properties) > 0:
+                            self.lines[plot.name][subplot.name].set(**subplot.changed_properties)
+                            subplot.changed_properties = {}
+
                 else:
-                    self.axes[plot.name].set_xlim3d(plot.x_range)
-                    self.axes[plot.name].set_ylim3d(plot.y_range)
-                    self.axes[plot.name].set_zlim3d(plot.z_range)
+                    self.exit()
+                    return
 
-        try:
-            self.fig.canvas.draw()
-            self.plt.pause(0.005)  # can't be less than ~0.005
+                if self.active_window_resizing and plot.window_resizing:
+                    if plot.flat:
+                        # print(plot.x_range, end=", ")
+                        # print(plot.y_range)
+                        self.axes[plot.name].set_xlim(plot.x_range)
+                        self.axes[plot.name].set_ylim(plot.y_range)
+                    else:
+                        self.axes[plot.name].set_xlim3d(plot.x_range)
+                        self.axes[plot.name].set_ylim3d(plot.y_range)
+                        self.axes[plot.name].set_zlim3d(plot.z_range)
 
-        except BaseException as error:
-            traceback.print_exc()
+            try:
+                self.fig.canvas.draw()
+                self.plt.pause(0.005)  # can't be less than ~0.005
+                await asyncio.sleep(0.005)
 
-            self.close()
-            return "error"
+            except BaseException as error:
+                traceback.print_exc()
+
+                self.close()
+                self.exit()
 
     def pause(self):
         self.is_paused = True
@@ -192,8 +198,8 @@ class LivePlotter(BasePlotter):
         """
         Close the plot safely
         """
-        if self.enabled and not self.closed:
-            self.closed = True
+        if self.enabled and not self.is_closed:
+            self.is_closed = True
             self.plt.ioff()
             self.plt.gcf()
             self.plt.close('all')

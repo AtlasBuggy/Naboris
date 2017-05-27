@@ -22,18 +22,22 @@ class Robot:
         tasks = []
         for stream in self.streams:
             stream.asyncio_loop = self.loop
-            stream.stream_start()
             if not stream.threaded and stream.asynchronous:
                 task = stream.run()
                 tasks.append(task)
                 stream.task = task
 
-        tasks = asyncio.gather(*tasks)
+        coroutine = asyncio.gather(*tasks)
+        for stream in self.streams:
+            stream.coroutine = coroutine
 
         try:
-            self.loop.run_until_complete(tasks)
+            for stream in self.streams:
+                stream.stream_start()
+
+            self.loop.run_until_complete(coroutine)
         except KeyboardInterrupt:
-            tasks.cancel()
+            coroutine.cancel()
         except asyncio.CancelledError:
             pass
         finally:
