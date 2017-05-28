@@ -1,10 +1,8 @@
 import os
-import logging
 from subprocess import Popen, PIPE, DEVNULL
 
 from atlasbuggy.filestream import BaseFile
 
-logger = logging.getLogger(__name__)
 
 
 class SoundStream(BaseFile):
@@ -50,6 +48,7 @@ class SoundStream(BaseFile):
         for tune_name in self.tunes.keys():
             self.tunes[tune_name].stop()
 
+
 class Player:
     """
     1       Increase Speed
@@ -74,9 +73,9 @@ class Player:
     quit_command = b'q'
 
     def __init__(self, sound):
-       self.sound = sound
-       self.process = None
-       self.output = None
+        self.sound = sound
+        self.process = None
+        self.output = None
 
     def start(self):
         self.stop()
@@ -97,19 +96,19 @@ class Player:
         if self.process is not None:
             self.output = 0
             try:
-               self.process.stdin.write(Player.quit_command) # send quit command
-               self.process.terminate()
-               self.process.wait() # -> move into background thread if necessary
+                self.process.stdin.write(Player.quit_command)  # send quit command
+                self.process.terminate()
+                self.process.wait()  # -> move into background thread if necessary
             except EnvironmentError as e:
-            #    logger.error("can't stop %s: %s", self.sound, e)
+                #    logger.error("can't stop %s: %s", self.sound, e)
                 pass
             else:
-               self.process = None
+                self.process = None
 
     def toggle(self):
         p = self.process
         if p is not None:
-           try:
-               p.stdin.write(Player.toggle_command) # pause/unpause
-           except EnvironmentError as e:
-               logger.warning("can't toggle %s: %s", self.sound, e)
+            try:
+                p.stdin.write(Player.toggle_command)  # pause/unpause
+            except EnvironmentError as e:
+                print("can't toggle %s: %s", self.sound, e)

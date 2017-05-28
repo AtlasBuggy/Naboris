@@ -24,8 +24,8 @@ cam_plot_2 = RobotPlot("cam data 2")
 plotter = LivePlotter(2, cam_plot_1, cam_plot_2)
 
 if with_video:
-    capture = VideoPlayer("00_03_26rightcam.mp4",
-                         "/home/pi/Naboris/naboris/")
+    capture = VideoPlayer("21_52_42.h264",
+                         "naboris/2017_May_27")
     viewer = CameraViewer(capture, slider_ticks=capture.slider_ticks)
     capture.link_slider(viewer.slider_name)
 else:

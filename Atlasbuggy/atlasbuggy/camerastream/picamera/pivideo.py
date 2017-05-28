@@ -1,4 +1,41 @@
+from subprocess import Popen, PIPE, DEVNULL
 from atlasbuggy.filestream import BaseFile, default_video_name, default_log_dir_name
+
+
+class H264toMP4converter:
+    def __init__(self, full_path):
+        self.full_path = full_path
+
+        ext_index = self.full_path.rfind(".")
+        self.new_path = self.full_path[:ext_index] + ".mp4"
+        self.process = None
+        self.output = None
+
+    def start(self):
+        self.stop()
+        self.process = Popen(['MP4Box', '-add', self.full_path, self.new_path], stdin=PIPE,
+                             stdout=DEVNULL, close_fds=True, bufsize=0)
+        self.output = None
+
+    def is_running(self):
+        if self.process is not None:
+            self.output = self.process.poll()
+
+        return self.output is None
+
+    def stop(self):
+        if not self.is_running():
+            self.process = None
+
+        if self.process is not None:
+            self.output = 0
+            try:
+                self.process.terminate()
+                self.process.wait()  # -> move into background thread if necessary
+            except EnvironmentError as e:
+                print("can't stop %s: %s", self.full_path, e)
+            else:
+                self.process = None
 
 
 class PiVideoRecorder(BaseFile):
@@ -24,3 +61,5 @@ class PiVideoRecorder(BaseFile):
         if self.recording:
             self.capture.stop_recording()
             self.recording = False
+            converter = H264toMP4converter(self.full_path)
+            converter.start()
