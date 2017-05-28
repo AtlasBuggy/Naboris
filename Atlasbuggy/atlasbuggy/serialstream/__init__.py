@@ -6,7 +6,6 @@ import traceback
 import serial.tools.list_ports
 
 from atlasbuggy.datastream import DataStream
-from atlasbuggy.filestream.logger import Logger
 from atlasbuggy.serialstream.clock import Clock, CommandPause, RecurringEvent
 from atlasbuggy.serialstream.errors import *
 from atlasbuggy.serialstream.object import SerialObject
@@ -14,12 +13,11 @@ from atlasbuggy.serialstream.port import SerialPort
 
 
 class SerialStream(DataStream):
-    def __init__(self, *serial_objects, enabled=True, log=True, debug=False, log_name=None, log_dir=None, name=None):
+    def __init__(self, *serial_objects, enabled=True, logger=None, debug=False, name=None):
         super(SerialStream, self).__init__(enabled, debug, False, True, name)
-        self.log = log
-        self.logger = Logger(log_name, log_dir)
+        self.logger = logger
+        self.log = self.logger is not None and self.logger.enabled
         if self.log:
-            self.logger.open()
             print("Writing log to:", self.logger.full_path)
 
         self.objects = {}

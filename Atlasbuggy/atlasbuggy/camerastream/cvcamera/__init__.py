@@ -1,4 +1,3 @@
-import os
 import cv2
 import time
 from atlasbuggy import get_platform
@@ -13,13 +12,10 @@ class CvCamera(CameraStream):
     max_cap_num = None
 
     def __init__(self, width=None, height=None, capture_number=None,
-                 enabled=True, debug=False, name=None, skip_count=0):
-        super(CvCamera, self).__init__(enabled, debug, True, False, name)
+                 enabled=True, debug=False, name=None, skip_count=0, logger=None, video_recorder=None):
+        super(CvCamera, self).__init__(enabled, debug, True, False, name, logger, video_recorder)
 
         self.capture_number = capture_number
-
-        self.recorder = None
-        self.is_recording = False
 
         self.width = width
         self.height = height
@@ -55,16 +51,14 @@ class CvCamera(CameraStream):
     def update_key_codes(self, **new_key_codes):
         self.key_codes.update(new_key_codes)
 
-    def launch_camera(self):
+    def start(self):
         if not self.enabled:
-            return None
+            return
 
         if self.capture_number is None:
             capture, height, width = self.launch_selector()
-            if type(capture) == str:
-                raise FileNotFoundError(capture)
             if capture is None:
-                return "exit"
+                raise FileNotFoundError(capture)
             self.capture = capture
         else:
             self.capture = self.load_capture(self.capture_number)
@@ -86,6 +80,9 @@ class CvCamera(CameraStream):
                 self.resize_frame = True
         else:
             self.width = width
+
+        self.fps = self.capture.get(cv2.CAP_PROP_FPS)
+        self.recorder.start_recording(self)
 
     def launch_selector(self):
         selector_window_name = "Select camera for: " + self.name
@@ -120,7 +117,7 @@ class CvCamera(CameraStream):
                 current_num -= 1
                 if current_num < CvCamera.min_cap_num:
                     current_num = CvCamera.min_cap_num
-                    print("Camera failed to load! Camera number lower limit:", current_num)
+                    self.debug_print("Camera failed to load! Camera number lower limit:", current_num)
                     continue
                 while current_num in CvCamera.used_captures:
                     current_num -= 1
@@ -130,7 +127,7 @@ class CvCamera(CameraStream):
             elif key == "right":
                 current_num += 1
                 if CvCamera.max_cap_num is not None and current_num > CvCamera.max_cap_num:
-                    print("Camera failed to load! Camera number upper limit:", current_num)
+                    self.debug_print("Camera failed to load! Camera number upper limit:", current_num)
                     current_num = CvCamera.max_cap_num
                     continue
 
@@ -142,7 +139,7 @@ class CvCamera(CameraStream):
                     success, frame = current_capture.read()
                     cv2.imshow(selector_window_name, frame)
                 except cv2.error:
-                    print("Camera failed to load! Camera number upper limit:", current_num)
+                    self.debug_print("Camera failed to load! Camera number upper limit:", current_num)
                     if current_num in CvCamera.captures:
                         current_capture.release()
                         del CvCamera.captures[current_num]
@@ -153,7 +150,7 @@ class CvCamera(CameraStream):
             elif key == "\n" or key == "\r":
                 selected_capture = current_capture
                 CvCamera.used_captures.add(current_num)
-                print("Using capture #%s for %s" % (current_num, self.name))
+                self.debug_print("Using capture #%s for %s" % (current_num, self.name))
 
             elif key == 'q':
                 selected_capture = None
@@ -167,9 +164,8 @@ class CvCamera(CameraStream):
 
     def load_capture(self, arg):
         if arg not in CvCamera.captures:
-            print("Loading capture '%s'..." % arg, end="")
+            self.debug_print("Loading capture '%s'" % arg)
             CvCamera.captures[arg] = cv2.VideoCapture(arg)
-            print("done")
         return CvCamera.captures[arg]
 
     def key_pressed(self, delay=1):
@@ -182,30 +178,18 @@ class CvCamera(CameraStream):
             elif 0 <= key < 0x100:
                 self.key = chr(key)
             else:
-                print(("Unrecognized key: " + str(key)))
+                self.debug_print("Unrecognized key: " + str(key))
         else:
             self.key = key
 
         return self.key
 
-    def start_recording(self, file_name=None, directory=None, **options):
-        if self.running:
-            self.recorder = CvVideoRecorder(file_name, directory, self.width, self.height)
-            self.recorder.start()
-            self.is_recording = True
-        else:
-            raise FileNotFoundError("Camera hasn't started running yet!")
-
-    def stop_recording(self):
-        if self.is_recording:
-            self.recorder.close()
-
-    def start(self):
-        self.launch_camera()
-
     def run(self):
+        self.running = True
+
         while self.are_others_running():
             success, self.frame = self.capture.read()
+
             if not success:
                 self.exit()
                 raise EOFError("Failed to read the frame")
@@ -213,15 +197,12 @@ class CvCamera(CameraStream):
             if self.resize_frame and self.frame.shape[0:2] != (self.height, self.width):
                 self.frame = cv2.resize(self.frame, (self.width, self.height))
 
-            if self.is_recording and self.logger is not None:
-                self.logger.record(time.time(), self.name, str(self.num_frames))
+            self.log_frame()
 
             self.poll_for_fps()
-
-            if self.is_recording:
-                self.recorder.write(self.frame, self.fps)
-
+            self.recorder.record(self.frame)
             self.update()
+        self.recorder.stop_recording()
 
     def update(self):
         pass
@@ -236,14 +217,11 @@ class CvCamera(CameraStream):
         self.fps_sum += self.fps
         self.num_frames += 1
         self.fps_avg = self.fps_sum / self.num_frames
-
         self.prev_t = time.time()
 
     def close(self):
         for cap_name, capture in CvCamera.captures.items():
             capture.release()
+        self.recorder.stop_recording()
         CvCamera.captures = {}
-
-        self.stop_recording()
-
         cv2.destroyWindow(self.name)

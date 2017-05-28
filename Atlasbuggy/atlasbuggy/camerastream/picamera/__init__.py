@@ -8,8 +8,8 @@ from atlasbuggy.camerastream.picamera.pivideo import PiVideoRecorder
 
 
 class PiCamera(CameraStream):
-    def __init__(self, enabled=True, name=None, logger=None):
-        super(PiCamera, self).__init__(enabled, False, True, False, name, logger)
+    def __init__(self, enabled=True, name=None, logger=None, video_recorder=None):
+        super(PiCamera, self).__init__(enabled, False, True, False, name, logger, video_recorder)
         self.capture = picamera.PiCamera()
         self.init_cam(self.capture)
 
@@ -18,24 +18,9 @@ class PiCamera(CameraStream):
         self.fps = self.capture.framerate
 
         self.raw_frame = None
-        self.recorder = None
-        self.is_recording = False
 
     def init_cam(self, camera):
         pass
-
-    def start_recording(self, file_name=None, directory=None, **options):
-        self.is_recording = True
-        if file_name is None:
-            file_name = self.logger.input_name.replace(";", "_") + ".mp4"
-        if directory is None:
-            directory = self.logger.input_dir
-
-        self.recorder = PiVideoRecorder(file_name, directory, self.capture, options)
-
-    def stop_recording(self):
-        if self.is_recording:
-            self.recorder.close()
 
     def update(self):
         pass
@@ -46,12 +31,10 @@ class PiCamera(CameraStream):
             self.capture.start_preview()
             time.sleep(2)
 
+            self.recorder.start_recording(self.capture)
+            stream = io.BytesIO()
             self.running = True
 
-            if self.is_recording:
-                self.recorder.start()
-
-            stream = io.BytesIO()
             for _ in self.capture.capture_continuous(stream, 'jpeg', use_video_port=True):
                 # store frame
                 stream.seek(0)
@@ -61,9 +44,7 @@ class PiCamera(CameraStream):
                 # ).reshape(self.height, self.width)
                 # self.frame = cv2.imdecode(np.fromstring(self.raw_frame, dtype=np.uint8), 1)
 
-                if self.is_recording and self.logger is not None:
-                    self.logger.record(time.time(), self.name, str(self.num_frames))
-
+                self.log_frame()
                 self.num_frames += 1
 
                 # reset stream for next frame
@@ -71,9 +52,6 @@ class PiCamera(CameraStream):
                 stream.truncate()
 
                 self.update()
-
-                # if there hasn't been any clients asking for frames in
-                # the last 10 seconds stop the thread
 
                 while self.paused:
                     time.sleep(0.1)
@@ -83,4 +61,4 @@ class PiCamera(CameraStream):
 
     def close(self):
         # self.capture.stop_preview()  # picamera complains when this is called while recording
-        self.stop_recording()
+        self.recorder.stop_recording()

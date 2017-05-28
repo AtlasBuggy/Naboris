@@ -8,7 +8,7 @@ from atlasbuggy.filestream import *
 class Logger(BaseWriteFile):
     """A class for recording data from a robot to a logs file"""
 
-    def __init__(self, file_name=None, directory=None):
+    def __init__(self, file_name=None, directory=None, enabled=True):
         """
         :param file_name: If None, the current time is used (hh;mm;ss)
         :param directory: If None, today's date is used (YYYY_Mmm_DD).
@@ -18,12 +18,14 @@ class Logger(BaseWriteFile):
         file_name, directory = self.format_path_as_time(
             file_name, directory, default_log_file_name, default_log_dir_name
         )
-        super(Logger, self).__init__(file_name, directory, True, log_file_type, log_dir, True, False,
+        super(Logger, self).__init__(file_name, directory, True, log_file_type, log_dir, enabled, False,
                                      False, False,
                                      enable_dumping=False)
         self.make_dir()
 
         self.line_code = (("%s" * 6) + "\n")
+
+        self.open()
 
     def record(self, timestamp, whoiam, packet, packet_type="user"):
         """

@@ -3,19 +3,25 @@ import asyncio
 
 
 class Robot:
-    def __init__(self, *streams):
+    def __init__(self, *streams, setup_fn=None, loop_fn=None):
         """
         :param robot_objects: instances of atlasbuggy.robot.object.RobotObject or
             atlasbuggy.robot.object.RobotObjectCollection
         """
 
         self.streams = []
+        self.loop_fn = loop_fn
+        self.setup_fn = setup_fn
         for stream in streams:
             if stream.enabled:
                 self.streams.append(stream)
         self.loop = asyncio.get_event_loop()
 
-    def run(self):
+    @staticmethod
+    def run(*streams, setup_fn=None, loop_fn=None):
+        Robot(*streams, setup_fn=setup_fn, loop_fn=loop_fn)._run()
+
+    def _run(self):
         """
         Events to be run when the interface starts (receive_first has been for all enabled robot objects)
         :return: None if ok, "error", "exit", or "done" if the program should exit
@@ -28,6 +34,9 @@ class Robot:
                 tasks.append(task)
                 stream.task = task
 
+        if self.loop_fn is not None:
+            tasks.append(self.loop_fn(self))
+
         coroutine = asyncio.gather(*tasks)
         for stream in self.streams:
             stream.coroutine = coroutine
@@ -35,6 +44,9 @@ class Robot:
         try:
             for stream in self.streams:
                 stream.stream_start()
+
+            if self.setup_fn is not None:
+                self.setup_fn(self)
 
             self.loop.run_until_complete(coroutine)
         except KeyboardInterrupt:

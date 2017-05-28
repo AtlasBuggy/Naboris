@@ -21,7 +21,7 @@ log_file_type = "txt"
 log_dir = "logs"
 
 default_log_file_name = "%H;%M;%S"
-default_video_name = "%H_%M_%S"
+default_video_name = "%H_%M_%S.mp4"
 default_log_dir_name = "%Y_%b_%d"
 
 no_timestamp = "-"
@@ -203,10 +203,11 @@ class BaseFile(DataStream):
             file_name = time.strftime(file_time_format)
         if directory is None:
             directory = time.strftime(dir_time_format)
-        elif type(directory) == tuple and None in directory:
+        elif type(directory) == tuple:
             directory = list(directory)
-            none_index = directory.index(None)
-            directory[none_index] = time.strftime(dir_time_format)
+            if None in directory:
+                none_index = directory.index(None)
+                directory[none_index] = time.strftime(dir_time_format)
 
             for index, sub_dir in enumerate(directory):
                 directory[index] = sub_dir.strip("/")

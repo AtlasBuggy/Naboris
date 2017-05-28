@@ -39,7 +39,8 @@ class DataStream:
     def start(self):
         pass
 
-    def are_others_running(self):
+    @staticmethod
+    def are_others_running():
         return not DataStream.all_exited.is_set()
 
     def not_daemon(self):

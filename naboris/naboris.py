@@ -5,9 +5,9 @@ from atlasbuggy.filestream.soundfiles import SoundStream
 
 
 class Naboris(SerialStream):
-    def __init__(self, log=False, debug=False, enabled=True, log_name=None, log_dir=None):
+    def __init__(self, logger=None, debug=False, enabled=True):
         self.actuators = Actuators()
-        super(Naboris, self).__init__(self.actuators, log=log, debug=debug, enabled=enabled, log_name=log_name, log_dir=log_dir)
+        super(Naboris, self).__init__(self.actuators, logger=logger, debug=debug, enabled=enabled)
 
         self.link_callback(self.actuators, self.receive_actuators)
         self.link_recurring(10, self.request_battery)

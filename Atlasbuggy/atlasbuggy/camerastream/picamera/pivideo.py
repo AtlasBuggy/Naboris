@@ -1,7 +1,8 @@
 import os
 import time
 from subprocess import Popen, PIPE, DEVNULL
-from atlasbuggy.filestream import BaseFile, default_video_name, default_log_dir_name
+from atlasbuggy.filestream import default_video_name, default_log_dir_name
+from atlasbuggy.camerastream import VideoStream
 
 
 class H264toMP4converter:
@@ -33,32 +34,35 @@ class H264toMP4converter:
         return self.output is None
 
 
-class PiVideoRecorder(BaseFile):
-    def __init__(self, file_name, directory, capture, recorder_options):
+class PiVideoRecorder(VideoStream):
+    def __init__(self, file_name=None, directory=None, enabled=True, debug=False, **recorder_options):
         file_name, directory = self.format_path_as_time(
             file_name, directory, default_video_name, default_log_dir_name
         )
 
-        super(PiVideoRecorder, self).__init__(file_name, directory, 'h264', "videos", False, False,
-                                              False, False, False)
-        self.capture = capture
+        super(PiVideoRecorder, self).__init__(file_name, directory, 'h264', enabled, debug)
         self.options = recorder_options
-        self.make_dir()
-        self.recording = False
 
-    def start(self):
-        if not self.recording:
-            print("Recording video on '%s'" % self.full_path)
-            self.capture.start_recording(self.full_path, 'h264', **self.options)
-            self.recording = True
+    def start_recording(self, capture):
+        self.capture = capture
 
-    def close(self):
-        if self.recording:
+        if self.enabled:
+            self.make_dir()
+            if not self.is_recording:
+                self.debug_print("Recording video on '%s'" % self.full_path)
+                self.capture.start_recording(self.full_path, self.file_types[0], **self.options)
+                self.is_recording = True
+
+    def stop_recording(self):
+        if self.enabled and self.is_recording:
             # self.capture.stop_recording()
-            self.recording = False
+            self.is_recording = False
 
             converter = H264toMP4converter(self.full_path)
             converter.start()
-            while converter.is_running():  pass
+            while converter.is_running():
+                pass
+            self.debug_print("Conversion complete!")
 
+            self.debug_print("Removing temp file: '%s'" % self.full_path)
             os.remove(self.full_path)

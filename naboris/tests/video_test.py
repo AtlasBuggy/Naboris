@@ -6,9 +6,10 @@ from atlasbuggy.camerastream.cvcamera import CvCamera
 from atlasbuggy.uistream.camera_viewer import CameraViewer
 from atlasbuggy.uistream.plotters.plot import RobotPlot
 from atlasbuggy.uistream.plotters.liveplotter import LivePlotter
+from atlasbuggy.camerastream.cvcamera.cvvideo import CvVideoRecorder
 
 
-with_video = True
+with_video = False
 
 
 def update():
@@ -21,19 +22,18 @@ def update_cam():
 
 cam_plot_1 = RobotPlot("cam data 1")
 cam_plot_2 = RobotPlot("cam data 2")
-plotter = LivePlotter(2, cam_plot_1, cam_plot_2)
+plotter = LivePlotter(2, cam_plot_1, cam_plot_2, enabled=True)
 
 if with_video:
-    capture = VideoPlayer("21_52_42.h264",
-                         "naboris/2017_May_27")
+    capture = VideoPlayer("21_52_42.mp4", "naboris/2017_May_27")
     viewer = CameraViewer(capture, slider_ticks=capture.slider_ticks)
     capture.link_slider(viewer.slider_name)
 else:
-    capture = CvCamera(capture_number=0)
+    recorder = CvVideoRecorder(enabled=True, debug=True)
+    capture = CvCamera(capture_number=0, video_recorder=recorder)
     viewer = CameraViewer(capture)
 
 viewer.update = update
 capture.update = update_cam
 
-robot = Robot(capture, viewer, plotter)
-robot.run()
+Robot.run(capture, viewer, plotter)

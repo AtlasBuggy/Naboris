@@ -3,17 +3,26 @@ from naboris_cli import NaborisCLI
 from naboris_site import NaborisWebsite
 from naboris_cam import NaborisCam
 from atlasbuggy.robot import Robot
-import os
+from atlasbuggy.filestream.logger import Logger
+from atlasbuggy.camerastream.picamera.pivideo import PiVideoRecorder
 
 log = True
 
-naboris = Naboris(log=log)
-camera = NaborisCam(logger=naboris.logger)
+logger = Logger(enabled=log)
+recorder = PiVideoRecorder(
+    logger.input_name.replace(";", "_") + ".mp4",
+    ("naboris", logger.input_dir),
+    enabled=log
+)
+
+naboris = Naboris(logger)
+camera = NaborisCam(logger, recorder)
 cmdline = NaborisCLI(naboris.actuators, naboris.sounds)
 website = NaborisWebsite("templates", "static", naboris.actuators, camera, cmdline)
 
-if log:
-    camera.start_recording(directory=("naboris", None))
 
-robot = Robot(naboris, cmdline, website, camera)
-robot.run()
+def main():
+    Robot.run(naboris, cmdline, website, camera)
+
+
+main()
