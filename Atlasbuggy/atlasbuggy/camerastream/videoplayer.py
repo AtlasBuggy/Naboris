@@ -78,10 +78,6 @@ class VideoPlayer(CameraStream):
 
         success, self.frame = self.capture.read()
 
-        if self.camera_viewer is not None and self.camera_viewer.enable_slider and self.camera_viewer.enabled:
-            slider_pos = int(self.current_frame * self.camera_viewer.slider_ticks / self.num_frames)
-            cv2.setTrackbarPos(self.camera_viewer.slider_name, self.name, slider_pos)
-
         if not success or self.frame is None:
             if self.loop_video:
                 self.set_frame(0)
@@ -95,8 +91,16 @@ class VideoPlayer(CameraStream):
                 self.frame, (self.resize_width, self.resize_height), interpolation=cv2.INTER_NEAREST
             )
 
+        if self.camera_viewer is not None and self.camera_viewer.enable_slider and self.camera_viewer.enabled:
+            slider_pos = int(self.current_frame * self.camera_viewer.slider_ticks / self.num_frames)
+            cv2.setTrackbarPos(self.camera_viewer.slider_name, self.name, slider_pos)
+
     def run(self):
         while self.are_others_running():
+            self.has_updated = False  # simulates a lock. Frame is only usable during time.sleep
+
             self.get_frame()
             self.update()
+
+            self.has_updated = True
             time.sleep(1 / self.fps)

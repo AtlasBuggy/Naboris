@@ -74,13 +74,14 @@ class CameraViewer(DataStream):
                 (shape = (height, width, 3))
         :return: None
         """
-        frame = self.capture.frame
+        if self.capture.did_update():
+            frame = self.capture.frame
 
-        if frame is None:
-            return
+            if frame is None:
+                return
 
-        self.key_pressed()
-        cv2.imshow(self.capture.name, frame)
+            self.key_pressed()
+            cv2.imshow(self.capture.name, frame)
 
     def key_pressed(self, delay=1):
         if not self.enabled:

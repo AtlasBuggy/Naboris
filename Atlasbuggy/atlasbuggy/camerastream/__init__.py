@@ -23,11 +23,20 @@ class CameraStream(DataStream):
         self.paused = False
         self.running = False
 
+        self.has_updated = False
+
         super(CameraStream, self).__init__(enabled, debug, threaded, asynchronous, debug_name)
 
     def log_frame(self):
         if self.log and self.should_record and self.recorder.is_recording:
             self.logger.record(time.time(), self.name, str(self.num_frames))
+
+    def did_update(self):
+        if self.has_updated:
+            self.has_updated = False
+            return True
+        else:
+            return False
 
 
 class VideoStream(BaseFile):

@@ -1,4 +1,5 @@
 from naboris import Naboris
+from naboris_pipeline import NaborisPipeline
 from atlasbuggy.robot import Robot
 from atlasbuggy.serialstream.file import SerialFile
 from atlasbuggy.uistream.camera_viewer import CameraViewer
@@ -12,44 +13,46 @@ class SerialSimulator(SerialFile):
         self.current_frame = 0
 
     def receive_command(self, whoiam, timestamp, packet):
-        # print(whoiam, timestamp, packet)
         if whoiam == "naboris actuators":
             if packet == "h":
                 print("%0.4fs:" % self.dt(), "stop")
             elif packet[0] == "r":
                 print("%0.4fs:" % self.dt(), "spinning:", packet)
-            elif packet[0] == "d":
+            elif packet[0] == "p":
                 print("%0.4fs:" % self.dt(), "driving:", packet)
             elif packet[0] == "c":
                 print("%0.4fs:" % self.dt(), "turret:", packet)
 
     def receive_user(self, whoiam, timestamp, packet):
-        # print(whoiam, self.dt(), packet)
         if whoiam == "NaborisCam":
             self.current_frame = int(packet)
 
 
 class CameraSimulator(VideoPlayer):
-    def __init__(self, video_name, video_directory, serial_simulator):
+    def __init__(self, video_name, video_directory, serial_simulator, pipeline):
         super(CameraSimulator, self).__init__(video_name, video_directory)
         self.serial_simulator = serial_simulator
+        self.pipeline = pipeline
 
     def update(self):
-        # print(self.current_frame / self.fps)
         while self.serial_simulator.current_frame < self.current_frame:
             if not self.serial_simulator.next():
                 self.exit()
 
+        self.frame = self.pipeline.update(self.frame)
+
 
 def main():
-    serial_file_name = "16;08;28"
+    serial_file_name = "16;23;21"
     serial_directory = "2017_May_28"
 
     video_name = serial_file_name.replace(";", "_")
     video_directory = "naboris/" + serial_directory
 
+    pipeline = NaborisPipeline()
+
     serial_file = SerialSimulator(Naboris(), serial_file_name, serial_directory)
-    capture = CameraSimulator(video_name, video_directory, serial_file)
+    capture = CameraSimulator(video_name, video_directory, serial_file, pipeline)
     viewer = CameraViewer(capture, enabled=True, enable_slider=True)
     capture.link_viewer(viewer)
 

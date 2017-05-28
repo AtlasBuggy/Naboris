@@ -43,7 +43,7 @@ class PiCamera(CameraStream):
                 # self.frame = np.frombuffer(
                 #     self.raw_frame, dtype=np.uint8, count=len(self.raw_frame)
                 # ).reshape(self.height, self.width)
-                # self.frame = cv2.imdecode(np.fromstring(self.raw_frame, dtype=np.uint8), 1)
+                self.frame = cv2.imdecode(np.fromstring(self.raw_frame, dtype=np.uint8), 1)
 
                 self.log_frame()
                 self.num_frames += 1
@@ -59,6 +59,8 @@ class PiCamera(CameraStream):
 
                 if not self.are_others_running():
                     return
+
+                self.has_updated = True
 
     def close(self):
         # self.capture.stop_preview()  # picamera complains when this is called while recording

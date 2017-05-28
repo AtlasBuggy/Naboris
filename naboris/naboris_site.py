@@ -6,7 +6,7 @@ from atlasbuggy.uistream.website import Website
 
 
 class NaborisWebsite(Website):
-    def __init__(self, template_folder, static_folder, actuators, camera, cmdline, enabled=True):
+    def __init__(self, template_folder, static_folder, actuators, camera, pipeline, cmdline, enabled=True):
         # website hosted under http://naboris:5000
         # check /etc/hosts for host names
 
@@ -19,9 +19,10 @@ class NaborisWebsite(Website):
         self.actuators = actuators
         self.camera = camera
         self.cmdline = cmdline
+        self.pipeline = pipeline
 
-        self.camera_paused = False
         self.delay = 1.5 / float(self.camera.fps)
+        self.prev_time = time.time()
         print("camera framerate:", self.camera.fps)
 
         self.commands = {
@@ -56,34 +57,20 @@ class NaborisWebsite(Website):
     def video(self):
         """Video streaming generator function."""
         while True:
-            frame = self.camera.raw_frame
-            if frame is not None:
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-                if self.camera_paused:
-                    time.sleep(0.5)
-                else:
-                    time.sleep(self.delay)
+            frame = self.pipeline.raw_frame()
+            if (time.time() - self.prev_time) > self.delay:
+                self.prev_time = time.time()
+                if frame is not None:
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
     def video_feed(self):
         """Video streaming route. Put this in the src attribute of an img tag."""
+        self.prev_time = time.time()
         return Response(self.video(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
     def pause_camera(self):
-        self.camera_paused = True
         self.camera.paused = True
 
     def unpause_camera(self):
-        self.camera_paused = False
         self.camera.paused = False
-
-    # def set_lights(self, value):
-    #     self.actuators.set_all_leds(value, value, value)
-    #
-    # def lights(self):
-    #     if request.form["lights"] == "on":
-    #         self.set_lights(255)
-    #     else:
-    #         self.set_lights(15)
-    #     return '', 200
