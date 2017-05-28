@@ -5,21 +5,23 @@ from atlasbuggy import get_platform
 
 
 class CameraViewer(DataStream):
-    def __init__(self, capture, enabled=True, debug=False, name=None, slider_ticks=0):
+    def __init__(self, capture, enabled=True, debug=False, name=None, enable_slider=False):
         super(CameraViewer, self).__init__(enabled, debug, False, True, name)
 
         self.capture = capture
-        cv2.namedWindow(self.capture.name)
+        if self.enabled:
+            cv2.namedWindow(self.capture.name)
 
         self.key = -1
         self.slider_pos = 0
-        self.slider_ticks = slider_ticks
+        self.slider_name = "frame:"
+        self.enable_slider = enable_slider
+
+        self.slider_ticks = int(self.capture.capture.get(cv2.CAP_PROP_FRAME_WIDTH) // 3)
         if self.slider_ticks > self.capture.num_frames:
             self.slider_ticks = self.capture.num_frames
 
-        self.slider_name = "frame:"
-
-        if slider_ticks > 0:
+        if self.enabled and self.enable_slider:
             cv2.createTrackbar(self.slider_name, self.capture.name, 0, self.slider_ticks, self._on_slider)
 
         platform = get_platform()
@@ -44,6 +46,8 @@ class CameraViewer(DataStream):
         self.key_codes.update(new_key_codes)
 
     async def run(self):
+        if not self.enabled:
+            return
         while self.are_others_running():
             self.show_frame()
             self.update()

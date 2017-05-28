@@ -58,13 +58,8 @@ class Parser(BaseReadFile):
             return arg == whoiam
 
     async def run(self):
-        while not self.finished:
-            result = self.next()
-            if result is None:
-                continue
-            self.receive(*result)
-
-        await asyncio.sleep(0.0)
+        while self.next():
+            await asyncio.sleep(0.0)
 
         # received packets
         # linked callbacks
@@ -87,10 +82,9 @@ class Parser(BaseReadFile):
 
             if line is not None:
                 packet_type, timestamp, whoiam, packet = line
-                return self.index - 1, packet_type, timestamp, whoiam, packet
-        else:
-            self.finished = True
-        return None
+                self.receive(self.index - 1, packet_type, timestamp, whoiam, packet)
+                return True
+        return False
 
     def parse_line(self):
         """

@@ -10,14 +10,15 @@ from atlasbuggy.camerastream.picamera.pivideo import PiVideoRecorder
 class PiCamera(CameraStream):
     def __init__(self, enabled=True, name=None, logger=None, video_recorder=None):
         super(PiCamera, self).__init__(enabled, False, True, False, name, logger, video_recorder)
+        
         self.capture = picamera.PiCamera()
-        self.init_cam(self.capture)
-
         self.width = self.capture.resolution[0]
         self.height = self.capture.resolution[1]
         self.fps = self.capture.framerate
 
         self.raw_frame = None
+
+        self.init_cam(self.capture)
 
     def init_cam(self, camera):
         pass

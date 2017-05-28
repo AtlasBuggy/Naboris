@@ -10,9 +10,8 @@ class VideoPlayer(CameraStream):
 
         self.file_info = BaseFile(file_name, directory, ['mp4', 'avi'], "videos", False, True, False, False, False)
 
-        super(VideoPlayer, self).__init__(enabled, debug, True, False, self.file_info.file_name)
+        super(VideoPlayer, self).__init__(enabled, debug, True, False, self.file_info.file_name, None, None)
 
-        cv2.namedWindow(self.name)
         self.capture = cv2.VideoCapture(self.file_info.full_path)
 
         self.fps = self.capture.get(cv2.CAP_PROP_FPS)
@@ -26,10 +25,7 @@ class VideoPlayer(CameraStream):
         self.height = int(self.capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.resize_frame = False
 
-        self.slider_ticks = int(self.capture.get(cv2.CAP_PROP_FRAME_WIDTH) // 3)
-        if self.slider_ticks > self.num_frames:
-            self.slider_ticks = self.num_frames
-        self.slider_name = None
+        self.camera_viewer = None
 
         if width is None:
             self.resize_width = self.width
@@ -52,8 +48,8 @@ class VideoPlayer(CameraStream):
         if start_frame > 0:
             self.set_frame(start_frame)
 
-    def link_slider(self, slider_name):
-        self.slider_name = slider_name
+    def link_viewer(self, viewer):
+        self.camera_viewer = viewer
 
     def current_pos(self):
         return int(self.capture.get(cv2.CAP_PROP_POS_FRAMES))
@@ -82,9 +78,9 @@ class VideoPlayer(CameraStream):
 
         success, self.frame = self.capture.read()
 
-        if self.slider_name is not None:
-            slider_pos = int(self.current_frame * self.slider_ticks / self.num_frames)
-            cv2.setTrackbarPos(self.slider_name, self.name, slider_pos)
+        if self.camera_viewer is not None and self.camera_viewer.enable_slider and self.camera_viewer.enabled:
+            slider_pos = int(self.current_frame * self.camera_viewer.slider_ticks / self.num_frames)
+            cv2.setTrackbarPos(self.camera_viewer.slider_name, self.name, slider_pos)
 
         if not success or self.frame is None:
             if self.loop_video:
@@ -95,9 +91,9 @@ class VideoPlayer(CameraStream):
                 self.exit()
                 return
         if self.resize_frame:
-            self.frame = cv2.resize(self.frame,
-                                    (self.resize_width, self.resize_height),
-                                    interpolation=cv2.INTER_NEAREST)
+            self.frame = cv2.resize(
+                self.frame, (self.resize_width, self.resize_height), interpolation=cv2.INTER_NEAREST
+            )
 
     def run(self):
         while self.are_others_running():

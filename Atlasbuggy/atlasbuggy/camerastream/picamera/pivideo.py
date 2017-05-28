@@ -49,7 +49,7 @@ class PiVideoRecorder(VideoStream):
         if self.enabled:
             self.make_dir()
             if not self.is_recording:
-                self.debug_print("Recording video on '%s'" % self.full_path)
+                self.debug_print("Recording video on '%s'" % self.full_path, ignore_flag=True)
                 self.capture.start_recording(self.full_path, self.file_types[0], **self.options)
                 self.is_recording = True
 

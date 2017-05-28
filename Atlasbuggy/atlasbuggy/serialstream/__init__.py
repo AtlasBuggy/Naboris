@@ -18,7 +18,7 @@ class SerialStream(DataStream):
         self.logger = logger
         self.log = self.logger is not None and self.logger.enabled
         if self.log:
-            print("Writing log to:", self.logger.full_path)
+            self.debug_print("Writing log to:", self.logger.full_path, ignore_flag=True)
 
         self.objects = {}
         self.ports = {}
