@@ -8,7 +8,7 @@ class VideoPlayer(CameraStream):
     def __init__(self, file_name, directory, width=None, height=None, enabled=True, debug=False, frame_skip=0,
                  loop_video=False, start_frame=0):
 
-        self.file_info = BaseFile(file_name, directory, ['mp4', 'avi', 'h264'], "videos", False, True, False, False, False)
+        self.file_info = BaseFile(file_name, directory, ['mp4', 'avi'], "videos", False, True, False, False, False)
 
         super(VideoPlayer, self).__init__(enabled, debug, True, False, self.file_info.file_name)
 

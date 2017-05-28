@@ -89,6 +89,10 @@ class BaseFile(DataStream):
         self.file_name_no_ext = self.file_name[:ext_index]
         super(BaseFile, self).__init__(enabled, debug, threaded, asynchronous, self.file_name)
 
+    @staticmethod
+    def get_full_dir(directory):
+        return BaseFile("", directory, [], ".", False, False, False, False, False).directory
+
     def get_abs_dir(self, directory):
         """
         Convert input directory to an absolute direcory

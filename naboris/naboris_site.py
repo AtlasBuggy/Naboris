@@ -1,4 +1,5 @@
 import time
+from atlasbuggy.filestream import BaseFile
 from flask import Flask, render_template, Response, request
 
 from atlasbuggy.uistream.website import Website
@@ -8,10 +9,8 @@ class NaborisWebsite(Website):
     def __init__(self, template_folder, static_folder, actuators, camera, cmdline, enabled=True):
         # website hosted under http://naboris:5000
         # check /etc/hosts for host names
-        super(NaborisWebsite, self).__init__(
-            dict(template_folder=template_folder, static_folder=static_folder),
-            enabled
-        )
+
+        super(NaborisWebsite, self).__init__(template_folder, static_folder, enabled=enabled)
 
         # self.app.add_url_rule("/lights", view_func=self.lights, methods=['POST'])
         self.app.add_url_rule("/cmd", view_func=self.command_response, methods=['POST'])

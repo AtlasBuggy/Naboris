@@ -1,8 +1,11 @@
+import os
+import time
 from subprocess import Popen, PIPE, DEVNULL
 from atlasbuggy.filestream import BaseFile, default_video_name, default_log_dir_name
 
 
 class H264toMP4converter:
+    # expects that MP4Box be installed
     def __init__(self, full_path):
         self.full_path = full_path
 
@@ -13,6 +16,7 @@ class H264toMP4converter:
 
     def start(self):
         self.stop()
+        print("Converting video to mp4: '%s'" % self.new_path)
         self.process = Popen(['MP4Box', '-add', self.full_path, self.new_path], stdin=PIPE,
                              stdout=DEVNULL, close_fds=True, bufsize=0)
         self.output = None
@@ -59,7 +63,13 @@ class PiVideoRecorder(BaseFile):
 
     def close(self):
         if self.recording:
-            self.capture.stop_recording()
+            # self.capture.stop_recording()
             self.recording = False
+
             converter = H264toMP4converter(self.full_path)
             converter.start()
+            while converter.is_running():
+                time.sleep(0.01)
+
+            print("Removing original: '%s'" % self.full_path)
+            os.remove(self.full_path)
