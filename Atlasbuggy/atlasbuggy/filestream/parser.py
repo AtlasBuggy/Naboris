@@ -194,4 +194,10 @@ class Parser(BaseReadFile):
         else:
             whoiam = ""
 
+        if type(timestamp) == float:
+            if self.start_time is None:
+                self.start_time = timestamp
+            else:
+                self.timestamp = timestamp
+
         return timestamp, time_index, whoiam, whoiam_index

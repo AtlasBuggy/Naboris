@@ -340,10 +340,10 @@ class SerialStream(DataStream):
                 if isinstance(command, CommandPause):
                     self.objects[whoiam]._pause_command = command
                     self.objects[whoiam]._pause_command.prev_time = time.time()
-                    self.record(self.timestamp, whoiam, str(command.delay_time), "pause command")
+                    self.record(time.time(), whoiam, str(command.delay_time), "pause command")
                 else:
                     # log sent command.
-                    self.record(self.timestamp, whoiam, command, "command")
+                    self.record(time.time(), whoiam, command, "command")
 
                     # if write packet fails, throw an error
                     if not self.ports[whoiam].write_packet(command):
@@ -360,7 +360,7 @@ class SerialStream(DataStream):
             error_message = "".join(traceback[:-1])
             error_message += "%s: %s" % (error.__class__.__name__, error.args[0])
             error_message += "\n".join(error.args[1:])
-            self.record(self.timestamp, error.__class__.__name__, error_message, "error")
+            self.record(time.time(), error.__class__.__name__, error_message, "error")
 
         self.close_log()
         return error
@@ -372,17 +372,17 @@ class SerialStream(DataStream):
         self.logger.close()
 
     def stream_debug_print(self, string):
-        self.record(self.timestamp, self.name, string, "debug")
+        self.record(time.time(), self.name, string, "debug")
 
-    def record_debug_prints(self, dt, port):
+    def record_debug_prints(self, timestamp, port):
         """
         Take all of the port's queued debug messages and record them
-        :param dt: current timestamp
+        :param timestamp: current timestamp
         :param port: RobotSerialPort
         """
         with port.print_out_lock:
             while not port.debug_print_outs.empty():
-                self.record(dt, port.whoiam, port.debug_print_outs.get(), "debug")
+                self.record(timestamp, port.whoiam, port.debug_print_outs.get(), "debug")
 
     def record(self, timestamp, whoiam, packet, packet_type):
         if self.log:

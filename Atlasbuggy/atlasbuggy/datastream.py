@@ -36,6 +36,12 @@ class DataStream:
         # can't be threaded and asynchronous at the same time
         assert not (self.threaded and self.asynchronous)
 
+    def dt(self):
+        if self.start_time is None or self.timestamp is None:
+            return 0.0
+        else:
+            return self.timestamp - self.start_time
+
     def start(self):
         pass
 

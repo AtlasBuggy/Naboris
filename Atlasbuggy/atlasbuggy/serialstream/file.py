@@ -10,10 +10,12 @@ class SerialFile(Parser):
         self.serial_stream.timestamp = timestamp
         self.serial_stream.packet = packet
 
-        if packet_type == "error" or packet_type == "debug":
-            if packet_type == "debug" and self.debug:
-                return
-            print("%s" % self.serial_stream.packet)
+        if packet_type == "error":
+            self.debug_print("%s" % self.serial_stream.packet, ignore_flag=True)
+
+        elif packet_type == "debug":
+            self.debug_print("%s" % self.serial_stream.packet)
+
         elif packet_type == "command":
             self.receive_command(whoiam, timestamp, packet)
 
