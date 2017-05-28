@@ -1,5 +1,6 @@
-import time
 import io
+import cv2
+import time
 import picamera
 import numpy as np
 from atlasbuggy.camerastream import CameraStream
@@ -12,25 +13,23 @@ class PiCamera(CameraStream):
         self.capture = picamera.PiCamera()
         self.init_cam(self.capture)
 
-        self.width = self.capture.width
-        self.height = self.capture.height
+        self.width = self.capture.resolution[0]
+        self.height = self.capture.resolution[1]
         self.fps = self.capture.framerate
 
         self.raw_frame = None
         self.recorder = None
+        self.recording = False
 
     def init_cam(self, camera):
         pass
 
     def start_recording(self, file_name=None, directory=None, **options):
-        if self.running:
-            self.recorder = PiVideoRecorder(file_name, directory, self.capture, options)
-            self.recorder.start()
-        else:
-            raise FileNotFoundError("Camera hasn't started running yet!")
+        self.recording = True
+        self.recorder = PiVideoRecorder(file_name, directory, self.capture, options)
 
     def stop_recording(self):
-        if self.recorder is not None:
+        if self.recording:
             self.recorder.close()
 
     def update(self):
@@ -38,20 +37,24 @@ class PiCamera(CameraStream):
 
     def run(self):
         with self.capture:
-            # let self.cam warm up
+            # let camera warm up
             self.capture.start_preview()
             time.sleep(2)
 
             self.running = True
+
+            if self.recording:
+                self.recorder.start()
 
             stream = io.BytesIO()
             for _ in self.capture.capture_continuous(stream, 'jpeg', use_video_port=True):
                 # store frame
                 stream.seek(0)
                 self.raw_frame = stream.read()
-                self.frame = np.frombuffer(
-                    stream, dtype=np.uint8, count=self.width * self.height
-                ).reshape(self.height, self.width)
+                # self.frame = np.frombuffer(
+                #     self.raw_frame, dtype=np.uint8, count=len(self.raw_frame)
+                # ).reshape(self.height, self.width)
+                self.frame = cv2.imdecode(np.fromstring(self.raw_frame, dtype=np.uint8), 1)
 
                 self.num_frames += 1
 
@@ -71,5 +74,5 @@ class PiCamera(CameraStream):
                     self.close()
 
     def close(self):
+        # self.capture.stop_preview()  # picamera complains when this is called while recording
         self.stop_recording()
-        self.capture.stop_preview()

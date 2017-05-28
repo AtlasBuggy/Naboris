@@ -1,10 +1,14 @@
 import cv2
-from atlasbuggy.filestream import BaseFile
+from atlasbuggy.filestream import BaseFile, default_video_name, default_log_dir_name
 from atlasbuggy import get_platform
 
 
 class CvVideoRecorder(BaseFile):
     def __init__(self, file_name, directory, width, height):
+        file_name, directory = self.format_path_as_time(
+            file_name, directory, default_video_name, default_log_dir_name
+        )
+
         super(CvVideoRecorder, self).__init__(file_name, directory, ['mp4', 'avi'], "videos", False, True,
                                               False, False, False)
         self.width = width

@@ -60,9 +60,10 @@ class Clock:
 
 
 class RecurringEvent:
-    def __init__(self, repeat_time, current_time, function, args):
+    def __init__(self, repeat_time, current_time, function, args, include_event):
         self.repeat_time = repeat_time
         self.function = function
+        self.include_event = include_event
         self.args = args
         if current_time is None:
             self.prev_time = 0.0
@@ -71,7 +72,10 @@ class RecurringEvent:
 
     def update(self, timestamp):
         if timestamp - self.prev_time > self.repeat_time:
-            self.function(*self.args)
+            if self.include_event:
+                self.function(self, *self.args)
+            else:
+                self.function(*self.args)
             self.prev_time = timestamp
 
 

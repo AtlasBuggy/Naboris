@@ -21,6 +21,7 @@ log_file_type = "txt"
 log_dir = "logs"
 
 default_log_file_name = "%H;%M;%S"
+default_video_name = "%H_%M_%S"
 default_log_dir_name = "%Y_%b_%d"
 
 no_timestamp = "-"
@@ -97,6 +98,9 @@ class BaseFile(DataStream):
         abs_default_dir = os.path.abspath(self.default_dir)
 
         if directory is None:  # if None, search default and grab the last entry
+            if not os.path.isdir(abs_default_dir):
+                return abs_default_dir
+
             directories = os.listdir(abs_default_dir)
             # if no directories found, use the default directory
             if len(directories) == 0:
@@ -205,6 +209,10 @@ class BaseFile(DataStream):
             directory = "/".join(directory).strip("/")
         return file_name, directory
 
+    def make_dir(self):
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
+
 
 class BaseWriteFile(BaseFile):
     def __init__(self, input_name, input_dir, compress, file_types, default_dir, enabled, debug,
@@ -225,8 +233,8 @@ class BaseWriteFile(BaseFile):
         )
 
         # make directories if they don't exit
-        if not os.path.exists(self.directory):
-            os.makedirs(self.directory)
+        # if not os.path.exists(self.directory):
+        #     os.makedirs(self.directory)
 
         # if the file name overlaps, append an increasing counter
         if os.path.exists(self.full_path):

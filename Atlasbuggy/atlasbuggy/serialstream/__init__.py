@@ -49,8 +49,8 @@ class SerialStream(DataStream):
                                                  repr(arg))
         self.callbacks[whoiam] = callback_fn
 
-    def link_recurring(self, repeat_time, callback_fn, *args):
-        self.recurring.append(RecurringEvent(repeat_time, time.time(), callback_fn, args))
+    def link_recurring(self, repeat_time, callback_fn, *args, include_event_in_params=False):
+        self.recurring.append(RecurringEvent(repeat_time, time.time(), callback_fn, args, include_event_in_params))
 
     def dt(self):
         if self.start_time is None:

@@ -10,5 +10,7 @@ camera = NaborisCam()
 cmdline = NaborisCLI(naboris.actuators, naboris.sounds)
 website = NaborisWebsite(os.getcwd() + "/templates", os.getcwd() + "/static", naboris.actuators, camera, cmdline)
 
+camera.start_recording(directory=("naboris", None))
+
 robot = Robot(naboris, cmdline, website, camera)
 robot.run()

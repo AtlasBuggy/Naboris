@@ -3,18 +3,12 @@ import time
 from atlasbuggy.camerastream import CameraStream
 from atlasbuggy.filestream import BaseFile
 
-default_video_name = "%H_%M_%S"
-default_video_dir = "%Y_%b_%d"
-
 
 class VideoPlayer(CameraStream):
     def __init__(self, file_name, directory, width=None, height=None, enabled=True, debug=False, frame_skip=0,
                  loop_video=False, start_frame=0):
-        file_name, directory = BaseFile.format_path_as_time(
-            file_name, directory, default_video_name, default_video_dir
-        )
 
-        self.file_info = BaseFile(file_name, directory, ['mp4', 'avi'], "videos", False, True, False, False, False)
+        self.file_info = BaseFile(file_name, directory, ['mp4', 'avi', 'h264'], "videos", False, True, False, False, False)
 
         super(VideoPlayer, self).__init__(enabled, debug, True, False, self.file_info.file_name)
 
