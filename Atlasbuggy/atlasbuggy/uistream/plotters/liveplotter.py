@@ -114,7 +114,7 @@ class LivePlotter(BasePlotter):
         :return: True or False if the plotting operation was successful
         """
 
-        while True:
+        while self.are_others_running():
             if self.is_closed:
                 self.exit()
                 return
@@ -150,14 +150,8 @@ class LivePlotter(BasePlotter):
                             self.lines[plot.name][subplot.name].set(**subplot.changed_properties)
                             subplot.changed_properties = {}
 
-                else:
-                    self.exit()
-                    return
-
                 if self.active_window_resizing and plot.window_resizing:
                     if plot.flat:
-                        # print(plot.x_range, end=", ")
-                        # print(plot.y_range)
                         self.axes[plot.name].set_xlim(plot.x_range)
                         self.axes[plot.name].set_ylim(plot.y_range)
                     else:
@@ -168,12 +162,10 @@ class LivePlotter(BasePlotter):
             try:
                 self.fig.canvas.draw()
                 self.plt.pause(0.005)  # can't be less than ~0.005
-                await asyncio.sleep(0.005)
+                await asyncio.sleep(0.0)
 
             except BaseException as error:
                 traceback.print_exc()
-
-                self.close()
                 self.exit()
 
     def pause(self):

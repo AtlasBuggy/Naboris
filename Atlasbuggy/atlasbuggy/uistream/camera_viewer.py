@@ -44,7 +44,7 @@ class CameraViewer(DataStream):
         self.key_codes.update(new_key_codes)
 
     async def run(self):
-        while True:
+        while self.are_others_running():
             self.show_frame()
             self.update()
             await asyncio.sleep(0.1 / self.capture.fps)

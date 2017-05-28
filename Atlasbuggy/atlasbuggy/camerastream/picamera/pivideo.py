@@ -10,36 +10,27 @@ class H264toMP4converter:
         self.full_path = full_path
 
         ext_index = self.full_path.rfind(".")
-        self.new_path = self.full_path[:ext_index] + ".mp4"
+        self.new_path = self.full_path[:ext_index]
+
         self.process = None
         self.output = None
 
     def start(self):
-        self.stop()
         print("Converting video to mp4: '%s'" % self.new_path)
+        if os.path.isfile(self.new_path):
+            os.remove(self.new_path)
         self.process = Popen(['MP4Box', '-add', self.full_path, self.new_path], stdin=PIPE,
                              stdout=DEVNULL, close_fds=True, bufsize=0)
         self.output = None
 
+        assert self.process is not None
+
     def is_running(self):
         if self.process is not None:
+            time.sleep(0.001)
             self.output = self.process.poll()
 
         return self.output is None
-
-    def stop(self):
-        if not self.is_running():
-            self.process = None
-
-        if self.process is not None:
-            self.output = 0
-            try:
-                self.process.terminate()
-                self.process.wait()  # -> move into background thread if necessary
-            except EnvironmentError as e:
-                print("can't stop %s: %s", self.full_path, e)
-            else:
-                self.process = None
 
 
 class PiVideoRecorder(BaseFile):
@@ -68,8 +59,6 @@ class PiVideoRecorder(BaseFile):
 
             converter = H264toMP4converter(self.full_path)
             converter.start()
-            while converter.is_running():
-                time.sleep(0.01)
+            while converter.is_running():  pass
 
-            print("Removing original: '%s'" % self.full_path)
             os.remove(self.full_path)

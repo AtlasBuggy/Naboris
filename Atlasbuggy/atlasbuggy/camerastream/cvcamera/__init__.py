@@ -213,6 +213,9 @@ class CvCamera(CameraStream):
             if self.resize_frame and self.frame.shape[0:2] != (self.height, self.width):
                 self.frame = cv2.resize(self.frame, (self.width, self.height))
 
+            if self.is_recording and self.logger is not None:
+                self.logger.record(time.time(), self.name, str(self.num_frames))
+
             self.poll_for_fps()
 
             if self.is_recording:
