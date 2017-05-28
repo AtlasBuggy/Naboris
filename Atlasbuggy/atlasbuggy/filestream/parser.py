@@ -1,4 +1,3 @@
-
 import asyncio
 
 from atlasbuggy.filestream import *
@@ -61,11 +60,11 @@ class Parser(BaseReadFile):
         while self.next():
             await asyncio.sleep(0.0)
 
-        # received packets
-        # linked callbacks
-        # raise errors
-        # print debugs
-        # receive commands
+            # received packets
+            # linked callbacks
+            # raise errors
+            # print debugs
+            # receive commands
 
     def receive(self, index, packet_type, timestamp, whoiam, packet):
         pass

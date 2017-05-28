@@ -15,13 +15,13 @@ class SerialSimulator(SerialFile):
         # print(whoiam, timestamp, packet)
         if whoiam == "naboris actuators":
             if packet == "h":
-                print(self.dt(), "stop")
+                print("%0.4fs:" % self.dt(), "stop")
             elif packet[0] == "r":
-                print(self.dt(), "spinning:", packet)
+                print("%0.4fs:" % self.dt(), "spinning:", packet)
             elif packet[0] == "d":
-                print(self.dt(), "driving:", packet)
+                print("%0.4fs:" % self.dt(), "driving:", packet)
             elif packet[0] == "c":
-                print(self.dt(), "turret:", packet)
+                print("%0.4fs:" % self.dt(), "turret:", packet)
 
     def receive_user(self, whoiam, timestamp, packet):
         # print(whoiam, self.dt(), packet)
@@ -42,7 +42,7 @@ class CameraSimulator(VideoPlayer):
 
 
 def main():
-    serial_file_name = "15;37;43"
+    serial_file_name = "16;08;28"
     serial_directory = "2017_May_28"
 
     video_name = serial_file_name.replace(";", "_")
