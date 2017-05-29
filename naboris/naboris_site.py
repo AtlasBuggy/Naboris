@@ -21,7 +21,7 @@ class NaborisWebsite(Website):
         self.cmdline = cmdline
         self.pipeline = pipeline
 
-        self.show_orignal = True
+        self.show_orignal = False
         self.lights_are_on = False
 
         self.delay = 1.5 / float(self.camera.fps)
@@ -40,7 +40,7 @@ class NaborisWebsite(Website):
             "say hello!": "hello",
             "PANIC!!!": "alert",
             "pause video": "cam_toggle",
-            "show pipeline": "pipeline_toggle",
+            "show original": "pipeline_toggle",
         }
 
     def index(self):
@@ -78,13 +78,12 @@ class NaborisWebsite(Website):
         frame = None
         while True:
             frame = self.camera.raw_frame
-
-            if not self.show_orignal:
-                self.pipeline.frame = self.camera.get_frame()
-                self.pipeline.update()
-                frame = self.pipeline.raw_frame()
-
             if frame is not None:
+                if not self.show_orignal:
+                    self.pipeline.frame = self.camera.get_frame()
+                    self.pipeline.update()
+                    frame = self.pipeline.raw_frame()
+
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
                 time.sleep(self.delay)

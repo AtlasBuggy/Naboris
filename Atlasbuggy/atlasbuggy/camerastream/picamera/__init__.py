@@ -3,6 +3,7 @@ import cv2
 import time
 import picamera
 import numpy as np
+from picamera.array import PiRGBArray
 from atlasbuggy.camerastream import CameraStream
 from atlasbuggy.camerastream.picamera.pivideo import PiVideoRecorder
 
@@ -38,12 +39,16 @@ class PiCamera(CameraStream):
                 stream.seek(0)
                 self.raw_frame = stream.read()
 
-                self.log_frame()
-                self.num_frames += 1
-
                 # reset stream for next frame
                 stream.seek(0)
                 stream.truncate()
+            # raw_capture = PiRGBArray(self.capture, size=self.capture.resolution)
+            # for frame in self.capture.capture_continuous(raw_capture, format="bgr", use_video_port=True):
+            #     self.frame = frame.array
+            #     raw_capture.truncate(0)
+
+                self.log_frame()
+                self.num_frames += 1
 
                 while self.paused:
                     time.sleep(0.1)

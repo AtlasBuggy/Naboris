@@ -65,6 +65,8 @@ uint16_t lower_V = 4800;
 uint16_t upper_V = 5000;
 Battery battery(lower_V, upper_V, A0);
 
+uint32_t ping_timer = millis();
+
 void setup() {
     robot.begin();
     AFMS.begin();
@@ -248,6 +250,7 @@ void loop()
                     speed *= -1;
                 }
                 drive(angle, speed);
+                ping_timer = millis();
             }
             else if (command.charAt(0) == 'r') {  // spin command
                 int speed = command.substring(2, 5).toInt();
@@ -255,6 +258,7 @@ void loop()
                     speed *= -1;
                 }
                 spin(speed);
+                ping_timer = millis();
             }
             else if (command.charAt(0) == 'h') {  // stop command
                 stop_motors();
@@ -331,6 +335,11 @@ void loop()
 
     if (!robot.isPaused()) {
         update_motors();
+        if (ping_timer > millis())  ping_timer = millis();
+        if ((millis() - ping_timer) > 500) {
+            stop_motors();
+            ping_timer = millis();
+        }
 
         if (!cycle_paused) {
             if (led_time > millis()) led_time = millis();
