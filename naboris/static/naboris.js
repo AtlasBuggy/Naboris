@@ -1,11 +1,12 @@
 
+
 // Only run what comes next *after* the page has loaded
 addEventListener("DOMContentLoaded", function() {
     // Grab all of the elements with a class of command
     // (which all of the buttons we just created have)
     var commandButtons = document.querySelectorAll(".command_button");
 
-    for (var i=0, l=commandButtons.length; i<l; i++)
+    for (var i = 0; i < commandButtons.length; i++)
     {
         var button = commandButtons[i];
 
@@ -18,7 +19,7 @@ addEventListener("DOMContentLoaded", function() {
             var clickedButton = e.target;
             var command = clickedButton.value;
 
-            requestCommand(command);
+            requestCommand(command, clickedButton);
         });
     }
 }, true);
@@ -149,7 +150,7 @@ function checkKeyUp(e) {
 }
 
 
-function requestCommand(command) {
+function requestCommand(command, clickedButton=null) {
     // Now we need to send the data to our server
     // without reloading the page - this is the domain of
     // AJAX (Asynchronous JavaScript And XML)
@@ -157,11 +158,16 @@ function requestCommand(command) {
     // and set up a handler for the response
     var request = new XMLHttpRequest();
 
-    // request.onload = function() {
-    //     // We could do more interesting things with the response
-    //     // or, we could ignore it entirely
-    //     alert(request.responseText);
-    // };
+    request.onload = function() {
+        // We could do more interesting things with the response
+        // or, we could ignore it entirely
+        // alert(request.responseText);
+
+        if (request.responseText.length > 0) {
+            clickedButton.innerHTML = request.responseText;
+            // clickedButton.value <- change sent command
+        }
+    };
 
     // We point the request at the appropriate command
     request.open("POST", "/cmd?command=" + command, true);

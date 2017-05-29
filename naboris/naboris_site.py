@@ -21,6 +21,9 @@ class NaborisWebsite(Website):
         self.cmdline = cmdline
         self.pipeline = pipeline
 
+        self.show_orignal = True
+        self.lights_are_on = False
+
         self.delay = 1.5 / float(self.camera.fps)
         self.prev_time = time.time()
         print("camera framerate:", self.camera.fps)
@@ -33,36 +36,58 @@ class NaborisWebsite(Website):
             "drive backward": "d_180",
             "drive right": "d_270",
             "stop": "s",
-            "lights on": "white_255",
-            "lights off": "white_15",
+            "lights on": "toggle_lights",
             "say hello!": "hello",
             "PANIC!!!": "alert",
-            "pause video": "pause",
-            "unpause video": "unpause",
+            "pause video": "cam_toggle",
+            "show pipeline": "pipeline_toggle",
         }
 
     def index(self):
         return render_template('index.html', commands=self.commands)
 
     def command_response(self):
-        command = request.args.get('command').replace("_", " ")
-        if command == "pause":
-            self.pause_camera()
-        elif command == "unpause":
-            self.unpause_camera()
+        command = request.args.get('command')
+        return self.process_command(command), 200, {'Content-Type': 'text/plain'}
+
+    def process_command(self, command):
+        if command == "cam_toggle":
+            self.camera.paused = not self.camera.paused
+            return "unpause video" if self.camera.paused else "pause video"
+
+        elif command == "pipeline_toggle":
+            self.show_orignal = not self.show_orignal
+            return "show pipeline" if self.show_orignal else "show original"
+
+        elif command == "toggle_lights":
+            self.lights_are_on = not self.lights_are_on
+            if self.lights_are_on:
+                response_text = "lights off"
+                self.cmdline.handle_input("white 255")
+            else:
+                response_text = "lights on"
+                self.cmdline.handle_input("white 15")
+
+            return response_text
         else:
-            self.cmdline.handle_input(command)
-        return str(command), 200, {'Content-Type': 'text/plain'}
+            self.cmdline.handle_input(command.replace("_", " "))
+            return ""
 
     def video(self):
         """Video streaming generator function."""
+        frame = None
         while True:
-            frame = self.pipeline.raw_frame()
-            if (time.time() - self.prev_time) > self.delay:
-                self.prev_time = time.time()
-                if frame is not None:
-                    yield (b'--frame\r\n'
-                           b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            frame = self.camera.raw_frame
+
+            if not self.show_orignal:
+                self.pipeline.frame = self.camera.get_frame()
+                self.pipeline.update()
+                frame = self.pipeline.raw_frame()
+
+            if frame is not None:
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                time.sleep(self.delay)
 
     def video_feed(self):
         """Video streaming route. Put this in the src attribute of an img tag."""

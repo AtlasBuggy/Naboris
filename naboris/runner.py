@@ -7,7 +7,7 @@ from atlasbuggy.robot import Robot
 from atlasbuggy.filestream.logger import Logger
 from atlasbuggy.camerastream.picamera.pivideo import PiVideoRecorder
 
-log = True
+log = False
 
 logger = Logger(enabled=log)
 recorder = PiVideoRecorder(
@@ -16,11 +16,10 @@ recorder = PiVideoRecorder(
     enabled=log
 )
 pipeline = NaborisPipeline()
-
 naboris = Naboris(logger)
-camera = NaborisCam(pipeline, logger, recorder)
+camera = NaborisCam(logger, recorder)
 cmdline = NaborisCLI(naboris.actuators, naboris.sounds)
-website = NaborisWebsite("templates", "static", naboris.actuators, camera, cmdline)
+website = NaborisWebsite("templates", "static", naboris.actuators, camera, pipeline, cmdline)
 
 
 def main():

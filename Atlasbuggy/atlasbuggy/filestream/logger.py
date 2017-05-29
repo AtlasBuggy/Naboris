@@ -21,11 +21,12 @@ class Logger(BaseWriteFile):
         super(Logger, self).__init__(file_name, directory, True, log_file_type, log_dir, enabled, False,
                                      False, False,
                                      enable_dumping=False)
-        self.make_dir()
 
         self.line_code = (("%s" * 6) + "\n")
 
-        self.open()
+        if self.enabled:
+            self.make_dir()
+            self.open()
 
     def record(self, timestamp, whoiam, packet, packet_type="user"):
         """

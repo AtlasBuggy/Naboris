@@ -10,8 +10,7 @@
     <!-- <img src="{{ url_for('video_feed') }}"> -->
     <img src="video_feed">
     {% for label, command in commands.items() %}
-    <!-- <button class="command command-{{ command }}" value="{{ command }}"> -->
-    <button class="command_button {{ command }}" value="{{ command }}">
+    <button id="{{ label }}" class="command_button {{ command }}" value="{{ command }}">
         {{ label }}
     </button>
     {% endfor %}
