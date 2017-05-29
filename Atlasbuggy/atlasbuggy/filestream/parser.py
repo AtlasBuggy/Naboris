@@ -59,6 +59,7 @@ class Parser(BaseReadFile):
     async def run(self):
         while self.next():
             await asyncio.sleep(0.0)
+            self.update()
 
             # received packets
             # linked callbacks

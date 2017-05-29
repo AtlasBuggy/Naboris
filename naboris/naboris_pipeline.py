@@ -1,36 +1,30 @@
-import io
 import cv2
-import time
 import numpy as np
-from PIL import Image
+from atlasbuggy.camerastream.cvpipeline import CvPipeline
 
 
-class NaborisPipeline:
-    def __init__(self):
-        self.frame = None
+class NaborisPipeline(CvPipeline):
+    def __init__(self, capture, enabled=True, debug=False):
+        super(NaborisPipeline, self).__init__(capture, enabled, debug, True)
 
-    def update(self):
-        self.frame, lines, safety_percentage, line_angle = self.hough_detector(self.frame)
-        return self.frame
+    def pipeline(self, frame):
 
-    def raw_frame(self):
-        if self.frame is not None:
-            return cv2.imencode(".jpg", self.frame)[1].tostring()
-        else:
-            return None
+        output = self.hough_detector(frame)
+        # print(output)
+        return output
 
     def hough_detector(self, input_frame):
-
         blur = cv2.cvtColor(input_frame, cv2.COLOR_BGR2GRAY)
         blur = cv2.equalizeHist(blur)
         blur = cv2.GaussianBlur(blur, (11, 11), 0)
 
         frame = cv2.Canny(blur, 1, 100)
-        lines = cv2.HoughLines(frame, rho=1.2, theta=np.pi / 180,
-                               threshold=125,
-                            #    min_theta=60 * np.pi / 180,
-                            #    max_theta=120 * np.pi / 180
-                               )
+        lines = cv2.HoughLines(
+            frame, rho=1.2, theta=np.pi / 180,
+            threshold=125,
+            # min_theta=60 * np.pi / 180,
+            # max_theta=120 * np.pi / 180
+        )
         safety_percentage, line_angle = self.draw_lines(input_frame, lines)
 
         output_frame = cv2.add(cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR), input_frame)

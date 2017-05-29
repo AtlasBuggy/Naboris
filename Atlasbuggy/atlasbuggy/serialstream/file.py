@@ -29,3 +29,6 @@ class SerialFile(Parser):
             self.serial_stream.deliver(whoiam)
             self.serial_stream.received(whoiam)
             self.serial_stream.update_recurring(timestamp)
+
+    def update(self):
+        self.serial_stream.update()

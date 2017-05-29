@@ -23,6 +23,7 @@ class Button:
             self.current_label = self.labels[index]
             return self.current_label
 
+
 class ButtonCollection:
     def __init__(self, *buttons):
         self.buttons = buttons
@@ -47,7 +48,7 @@ class ButtonCollection:
 
 
 class NaborisWebsite(Website):
-    def __init__(self, template_folder, static_folder, actuators, camera, pipeline, cmdline, enabled=True):
+    def __init__(self, template_folder, static_folder, naboris, camera, pipeline, cmdline, enabled=True):
         # website hosted under http://naboris:5000
         # check /etc/hosts for host names
 
@@ -62,7 +63,8 @@ class NaborisWebsite(Website):
         self.app.add_url_rule("/cmd", view_func=self.command_response, methods=['POST'])
         self.app.add_url_rule("/video_feed", view_func=self.video_feed)
 
-        self.actuators = actuators
+        self.naboris = naboris
+        self.actuators = naboris.actuators
         self.camera = camera
         self.cmdline = cmdline
         self.pipeline = pipeline
@@ -83,10 +85,12 @@ class NaborisWebsite(Website):
             Button("stop", "s", "stop_driving_button", "command_button drive"),
 
             Button(["lights on", "lights off"], ":toggle_lights", "toggle_lights_button", "command_button toggles",
-                int(self.lights_are_on)),
-            Button(["pause video", "unpause video"], ":toggle_camera", "toggle_camera_button", "command_button toggles"),
-            Button(["show original", "show pipeline"], ":toggle_pipeline", "toggle_pipeline_button", "command_button toggles",
-                int(self.show_orignal)),
+                   int(self.lights_are_on)),
+            Button(["pause video", "unpause video"], ":toggle_camera", "toggle_camera_button",
+                   "command_button toggles"),
+            Button(["show original", "show pipeline"], ":toggle_pipeline", "toggle_pipeline_button",
+                   "command_button toggles",
+                   int(self.show_orignal)),
 
             Button("say hello!", "hello", "say hello button", "command_button speak"),
             Button("PANIC!!!", "alert", "alert button", "command_button speak"),
@@ -108,6 +112,7 @@ class NaborisWebsite(Website):
 
                 elif command == ":toggle_pipeline":
                     self.show_orignal = not self.show_orignal
+                    self.pipeline.output_raw_frames(not self.show_orignal)
                     return self.commands[command].switch_label(int(self.show_orignal))
 
                 elif command == ":toggle_lights":
@@ -125,15 +130,13 @@ class NaborisWebsite(Website):
 
     def video(self):
         """Video streaming generator function."""
-        frame = None
         while True:
-            frame = self.camera.raw_frame
-            if frame is not None:
-                if not self.show_orignal:
-                    self.pipeline.frame = self.camera.get_frame()
-                    self.pipeline.update()
-                    frame = self.pipeline.raw_frame()
+            if self.show_orignal:
+                frame = self.camera.frame
+            else:
+                frame = self.pipeline.get_raw()
 
+            if frame is not None:
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 

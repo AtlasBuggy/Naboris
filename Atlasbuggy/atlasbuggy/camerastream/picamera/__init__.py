@@ -17,7 +17,6 @@ class PiCamera(CameraStream):
         self.height = self.capture.resolution[1]
         self.fps = self.capture.framerate
 
-        self.raw_frame = None
 
         self.init_cam(self.capture)
 
@@ -37,7 +36,7 @@ class PiCamera(CameraStream):
             for _ in self.capture.capture_continuous(stream, 'jpeg', use_video_port=True):
                 # store frame
                 stream.seek(0)
-                self.raw_frame = stream.read()
+                self.frame = stream.read()
 
                 # reset stream for next frame
                 stream.seek(0)
@@ -57,10 +56,6 @@ class PiCamera(CameraStream):
                     return
 
                 self.has_updated = True
-
-    def get_frame(self):
-        self.frame = cv2.imdecode(np.fromstring(self.raw_frame, dtype=np.uint8), 1)
-        return self.frame
 
     def close(self):
         # self.capture.stop_preview()  # picamera complains when this is called while recording

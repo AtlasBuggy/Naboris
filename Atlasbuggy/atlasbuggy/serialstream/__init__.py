@@ -240,6 +240,8 @@ class SerialStream(DataStream):
             current_real_time = time.time() - self.start_time
             if self.timestamp is None or current_real_time - self.timestamp > 0.01 or len(self.ports) == 0:
                 self.timestamp = current_real_time
+
+            self.update()
             await asyncio.sleep(self.loop_delay)
             # self.clock.update()  # maintain a constant loop speed
 

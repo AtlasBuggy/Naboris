@@ -32,18 +32,15 @@ class SerialSimulator(SerialFile):
 
 
 class CameraSimulator(VideoPlayer):
-    def __init__(self, video_name, video_directory, serial_simulator, pipeline):
+    def __init__(self, video_name, video_directory):
         super(CameraSimulator, self).__init__(video_name, video_directory)
-        self.serial_simulator = serial_simulator
-        self.pipeline = pipeline
+        self.serial_simulator = None
 
     def update(self):
+        self.serial_simulator.update()
         while self.serial_simulator.current_frame < self.current_frame:
             if not self.serial_simulator.next():
                 self.exit()
-
-        self.pipeline.frame = self.frame
-        self.frame = self.pipeline.update()
 
 
 def main():
@@ -53,14 +50,17 @@ def main():
     video_name = serial_file_name.replace(";", "_")
     video_directory = "naboris/" + serial_directory
 
-    pipeline = NaborisPipeline()
+    capture = CameraSimulator(video_name, video_directory)
+    pipeline = NaborisPipeline(capture)
+    naboris = Naboris(pipeline)
 
-    serial_file = SerialSimulator(Naboris(), serial_file_name, serial_directory)
-    capture = CameraSimulator(video_name, video_directory, serial_file, pipeline)
-    viewer = CameraViewer(capture, enabled=True, enable_slider=True)
+    serial_file = SerialSimulator(naboris, serial_file_name, serial_directory)
+    capture.serial_simulator = serial_file
+
+    viewer = CameraViewer(capture, pipeline=pipeline, enabled=True, enable_slider=True)
     capture.link_viewer(viewer)
 
-    Robot.run(capture, viewer)
+    Robot.run(capture, viewer, pipeline)
 
 
 main()
