@@ -125,15 +125,12 @@ class NaborisWebsite(Website):
 
     def video(self):
         """Video streaming generator function."""
-        frame = None
         while True:
-            frame = self.camera.raw_frame
+            if self.show_orignal:
+                frame = self.camera.raw_frame
+            else:
+                frame = self.pipeline.raw_frame
             if frame is not None:
-                if not self.show_orignal:
-                    self.pipeline.frame = self.camera.get_frame()
-                    self.pipeline.update()
-                    frame = self.pipeline.raw_frame()
-
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 

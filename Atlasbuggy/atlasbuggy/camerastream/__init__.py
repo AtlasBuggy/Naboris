@@ -38,6 +38,9 @@ class CameraStream(DataStream):
         else:
             return False
 
+    def get_frame(self):
+        return self.frame
+
 
 class VideoStream(BaseFile):
     def __init__(self, file_name, directory, file_format, enabled, debug):

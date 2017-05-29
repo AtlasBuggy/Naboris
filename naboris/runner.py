@@ -21,9 +21,4 @@ camera = NaborisCam(logger, recorder)
 cmdline = NaborisCLI(naboris.actuators, naboris.sounds)
 website = NaborisWebsite("templates", "static", naboris.actuators, camera, pipeline, cmdline)
 
-
-def main():
-    Robot.run(naboris, cmdline, website, camera)
-
-
-main()
+Robot.run(pipeline, naboris, cmdline, website, camera)
