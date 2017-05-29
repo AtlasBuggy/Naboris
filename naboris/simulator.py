@@ -17,9 +17,12 @@ class SerialSimulator(SerialFile):
             if packet == "h":
                 print("%0.4fs:" % self.dt(), "stop")
             elif packet[0] == "r":
-                print("%0.4fs:" % self.dt(), "spinning:", packet)
+                print("%0.4fs:" % self.dt(), "spinning %s" % "right" if bool(int(packet[1:3])) else "left")
             elif packet[0] == "p":
-                print("%0.4fs:" % self.dt(), "driving:", packet)
+                print(
+                    "%0.4fs:" % self.dt(), "driving at %sº at speed %s" % (
+                        (1 if packet[1] == "0" else -1) * int(packet[2:5]), int(packet[5:8]))
+                )
             elif packet[0] == "c":
                 print("%0.4fs:" % self.dt(), "turret:", packet)
 
@@ -39,11 +42,12 @@ class CameraSimulator(VideoPlayer):
             if not self.serial_simulator.next():
                 self.exit()
 
-        self.frame = self.pipeline.update(self.frame)
+        self.pipeline.frame = self.frame
+        self.frame = self.pipeline.update()
 
 
 def main():
-    serial_file_name = "16;23;21"
+    serial_file_name = "20;50;16"
     serial_directory = "2017_May_28"
 
     video_name = serial_file_name.replace(";", "_")
