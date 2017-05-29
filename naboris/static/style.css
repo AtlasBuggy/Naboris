@@ -1,25 +1,64 @@
+/* Global HTML styles*/
+
 body {
     background-color: #ffffff;
+    background-image: url("background_image.png");
 }
 
 h1 {
     font-family: "Helvetica";
-    display: inline-block;
     color: #3C423C;
-    margin-left: 20px;
+    margin: 25 auto;
+    text-align: center;
 }
 
 img {
     display: block;
     margin: 0 auto;
-    padding: 15px;
+    /*width: 40%;*/
+    /*zoom: 75%;*/
+    position: relative;
+    /*padding: 15px;*/
+    border: 5px solid #C4C4C4;
 }
 
+/* button styles */
+.buttons {
+    text-align: center;
+}
+
+/* button groups (collections of buttons) */
+.toggle_buttons {
+    width: 60%;
+    margin: 10px auto;
+    border: 1px solid #C4C4C4;
+    position: relative;
+}
+
+.drive_buttons {
+    width: 60%;
+    margin: 10px auto;
+    border: 1px solid #C4C4C4;
+    line-height: 150px;
+
+    /* Drive buttons are laid out in a 5x3 grid */
+    display: grid;
+    grid-template-columns: repeat(5, 20%);
+    grid-template-rows: repeat(3, auto);
+}
+
+.speak_buttons {
+    width: 60%;
+    margin: 10px auto;
+    border: 1px solid #C4C4C4;
+    position: relative;
+}
+
+/* button parent (defines styles for all buttons) */
 .command_button {
     margin: 10px;
-    /*margin: 10 auto;*/
-
-    display: inline-block;
+    position: relative;
+    display: table-cell;
     padding: 7px 7px;
     font-size: 14px;
     cursor: pointer;
@@ -30,19 +69,74 @@ img {
     background-color: #D1E8DF;
     border: none;
     border-radius: 4px;
-    /*box-shadow: 0 2px #474F48;*/
 }
 
+/* Default behavior for hovering over a button */
 .command_button:hover {
-    background-color: #F5FFF8
+    background-color: #DAF2E9
 }
 
+/* Default behavior for clicking a button */
 .command_button:active {
-    background-color: #D1E8D2;
-    box-shadow: 0 0px #474F48;
-    /*transform: translateY(2px);*/
+    background-color: #ACBFB8;
+    /*box-shadow: 0 -1px #899994;*/
+    /*transform: translateY(1px);*/
 }
 
-/*.white_255 {
+/* styles for the drive buttons */
+.drive {
 
-}*/
+}
+
+/* styles for the toggle buttons */
+.toggles {
+    background-color: #D6D6D6;
+}
+.toggles:hover {
+    background-color: #E3E3E3;
+}
+.toggles:active {
+    background-color: #B8B8B8;
+}
+
+/* styles for the speak buttons */
+.speak {
+    background-color: #BDC4E7;
+}
+.speak:hover {
+    background-color: #C8D0F5;
+}
+.speak:active {
+    background-color: #9CA3BF;
+}
+
+
+/* Define grid positions for specific buttons */
+#spin_left_button {
+    grid-row: 2;
+}
+#spin_right_button {
+    grid-column: 5;
+    grid-row: 2;
+}
+
+#drive_forward_button {
+    grid-column: 3;
+    grid-row: 1;
+}
+#drive_backward_button {
+    grid-column: 3;
+    grid-row: 3;
+}
+#drive_left_button {
+    grid-row: 2;
+}
+
+#drive_right_button {
+    grid-column: 4;
+    grid-row: 2;
+}
+#stop_driving_button {
+    grid-column: 3;
+    grid-row: 2;
+}

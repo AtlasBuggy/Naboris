@@ -7,7 +7,7 @@ from atlasbuggy.robot import Robot
 from atlasbuggy.filestream.logger import Logger
 from atlasbuggy.camerastream.picamera.pivideo import PiVideoRecorder
 
-log = True
+log = False
 
 logger = Logger(enabled=log)
 recorder = PiVideoRecorder(
