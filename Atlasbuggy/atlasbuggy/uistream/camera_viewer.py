@@ -48,7 +48,7 @@ class CameraViewer(DataStream):
     async def run(self):
         if not self.enabled:
             return
-        while self.are_others_running():
+        while self.all_running():
             self.show_frame()
             self.update()
             await asyncio.sleep(0.1 / self.capture.fps)

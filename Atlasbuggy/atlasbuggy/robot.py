@@ -50,12 +50,14 @@ class Robot:
                 self.setup_fn(self)
 
             self.loop.run_until_complete(coroutine)
-            while DataStream.are_others_running():  time.sleep(0.1)  # in case there are no async functions to run
+            while DataStream.all_running():
+                time.sleep(0.1)  # in case there are no async functions to run
         except KeyboardInterrupt:
             coroutine.cancel()
         except asyncio.CancelledError:
             pass
         finally:
+            DataStream.all_exited.set()
             for stream in self.streams:
                 stream.stream_close()
             self.loop.close()

@@ -96,7 +96,7 @@ class VideoPlayer(CameraStream):
             cv2.setTrackbarPos(self.camera_viewer.slider_name, self.name, slider_pos)
 
     def run(self):
-        while self.are_others_running():
+        while self.all_running():
             self.has_updated = False  # simulates a lock. Frame is only usable during time.sleep
 
             self.get_frame()

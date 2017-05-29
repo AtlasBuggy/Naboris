@@ -187,25 +187,27 @@ class CvCamera(CameraStream):
     def run(self):
         self.running = True
 
-        while self.are_others_running():
-            success, self.frame = self.capture.read()
+        while self.all_running():
+            with self.frame_lock:
+                success, self.frame = self.capture.read()
 
-            self.has_updated = False
-
-            if not success:
-                self.exit()
-                raise EOFError("Failed to read the frame")
-            if self.resize_frame and self.frame.shape[0:2] != (self.height, self.width):
-                self.frame = cv2.resize(self.frame, (self.width, self.height))
+                if not success:
+                    self.exit()
+                    raise EOFError("Failed to read the frame")
+                if self.resize_frame and self.frame.shape[0:2] != (self.height, self.width):
+                    self.frame = cv2.resize(self.frame, (self.width, self.height))
             self.update()
-
-            self.has_updated = True
 
             self.log_frame()
             self.poll_for_fps()
             self.recorder.record(self.frame)
 
         self.recorder.stop_recording()
+
+    def get_bytes_frame(self):
+        with self.frame_lock:
+            self.bytes_frame = self.numpy_to_bytes(self.frame)
+        return self.bytes_frame
 
     def update(self):
         pass

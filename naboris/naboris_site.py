@@ -108,6 +108,7 @@ class NaborisWebsite(Website):
 
                 elif command == ":toggle_pipeline":
                     self.show_orignal = not self.show_orignal
+                    self.pipeline.generate_bytes = not self.show_orignal
                     return self.commands[command].switch_label(int(self.show_orignal))
 
                 elif command == ":toggle_lights":
@@ -127,9 +128,9 @@ class NaborisWebsite(Website):
         """Video streaming generator function."""
         while True:
             if self.show_orignal:
-                frame = self.camera.raw_frame
+                frame = self.camera.get_bytes_frame()
             else:
-                frame = self.pipeline.raw_frame
+                frame = self.pipeline.bytes_frame
             if frame is not None:
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')

@@ -46,7 +46,7 @@ class DataStream:
         pass
 
     @staticmethod
-    def are_others_running():
+    def all_running():
         return not DataStream.all_exited.is_set()
 
     def not_daemon(self):
@@ -90,7 +90,6 @@ class DataStream:
         if not self.closed.is_set():
             self.closed.set()
             self.close()
-            DataStream.all_exited.set()
 
     def exit(self):
         if not self.exited.is_set():
