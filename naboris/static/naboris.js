@@ -26,7 +26,6 @@ addEventListener("DOMContentLoaded", function() {
 
 
 var motors_moving = false;
-var lights_on = false;
 var looking = false;
 let default_speed = 75;
 let default_lateral = 150;
@@ -90,13 +89,7 @@ function checkKeyDown(e) {
 
     else if (e.keyCode == '79') {
         // o
-        if (lights_on) {
-            requestCommand("white_15");
-        }
-        else {
-            requestCommand("white_255");
-        }
-        lights_on = !lights_on;
+        requestCommand(":toggle_lights", document.getElementById("toggle_lights_button"));
     }
 
     if (!looking)
