@@ -3,7 +3,7 @@ from atlasbuggy.filestream import BaseFile
 from flask import Flask, render_template, Response, request
 
 from atlasbuggy.uistream.website import Website
-
+from atlasbuggy.serialstream.clock import Clock
 
 class Button:
     def __init__(self, labels, command, button_id, group, current_label=0):
@@ -70,7 +70,7 @@ class NaborisWebsite(Website):
         self.show_orignal = False
         self.lights_are_on = False
 
-        self.delay = 1.5 / float(self.camera.fps)
+        self.clock = Clock(float(self.camera.fps))
         self.prev_time = time.time()
 
         self.commands = ButtonCollection(
@@ -84,6 +84,8 @@ class NaborisWebsite(Website):
 
             Button(["lights on", "lights off"], ":toggle_lights", "toggle_lights_button", "command_button toggles",
                 int(self.lights_are_on)),
+            Button(["autonomous", "manual"], ":toggle_autonomy", "toggle_autonomy_button", "command_button toggles",
+                int(self.pipeline.autonomous_mode)),
             Button(["pause video", "unpause video"], ":toggle_camera", "toggle_camera_button", "command_button toggles"),
             Button(["show original", "show pipeline"], ":toggle_pipeline", "toggle_pipeline_button", "command_button toggles",
                 int(self.show_orignal)),
@@ -91,6 +93,9 @@ class NaborisWebsite(Website):
             Button("say hello!", "hello", "say hello button", "command_button speak"),
             Button("PANIC!!!", "alert", "alert button", "command_button speak"),
         )
+
+    def start(self):
+        self.clock.start()
 
     def index(self):
         return render_template('index.html', commands=self.commands)
@@ -120,6 +125,9 @@ class NaborisWebsite(Website):
 
                     return self.commands[command].switch_label(int(self.lights_are_on))
 
+                elif command == ":toggle_autonomy":
+                    self.pipeline.autonomous_mode = not self.pipeline.autonomous_mode
+                    return self.commands[command].switch_label(int(self.pipeline.autonomous_mode))
             else:
                 self.cmdline.handle_input(command.replace("_", " "))
         return ""
@@ -137,8 +145,7 @@ class NaborisWebsite(Website):
 
                 if self.camera.paused:
                     time.sleep(0.25)
-                else:
-                    time.sleep(self.delay)
+                self.clock.update()
 
     def video_feed(self):
         """Video streaming route. Put this in the src attribute of an img tag."""

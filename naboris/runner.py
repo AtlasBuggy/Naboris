@@ -15,9 +15,9 @@ recorder = PiVideoRecorder(
     ("naboris", logger.input_dir),
     enabled=log
 )
-pipeline = NaborisPipeline()
-naboris = Naboris(logger)
 camera = NaborisCam(logger, recorder)
+naboris = Naboris(logger)
+pipeline = NaborisPipeline(camera, naboris.actuators)
 cmdline = NaborisCLI(naboris.actuators, naboris.sounds)
 website = NaborisWebsite("templates", "static", naboris.actuators, camera, pipeline, cmdline)
 

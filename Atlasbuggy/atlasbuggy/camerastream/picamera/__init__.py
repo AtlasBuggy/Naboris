@@ -31,23 +31,25 @@ class PiCamera(CameraStream):
             self.recorder.start_recording(self.capture)
             self.running = True
 
-            stream = io.BytesIO()
-            for _ in self.capture.capture_continuous(stream, 'jpeg', use_video_port=True):
+            # stream = io.BytesIO()
+            # for _ in self.capture.capture_continuous(stream, 'jpeg', use_video_port=True):
+            #     with self.frame_lock:
+            #         # store frame
+            #         stream.seek(0)
+            #         self.bytes_frame = stream.read()
+            #
+            #         # reset stream for next frame
+            #         stream.seek(0)
+            #         stream.truncate()
+            #
+            #         # self.frame = bytes_to_rgb(self.bytes_frame, self.capture.resolution)
+            #         self.frame = np.frombuffer(self.bytes_frame, dtype=np.uint8).reshape((self.height, self.width, 3))[:self.height, :self.width, :]
+
+            raw_capture = PiRGBArray(self.capture, size=self.capture.resolution)
+            for frame in self.capture.capture_continuous(raw_capture, format="bgr", use_video_port=True):
                 with self.frame_lock:
-                    # store frame
-                    stream.seek(0)
-                    self.bytes_frame = stream.read()
-
-                    # reset stream for next frame
-                    stream.seek(0)
-                    stream.truncate()
-
-                    self.frame = bytes_to_rgb(self.bytes_frame, self.capture.resolution)
-
-            # raw_capture = PiRGBArray(self.capture, size=self.capture.resolution)
-            # for frame in self.capture.capture_continuous(raw_capture, format="bgr", use_video_port=True):
-            #     self.frame = frame.array
-            #     raw_capture.truncate(0)
+                    self.frame = frame.array
+                    raw_capture.truncate(0)
 
                     self.log_frame()
                     self.num_frames += 1
@@ -57,6 +59,11 @@ class PiCamera(CameraStream):
 
                 if not self.all_running():
                     return
+
+    def get_bytes_frame(self):
+        with self.frame_lock:
+            self.bytes_frame = self.numpy_to_bytes(self.frame)
+        return self.bytes_frame
 
     def close(self):
         # self.capture.stop_preview()  # picamera complains when this is called while recording

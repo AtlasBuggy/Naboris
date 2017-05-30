@@ -52,8 +52,16 @@ MotorStruct init_motor(int motor_num) {
 int speed_increment = 10;
 int speed_delay = 1;
 MotorStruct* motors = new MotorStruct[NUM_MOTORS];
+
 Servo servo1;
 Servo servo2;
+int yaw = 0;
+int azimuth = 0;
+int goal_yaw = 0;
+int goal_azimuth = 0;
+bool attached = false;
+bool goal_available = false;
+uint32_t servo_timer = millis();
 
 #define NUM_LEDS 24
 #define LED_SIGNAL_PIN 6
@@ -109,10 +117,11 @@ void detach_turret()
     servo2.detach();
 }
 
-void set_turret(int yaw, int azimuth)
-{
+void set_yaw(int yaw) {
     servo1.write(yaw);
-    delay(250);
+}
+
+void set_azimuth(int azimuth) {
     servo2.write(azimuth);
 }
 
@@ -266,10 +275,10 @@ void loop()
             else if (command.charAt(0) == 'd') {  // release command
                 release_motors();
             }
-            else if (command.charAt(0) == 'c') {  // camera command
-                int yaw = command.substring(1, 4).toInt();
-                int azimuth = command.substring(4, 7).toInt();
-                set_turret(yaw, azimuth);
+            else if (command.charAt(0) == 'c') {  // turret command
+                goal_yaw = command.substring(1, 4).toInt();
+                goal_azimuth = command.substring(4, 7).toInt();
+                goal_available = true;
             }
             else if (command.charAt(0) == 'o') {  // pixel command
                 if (command.length() == 1) {
@@ -329,7 +338,6 @@ void loop()
         }
         else if (status == 2) {  // start event
             stop_motors();
-            attach_turret();
         }
     }
 
@@ -339,6 +347,29 @@ void loop()
         if ((millis() - ping_timer) > 500) {
             stop_motors();
             ping_timer = millis();
+        }
+
+        // Sequence of turret events to run (avoids use of delay)
+        if (servo_timer > millis())  servo_timer = millis();
+        if (goal_available && (millis() - servo_timer) > 250) {
+            if (!attached) {
+                attach_turret();
+                attached = true;
+            }
+            else if (yaw != goal_yaw) {
+                yaw = goal_yaw;
+                set_yaw(goal_yaw);
+            }
+            else if (azimuth != goal_azimuth) {
+                azimuth = goal_azimuth;
+                set_azimuth(goal_azimuth);
+            }
+            else if (attached) {
+                detach_turret();
+                attached = false;
+                goal_available = false;
+            }
+            servo_timer = millis();
         }
 
         if (!cycle_paused) {

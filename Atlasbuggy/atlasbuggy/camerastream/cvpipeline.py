@@ -5,7 +5,7 @@ from atlasbuggy.datastream import DataStream
 
 
 class CvPipeline(DataStream):
-    def __init__(self, capture, enabled, debug, name=None, generate_bytes=False):
+    def __init__(self, capture, enabled, debug, name=None, generate_bytes=False, use_output_queue=False):
         super(CvPipeline, self).__init__(enabled, debug, True, False, name)
         self.capture = capture
 
@@ -14,6 +14,7 @@ class CvPipeline(DataStream):
 
         self.generate_bytes = generate_bytes
         self.output_queue = Queue()
+        self.use_output_queue = use_output_queue
 
     def run(self):
         while self.all_running():
@@ -25,7 +26,8 @@ class CvPipeline(DataStream):
                     self.frame = output
                 else:
                     self.frame = output[0]
-                    self.output_queue.put(output[1:])
+                    if self.use_output_queue:
+                        self.output_queue.put(output[1:])
 
                 if self.generate_bytes:
                     self.bytes_frame = self.capture.numpy_to_bytes(self.frame)

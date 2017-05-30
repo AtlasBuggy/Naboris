@@ -11,6 +11,7 @@ class Actuators(SerialObject):
         self.value_V = None
         self.turret_yaw = 90
         self.turret_azimuth = 90
+        self.led_states = None
 
         super(Actuators, self).__init__("naboris actuators", enabled)
 
@@ -25,6 +26,7 @@ class Actuators(SerialObject):
         self.upper_V = int(data[4])
         self.percentage_V = int(data[5])
         self.value_V = int(data[6])
+        self.led_states = [[0, 0, 0] for _ in range(self.num_leds)]
 
     def receive(self, timestamp, packet):
         if packet[0] == 'b':
@@ -102,6 +104,15 @@ class Actuators(SerialObject):
     def set_led(self, led_index, *rgb, show=True):
         r, g, b = self.constrain_input(rgb)
         led_index = int(abs(led_index))
+        if led_index >= self.num_leds:
+            led_index = self.num_leds - 1
+        if led_index < 0:
+            led_index = 0
+
+        self.led_states[led_index][0] = r
+        self.led_states[led_index][1] = g
+        self.led_states[led_index][2] = b
+
         self.send("o%03d%03d%03d%03d" % (led_index, r, g, b))
         if show:
             self.show()
@@ -110,6 +121,20 @@ class Actuators(SerialObject):
         r, g, b = self.constrain_input(rgb)
         start = int(abs(start))
         end = int(abs(end))
+        if start >= self.num_leds:
+            start = self.num_leds - 1
+        if start < 0:
+            start = 0
+
+        if end > self.num_leds:
+            end = self.num_leds
+        if end < 1:
+            end = 1
+
+        for index in range(start, end):
+            self.led_states[index][0] = r
+            self.led_states[index][1] = g
+            self.led_states[index][2] = b
 
         assert end <= self.num_leds and 0 <= start and start < end
 
@@ -119,6 +144,9 @@ class Actuators(SerialObject):
 
     def set_all_leds(self, *rgb, show=True):
         self.set_leds(0, self.num_leds, rgb, show=show)
+
+    def get_led(self, index):
+        return tuple(self.led_states[index])
 
     def toggle_led_cycle(self):
         self.send("o")
