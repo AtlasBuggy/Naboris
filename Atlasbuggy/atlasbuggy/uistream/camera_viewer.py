@@ -22,7 +22,7 @@ class CameraViewer(DataStream):
             self.slider_ticks = self.capture.num_frames
 
         if self.enabled and self.enable_slider:
-            cv2.createTrackbar(self.slider_name, self.capture.name, 0, self.slider_ticks, self._on_slider)
+            cv2.createTrackbar(self.slider_name, self.capture.name, 0, self.slider_ticks, self.on_slider)
 
         platform = get_platform()
         if platform == "linux":
@@ -62,9 +62,9 @@ class CameraViewer(DataStream):
             self.capture.set_frame(slider_pos)
             # self.show_frame()
             self.slider_pos = slider_index
-            self.on_slider()
+            self.on_slider(slider_index)
 
-    def on_slider(self):
+    def on_slider(self, slider_index):
         pass
 
     def show_frame(self):
@@ -74,14 +74,13 @@ class CameraViewer(DataStream):
                 (shape = (height, width, 3))
         :return: None
         """
-        if self.capture.did_update():
-            frame = self.capture.frame
+        frame = self.capture.get_frame()
 
-            if frame is None:
-                return
+        if frame is None:
+            return
 
-            self.key_pressed()
-            cv2.imshow(self.capture.name, frame)
+        self.key_pressed()
+        cv2.imshow(self.capture.name, frame)
 
     def key_pressed(self, delay=1):
         if not self.enabled:

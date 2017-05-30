@@ -3,7 +3,7 @@ import cv2
 import time
 import picamera
 import numpy as np
-from picamera.array import PiRGBArray, bytes_to_rgb
+from picamera.array import PiRGBArray
 from atlasbuggy.camerastream import CameraStream
 from atlasbuggy.camerastream.picamera.pivideo import PiVideoRecorder
 

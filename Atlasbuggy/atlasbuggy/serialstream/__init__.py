@@ -384,7 +384,7 @@ class SerialStream(DataStream):
             while not port.debug_print_outs.empty():
                 self.record(timestamp, port.whoiam, port.debug_print_outs.get(), "debug")
 
-    def record(self, timestamp, whoiam, packet, packet_type):
+    def record(self, timestamp, whoiam, packet, packet_type="user"):
         if self.log:
             self.logger.record(timestamp, whoiam, packet, packet_type)
 

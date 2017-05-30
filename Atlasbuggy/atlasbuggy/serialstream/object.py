@@ -24,7 +24,7 @@ class SerialObject:
         self.whoiam = whoiam
         self.enabled = enabled
         self.baud = baud  # set this if a different baud rate is desired
-        self.is_live = None
+        self.is_live = False
         self.command_packets = Queue(maxsize=255)
         self._pause_command = None
 

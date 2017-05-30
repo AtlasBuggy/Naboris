@@ -1,6 +1,5 @@
 import time
-from atlasbuggy.filestream import BaseFile
-from flask import Flask, render_template, Response, request
+from flask import render_template, Response, request
 
 from atlasbuggy.uistream.website import Website
 from atlasbuggy.serialstream.clock import Clock

@@ -1,5 +1,6 @@
 from atlasbuggy.serialstream.object import SerialObject
 
+
 class Actuators(SerialObject):
     def __init__(self, enabled=True):
         self.num_leds = None

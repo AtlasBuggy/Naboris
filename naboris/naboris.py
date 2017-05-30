@@ -1,3 +1,4 @@
+import time
 import random
 from actuators import Actuators
 from atlasbuggy.serialstream import SerialStream
@@ -5,7 +6,7 @@ from atlasbuggy.filestream.soundfiles import SoundStream
 
 
 class Naboris(SerialStream):
-    def __init__(self, logger=None, debug=False, enabled=True):
+    def __init__(self, logger=None, camera=None, debug=False, enabled=True):
         self.actuators = Actuators()
         super(Naboris, self).__init__(self.actuators, logger=logger, debug=debug, enabled=enabled)
 
@@ -15,9 +16,11 @@ class Naboris(SerialStream):
         self.link_recurring(0.1, self.led_clock)
         self.led_index = 0
         self.prev_led_state = None
+        self.link_recurring(0.01, self.check_frame_num)
 
         self.sounds = SoundStream("sounds", "/home/pi/Music/Bastion/")
         self.random_sound_folders = ["humming", "curiousity", "nothing", "confusion", "concern", "sleepy", "vibrating"]
+        self.camera = camera
 
     def serial_start(self):
         self.actuators.set_all_leds(5, 5, 5)
@@ -32,6 +35,9 @@ class Naboris(SerialStream):
     def receive_actuators(self, timestamp, packet):
         pass
 
+    def check_frame_num(self):
+        self.record(time.time(), "frame check", str(self.camera.num_frames))
+    
     def led_clock(self):
         self.prev_led_state = self.actuators.get_led(self.led_index)
 

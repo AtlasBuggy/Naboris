@@ -2,6 +2,8 @@ import cv2
 import time
 from atlasbuggy.camerastream import CameraStream
 from atlasbuggy.filestream import BaseFile
+from atlasbuggy.serialstream.clock import Clock
+
 
 
 class VideoPlayer(CameraStream):
@@ -48,6 +50,11 @@ class VideoPlayer(CameraStream):
         if start_frame > 0:
             self.set_frame(start_frame)
 
+        self.clock = Clock(self.fps)
+
+    def start(self):
+        self.clock.start()
+
     def link_viewer(self, viewer):
         self.camera_viewer = viewer
 
@@ -66,7 +73,7 @@ class VideoPlayer(CameraStream):
         if position >= 0:
             self.capture.set(cv2.CAP_PROP_POS_FRAMES, int(position))
 
-    def get_frame(self):
+    def _get_frame(self):
         if self.frame_skip > 0:
             self._set_frame(self.current_pos() + self.frame_skip)
 
@@ -76,20 +83,21 @@ class VideoPlayer(CameraStream):
         self.current_frame = self.next_frame
         self.next_frame += 1
 
-        success, self.frame = self.capture.read()
+        with self.frame_lock:
+            success, self.frame = self.capture.read()
 
-        if not success or self.frame is None:
-            if self.loop_video:
-                self.set_frame(0)
-                while success is False or self.frame is None:
-                    success, self.frame = self.capture.read()
-            else:
-                self.exit()
-                return
-        if self.resize_frame:
-            self.frame = cv2.resize(
-                self.frame, (self.resize_width, self.resize_height), interpolation=cv2.INTER_NEAREST
-            )
+            if not success or self.frame is None:
+                if self.loop_video:
+                    self.set_frame(0)
+                    while success is False or self.frame is None:
+                        success, self.frame = self.capture.read()
+                else:
+                    self.exit()
+                    return
+            if self.resize_frame:
+                self.frame = cv2.resize(
+                    self.frame, (self.resize_width, self.resize_height), interpolation=cv2.INTER_NEAREST
+                )
 
         if self.camera_viewer is not None and self.camera_viewer.enable_slider and self.camera_viewer.enabled:
             slider_pos = int(self.current_frame * self.camera_viewer.slider_ticks / self.num_frames)
@@ -97,10 +105,6 @@ class VideoPlayer(CameraStream):
 
     def run(self):
         while self.all_running():
-            self.has_updated = False  # simulates a lock. Frame is only usable during time.sleep
-
-            self.get_frame()
+            self._get_frame()
             self.update()
-
-            self.has_updated = True
-            time.sleep(1 / self.fps)
+            self.clock.update()
