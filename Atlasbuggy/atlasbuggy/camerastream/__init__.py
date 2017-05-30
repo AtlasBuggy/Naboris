@@ -13,6 +13,10 @@ class CameraStream(DataStream):
         self.width = None
         self.height = None
         self.fps = None
+        self.length_sec = 0.0
+        self.fps_sum = 0.0
+        self.fps_avg = 0.0
+        self.prev_t = None
 
         self.frame = None
         self.bytes_frame = None
@@ -30,6 +34,8 @@ class CameraStream(DataStream):
 
         super(CameraStream, self).__init__(enabled, debug, threaded, asynchronous, debug_name)
 
+        self.not_daemon()
+
     def log_frame(self):
         if self.log and self.should_record and self.recorder.is_recording:
             self.logger.record(time.time(), self.name, str(self.num_frames))
@@ -41,6 +47,17 @@ class CameraStream(DataStream):
     def get_bytes_frame(self):
         with self.frame_lock:
             return self.bytes_frame
+
+    def poll_for_fps(self):
+        if self.prev_t is None:
+            self.prev_t = time.time()
+            return 0.0
+
+        self.length_sec = time.time() - self.start_time
+        self.fps_sum += 1 / (time.time() - self.prev_t)
+        self.num_frames += 1
+        self.fps_avg = self.fps_sum / self.num_frames
+        self.prev_t = time.time()
 
     @staticmethod
     def bytes_to_numpy(frame):

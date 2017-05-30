@@ -30,7 +30,7 @@ class PiCamera(CameraStream):
             self.capture.start_preview()
             time.sleep(2)
 
-            self.recorder.start_recording(self)
+            self.recorder.start_recording(self.capture)
             self.running = True
 
             # stream = io.BytesIO()
@@ -53,8 +53,9 @@ class PiCamera(CameraStream):
                     self.frame = frame.array
                     raw_capture.truncate(0)
                     self.num_frames += 1
-                    self.recorder.record(self.frame)
+                    # self.recorder.record(self.frame)
 
+                self.poll_for_fps()
                 self.log_frame()
 
                 while self.paused:

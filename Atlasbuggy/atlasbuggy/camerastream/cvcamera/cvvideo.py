@@ -15,6 +15,8 @@ class CvVideoRecorder(VideoStream):
         self.height = None
         self.video_writer = None
         self.fourcc = None
+        self.frame_buffer = []
+        self.opened = False
 
     def start_recording(self, capture):
         if self.enabled:
@@ -39,19 +41,29 @@ class CvVideoRecorder(VideoStream):
             self.fourcc = cv2.VideoWriter_fourcc(*codec)
             self.video_writer = cv2.VideoWriter()
 
-            self.video_writer.open(self.full_path, self.fourcc, self.capture.fps, (self.width, self.height), True)
-            self.debug_print("Writing video to: '%s'. FPS: %0.2f" % (self.full_path, self.capture.fps))
-
             self.is_recording = True
 
     def record(self, frame):
         if self.enabled:
-            if frame.shape[0:2] != (self.height, self.width):
-                frame = cv2.resize(frame, (self.height, self.width))
-            if len(frame.shape) == 2:
-                self.video_writer.write(cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR))
+            if self.opened:
+                self._write(frame)
             else:
-                self.video_writer.write(frame)
+                if len(self.frame_buffer) >= 50:
+                    self.debug_print("Writing video to: '%s'. FPS: %0.2f" % (self.full_path, self.capture.fps_avg), ignore_flag=True)
+                    self.video_writer.open(self.full_path, self.fourcc, self.capture.fps_avg, (self.width, self.height), True)
+                    while len(self.frame_buffer) > 0:
+                        self._write(self.frame_buffer.pop(0))
+                    self.opened = True
+                else:
+                    self.frame_buffer.append(frame)
+
+    def _write(self, frame):
+        if frame.shape[0:2] != (self.height, self.width):
+            frame = cv2.resize(frame, (self.height, self.width))
+        if len(frame.shape) == 2:
+            self.video_writer.write(cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR))
+        else:
+            self.video_writer.write(frame)
 
     def stop_recording(self):
         if self.enabled and self.is_recording:

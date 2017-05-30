@@ -14,7 +14,8 @@ logger = Logger(enabled=log)
 recorder = CvVideoRecorder(
     logger.input_name.replace(";", "_") + ".mp4",
     ("naboris", logger.input_dir),
-    enabled=log
+    enabled=log,
+    debug=True
 )
 camera = NaborisCam(logger, recorder)
 naboris = Naboris(logger, camera)

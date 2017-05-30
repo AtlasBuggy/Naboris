@@ -22,13 +22,7 @@ class CvCamera(CameraStream):
         self.resize_frame = False
 
         self.skip_count = skip_count
-
-        self.length_sec = 0.0
-        self.fps = 30.0
-        self.fps_sum = 0.0
-        self.fps_avg = 0.0
-        self.prev_t = None
-
+        
         self.key = -1
         platform = get_platform()
         if platform == "linux":
@@ -211,18 +205,6 @@ class CvCamera(CameraStream):
 
     def update(self):
         pass
-
-    def poll_for_fps(self):
-        if self.prev_t is None:
-            self.prev_t = time.time()
-            return 0.0
-
-        self.length_sec = time.time() - self.start_time
-        self.fps = 1 / (time.time() - self.prev_t)
-        self.fps_sum += self.fps
-        self.num_frames += 1
-        self.fps_avg = self.fps_sum / self.num_frames
-        self.prev_t = time.time()
 
     def close(self):
         for cap_name, capture in CvCamera.captures.items():
