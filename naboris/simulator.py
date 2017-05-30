@@ -43,7 +43,8 @@ class SerialSimulator(SerialFile):
                         print("down", end="")
 
                     if yaw == 90:
-                        print(" and straight")
+                        print(" and straight", end="")
+                    print()
 
             # elif packet[0] == "o":
             #     print("led: %d %d %d" % (int(packet[4:7]), int(packet[7:10]), int(packet[10:13])))
@@ -51,6 +52,9 @@ class SerialSimulator(SerialFile):
     def receive_user(self, whoiam, timestamp, packet):
         if whoiam == "NaborisCam":
             self.current_frame = int(packet)
+        # elif whoiam == "frame check":
+        #     num_frames, frame = packet.split("\t")
+        #     print("check:", num_frames)
 
 
 class CameraSimulator(VideoPlayer):
@@ -59,14 +63,13 @@ class CameraSimulator(VideoPlayer):
         self.serial_simulator = serial_simulator
 
     def update(self):
-        # print("1:", self.current_frame)
         while self.serial_simulator.current_frame < self.current_frame:
             if not self.serial_simulator.next():
                 self.exit()
 
 
 def main():
-    serial_file_name = "21;43;57"
+    serial_file_name = "22;06;03"
     serial_directory = "2017_May_29"
 
     video_name = serial_file_name.replace(";", "_")
@@ -75,8 +78,8 @@ def main():
     naboris = Naboris()
     serial_file = SerialSimulator(naboris, serial_file_name, serial_directory)
     capture = CameraSimulator(video_name, video_directory, serial_file)
-    pipeline = NaborisPipeline(capture, naboris)
-    viewer = CameraViewer(capture, enabled=True, enable_slider=True)
+    pipeline = NaborisPipeline(capture, naboris, enabled=True)
+    viewer = CameraViewer(capture, pipeline, enabled=True, enable_slider=True)
     capture.link_viewer(viewer)
 
     Robot.run(capture, viewer, pipeline)

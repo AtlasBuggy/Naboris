@@ -16,7 +16,6 @@ class Naboris(SerialStream):
         self.link_recurring(0.1, self.led_clock)
         self.led_index = 0
         self.prev_led_state = None
-        self.link_recurring(0.01, self.check_frame_num)
 
         self.sounds = SoundStream("sounds", "/home/pi/Music/Bastion/")
         self.random_sound_folders = ["humming", "curiousity", "nothing", "confusion", "concern", "sleepy", "vibrating"]
@@ -34,10 +33,6 @@ class Naboris(SerialStream):
 
     def receive_actuators(self, timestamp, packet):
         pass
-
-    def check_frame_num(self):
-        if self.camera.frame is not None:
-            self.record(time.time(), "frame check", "%s\t%s" % (self.camera.num_frames, self.camera.frame[0][0]))
 
     def led_clock(self):
         self.prev_led_state = self.actuators.get_led(self.led_index)

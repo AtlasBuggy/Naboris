@@ -1,6 +1,5 @@
-import cv2
-import numpy as np
 from queue import Queue
+from threading import Lock
 from atlasbuggy.datastream import DataStream
 
 
@@ -11,6 +10,7 @@ class CvPipeline(DataStream):
 
         self.frame = None
         self.bytes_frame = None
+        self.frame_lock = Lock()
 
         self.generate_bytes = generate_bytes
         self.output_queue = Queue()
@@ -19,9 +19,7 @@ class CvPipeline(DataStream):
     def run(self):
         while self.all_running():
             if self.capture.frame is not None:
-                self.frame = self.capture.get_frame()
-
-                output = self.pipeline(self.frame)
+                output = self.pipeline(self.capture.get_frame())
                 if type(output) != tuple:
                     self.frame = output
                 else:

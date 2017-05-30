@@ -50,14 +50,16 @@ class PiCamera(CameraStream):
                 with self.frame_lock:
                     self.frame = frame.array
                     raw_capture.truncate(0)
-
-                    self.log_frame()
                     self.num_frames += 1
+                    self.recorder.record(self.frame)
+
+                self.log_frame()
 
                 while self.paused:
                     time.sleep(0.1)
 
                 if not self.all_running():
+                    self.recorder.stop_recording()
                     return
 
     def get_bytes_frame(self):

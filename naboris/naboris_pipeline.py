@@ -23,6 +23,7 @@ class NaborisPipeline(CvPipeline):
             # min_theta=60 * np.pi / 180,
             # max_theta=120 * np.pi / 180
         )
+        blur = cv2.putText(blur, str(self.capture.current_frame), (30, 30), cv2.FONT_HERSHEY_PLAIN, 1, (255, 128, 0))
         # safety_percentage, line_angle = self.draw_lines(input_frame, lines)
 
         if lines is not None and self.autonomous_mode:

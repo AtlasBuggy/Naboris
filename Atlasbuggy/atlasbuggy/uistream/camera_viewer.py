@@ -5,10 +5,11 @@ from atlasbuggy import get_platform
 
 
 class CameraViewer(DataStream):
-    def __init__(self, capture, enabled=True, debug=False, name=None, enable_slider=False):
+    def __init__(self, capture, pipeline=None, enabled=True, debug=False, name=None, enable_slider=False):
         super(CameraViewer, self).__init__(enabled, debug, False, True, name)
 
         self.capture = capture
+        self.pipeline = pipeline
         if self.enabled:
             cv2.namedWindow(self.capture.name)
 
@@ -74,12 +75,14 @@ class CameraViewer(DataStream):
                 (shape = (height, width, 3))
         :return: None
         """
-        frame = self.capture.get_frame()
+        if self.pipeline is None or not self.pipeline.enabled:
+            frame = self.capture.get_frame()
+        else:
+            frame = self.pipeline.frame
 
         if frame is None:
             return
 
-        print(self.capture.frame[0][0])
         cv2.imshow(self.capture.name, frame)
         self.key_pressed()
 
