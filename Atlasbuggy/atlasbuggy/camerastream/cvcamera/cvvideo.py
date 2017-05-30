@@ -23,23 +23,23 @@ class CvVideoRecorder(VideoStream):
             self.width = capture.width
             self.height = capture.height
 
-            # if self.file_name.endswith('avi'):
-            #     codec = 'MJPG'
-            # elif self.file_name.endswith('mp4'):
-            #     if get_platform() == 'mac':
-            #         codec = 'MP4V'
-            #     else:
-            #         # TODO: Figure out mp4 recording in ubuntu
-            #         # codec = 'X264'
-            #         codec = 'MJPG'
-            #         self.file_name = self.file_name[:-3] + "avi"
-            #         self.full_path = self.full_path[:-3] + "avi"
-            # else:
-            #     raise ValueError("Invalid file format")
-            # self.fourcc = cv2.VideoWriter_fourcc(*codec)
+            if self.file_name.endswith('avi'):
+                codec = 'MJPG'
+            elif self.file_name.endswith('mp4'):
+                if get_platform() == 'mac':
+                    codec = 'MP4V'
+                else:
+                    # TODO: Figure out mp4 recording in linux
+                    # codec = 'DIVX'
+                    codec = 'MJPG'
+                    self.file_name = self.file_name[:-3] + "avi"
+                    self.full_path = self.full_path[:-3] + "avi"
+            else:
+                raise ValueError("Invalid file format")
+            self.fourcc = cv2.VideoWriter_fourcc(*codec)
             self.video_writer = cv2.VideoWriter()
 
-            self.video_writer.open(self.full_path, -1, self.capture.fps, (self.width, self.height), True)
+            self.video_writer.open(self.full_path, self.fourcc, self.capture.fps, (self.width, self.height), True)
             self.debug_print("Writing video to: '%s'. FPS: %0.2f" % (self.full_path, self.capture.fps))
 
             self.is_recording = True

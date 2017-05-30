@@ -14,11 +14,12 @@ class PiCamera(CameraStream):
 
         self.capture = picamera.PiCamera()
 
+        self.init_cam(self.capture)
+
+        # update values based on init_cam
         self.width = self.capture.resolution[0]
         self.height = self.capture.resolution[1]
         self.fps = self.capture.framerate
-
-        self.init_cam(self.capture)
 
     def init_cam(self, camera):
         pass

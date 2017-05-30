@@ -6,7 +6,7 @@ class NaborisCam(PiCamera):
         super(NaborisCam, self).__init__(enabled, logger=logger, video_recorder=video_recorder)
 
     def init_cam(self, cam):
-        cam.resolution = (self.width // 2, self.height // 2)
+        cam.resolution = (cam.resolution[0] // 2, cam.resolution[1] // 2)
         cam.framerate = 30
         cam.hflip = True
         cam.vflip = True
