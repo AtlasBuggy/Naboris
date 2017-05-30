@@ -24,7 +24,29 @@ class SerialSimulator(SerialFile):
                         (1 if packet[1] == "0" else -1) * int(packet[2:5]), int(packet[5:8]))
                 )
             elif packet[0] == "c":
-                print("%0.4fs:" % self.dt(), "turret:", packet)
+                yaw = int(packet[1:4])
+                azimuth = int(packet[4:7])
+                print("%0.4fs:" % self.dt(), end="looking ")
+                if yaw == 90 and azimuth == 90:
+                    print("straight")
+                else:
+                    if yaw > 90:
+                        print("left and ", end="")
+                    elif yaw < 90:
+                        print("right and ", end="")
+
+                    if azimuth == 90:
+                        print("straight")
+                    elif azimuth > 90:
+                        print("up", end="")
+                    else:
+                        print("down", end="")
+
+                    if yaw == 90:
+                        print(" and straight")
+
+            # elif packet[0] == "o":
+            #     print("led: %d %d %d" % (int(packet[4:7]), int(packet[7:10]), int(packet[10:13])))
 
     def receive_user(self, whoiam, timestamp, packet):
         if whoiam == "NaborisCam":
@@ -37,14 +59,15 @@ class CameraSimulator(VideoPlayer):
         self.serial_simulator = serial_simulator
 
     def update(self):
+        # print("1:", self.current_frame)
         while self.serial_simulator.current_frame < self.current_frame:
             if not self.serial_simulator.next():
                 self.exit()
 
 
 def main():
-    serial_file_name = "20;50;16"
-    serial_directory = "2017_May_28"
+    serial_file_name = "21;43;57"
+    serial_directory = "2017_May_29"
 
     video_name = serial_file_name.replace(";", "_")
     video_directory = "naboris/" + serial_directory

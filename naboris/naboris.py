@@ -36,8 +36,8 @@ class Naboris(SerialStream):
         pass
 
     def check_frame_num(self):
-        self.record(time.time(), "frame check", str(self.camera.num_frames))
-    
+        self.record(time.time(), "frame check", "%s\t%s" % (self.camera.num_frames, self.camera.frame[0][0]))
+
     def led_clock(self):
         self.prev_led_state = self.actuators.get_led(self.led_index)
 

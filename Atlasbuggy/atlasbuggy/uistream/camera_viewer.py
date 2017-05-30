@@ -79,8 +79,9 @@ class CameraViewer(DataStream):
         if frame is None:
             return
 
-        self.key_pressed()
+        print(self.capture.frame[0][0])
         cv2.imshow(self.capture.name, frame)
+        self.key_pressed()
 
     def key_pressed(self, delay=1):
         if not self.enabled:
