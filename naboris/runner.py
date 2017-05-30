@@ -5,12 +5,13 @@ from naboris_cam import NaborisCam
 from naboris_pipeline import NaborisPipeline
 from atlasbuggy.robot import Robot
 from atlasbuggy.filestream.logger import Logger
-from atlasbuggy.camerastream.picamera.pivideo import PiVideoRecorder
+# from atlasbuggy.camerastream.picamera.pivideo import PiVideoRecorder
+from atlasbuggy.camerastream.cvcamera.cvvideo import CvVideoRecorder
 
 log = True
 
 logger = Logger(enabled=log)
-recorder = PiVideoRecorder(
+recorder = CvVideoRecorder(
     logger.input_name.replace(";", "_") + ".mp4",
     ("naboris", logger.input_dir),
     enabled=log

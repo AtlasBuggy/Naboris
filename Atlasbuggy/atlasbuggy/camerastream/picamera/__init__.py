@@ -13,6 +13,7 @@ class PiCamera(CameraStream):
         super(PiCamera, self).__init__(enabled, False, True, False, name, logger, video_recorder)
 
         self.capture = picamera.PiCamera()
+
         self.width = self.capture.resolution[0]
         self.height = self.capture.resolution[1]
         self.fps = self.capture.framerate
@@ -28,7 +29,7 @@ class PiCamera(CameraStream):
             self.capture.start_preview()
             time.sleep(2)
 
-            self.recorder.start_recording(self.capture)
+            self.recorder.start_recording(self)
             self.running = True
 
             # stream = io.BytesIO()
