@@ -6,46 +6,75 @@ class Logitech(BuggyJoystick):
     def __init__(self, socket):
         super(Logitech, self).__init__(
             ['left x', 'left y', 'right x', 'right y'],
-            [0.2, 0.2, 0.2, 0.2],
+            [0.2, 0.2, 0.2, -0.2],
             ['X', 'A', 'B', 'Y', 'LB', 'RB', 'LT', 'RT', 'back', 'left stick',
              'left stick', 'right stick'],
         )
+        self.light_toggle = False
         self.socket = socket
+        self.max_speed = 150
 
     def update(self):
-        value = self.get_axis("right x")
-        if value != 0:
-            self.spin(int(128 * value))
+        # if value != 0:
+        #     self.spin(int(128 * value))
 
-        value = self.get_axis("right y")
-        if value != 0:
-            if value > 0:
-                self.drive(180, int(value * 255))
-            elif value < 0:
-                self.drive(0, int(abs(value) * 255))
+        x_value = self.get_axis("right x")
+        y_value = self.get_axis("right y")
+        spin_value = self.get_axis("left x")
+        if x_value != 0 or y_value != 0 or spin_value != 0:
+            angle = int(math.degrees(math.atan2(x_value, -y_value))) + 180
+            speed = int(self.max_speed * math.sqrt(x_value ** 2 + y_value ** 2))
+            angular = int(self.max_speed / 2 * spin_value)
+            self.drive(angle, speed, angular)
 
-        if self.dpad[0] != 0 or self.dpad[1] != 0:
-            self.drive(math.degrees(math.atan2(-self.dpad[0], self.dpad[1])), 255)
+        # if self.dpad[0] != 0 or self.dpad[1] != 0:
+        #     self.drive(math.degrees(math.atan2(-self.dpad[0], self.dpad[1])), self.max_speed, 0)
 
     def dpad_updated(self, value):
-        if value[0] == 0 and value[1] == 0:
-            self.stop()
+        # if value[0] == 0 and value[1] == 0:
+        #     self.stop()
+        if value[0] == 1:
+            yaw = 70
+        elif value[0] == -1:
+            yaw = 110
+        else:
+            yaw = 90
+
+        if value[1] == 1:
+            azimuth = 70
+        elif value[1] == -1:
+            azimuth = 100
+        else:
+            azimuth = 90
+
+        self.look(yaw, azimuth)
 
     def axis_updated(self, name, value):
-        if name == "right x" or name == "right y":
+        if name == "right x" or name == "right y" or name == "left x":
             if value == 0:
                 self.stop()
 
-        elif name == "left x" or name == "left y":
-            yaw = int(-90 * self.get_axis("left x") + 90)
-            azimuth = int(90 * self.get_axis("left y") + 90)
-            self.look(yaw, azimuth)
+    def button_updated(self, name, value):
+        if name == "RB":
+            self.look_straight()
+        elif name == "LB" and value:
+            if self.light_toggle:
+                self.lights(15)
+            else:
+                self.lights(255)
+            self.light_toggle = not self.light_toggle
+
+    def lights(self, value):
+        self.socket.write("white %d" % value)
+
+    def look_straight(self):
+        self.socket.write("look")
 
     def look(self, yaw, azimuth):
         self.socket.write("look %d %d" % (yaw, azimuth))
 
-    def drive(self, angle, speed):
-        self.socket.write("d %d %d" % (angle, speed))
+    def drive(self, angle, speed, angular):
+        self.socket.write("d %d %d %d" % (angle, speed, angular))
 
     def spin(self, speed):
         if speed > 0:
