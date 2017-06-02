@@ -8,4 +8,4 @@ class NaborisSocketServer(SocketServer):
         self.cmdline = cmdline
 
     def received(self, writer, data):
-        self.cmdline.handle_input()
+        self.cmdline.handle_input(data)

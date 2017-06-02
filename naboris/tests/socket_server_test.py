@@ -1,4 +1,4 @@
-from atlasbuggy.website.socket_server import SocketServer
+from atlasbuggy.website.socket import SocketServer
 from atlasbuggy.robot import Robot
 
 

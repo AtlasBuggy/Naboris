@@ -3,7 +3,7 @@ from atlasbuggy.datastream import DataStream
 
 
 class SocketClient(DataStream):
-    def __init__(self, name, enabled=True, debug=False, host='0.0.0.0', port=5001, timeout=None):
+    def __init__(self, name, host, port=5001, enabled=True, debug=False, timeout=None):
         super(SocketClient, self).__init__(enabled, debug, False, True, name)
         self.host = host
         self.port = port
