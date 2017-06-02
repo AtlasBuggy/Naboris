@@ -1,24 +1,42 @@
+import os
 import asyncio
 import pygame
 from threading import Event
 from atlasbuggy.datastream import DataStream
+from atlasbuggy import get_platform
 
 
 class PygameStream(DataStream):
     pygame_initialized = False
     pygame_exit_event = Event()
 
-    def __init__(self, width, height, fps, enabled, debug, debug_name=None, display_flags=0, display_depth=0):
+    def __init__(self, enabled, debug, width=None, height=None, fps=None, debug_name=None, display_flags=0, display_depth=0):
         super(PygameStream, self).__init__(enabled, debug, False, True, debug_name)
+
         self.fps = fps
-        self.delay = 1 / fps
         self.width = width
         self.height = height
+        if self.fps is None:
+            self.delay = 0.0
+        else:
+            self.delay = 1 / fps
+
         self.display_size = (width, height)
-        self.display = pygame.display.set_mode(self.display_size, display_flags, display_depth)
+
+        if self.width is None or self.height is None or self.fps is None:
+            platform = get_platform()
+            if platform != "mac":
+                os.environ["SDL_VIDEODRIVER"] = "dummy"
+            self.display = "dummy"
+        else:
+            self.display = pygame.display.set_mode(self.display_size, display_flags, display_depth)
 
     def start(self):
         self.init_pygame()
+        self.pygame_stream_start()
+
+    def pygame_stream_start(self):
+        pass
 
     @staticmethod
     def init_pygame():
@@ -29,6 +47,7 @@ class PygameStream(DataStream):
         pass
 
     async def run(self):
+
         while self.all_running():
             pygame.event.pump()
 

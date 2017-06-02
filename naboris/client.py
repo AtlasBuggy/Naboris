@@ -1,8 +1,9 @@
+from naboris_client.socket_client import NaborisSocketClient, CLI
+from naboris_client.logitech import Logitech
+from atlasbuggy.robot import Robot
 
-from naboris.client import NaborisSocketClient, CLI
-from atlabuggy.robot import Robot
-
-socket = NaborisSocketClient()
+socket = NaborisSocketClient(debug=True)
 cli = CLI(socket)
+logitech = Logitech(socket)
 
-Robot.run(socket, cli)
+Robot.run(socket, cli, logitech)

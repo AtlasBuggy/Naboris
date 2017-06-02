@@ -14,6 +14,7 @@ class SocketClient(DataStream):
 
     async def run(self):
         self.reader, self.writer = await asyncio.open_connection(self.host, self.port)
+        self.debug_print("Connection opened with %s:%s" % (self.host, self.port))
         try:
             self.write(self.name + "\n")
             while self.all_running():
@@ -31,11 +32,12 @@ class SocketClient(DataStream):
         finally:
             # self.debug_print("Disconnecting from %s %d", self.host, self.port)
             # self.writer.close()
-            self.debug_print("Disconnected from %s %d", self.host, self.port)
+            self.debug_print("Disconnected from %s %d" % (self.host, self.port))
 
     def write(self, data):
         if self.writer is None:
             raise Exception("async socket not started!")
+        data += "\n"
         self.writer.write(data.encode())
 
     def write_eof(self):
@@ -77,7 +79,7 @@ class SocketServer(DataStream):
         task.add_done_callback(client_done)
 
     async def handle_client(self, client_reader, client_writer, client_num):
-        self.debug_print("getting client name...")
+        self.debug_print("getting naboris_client name...")
         client_name = await asyncio.wait_for(client_reader.readline(), timeout=10.0)
         client_name = client_name.decode().rstrip()
 
@@ -104,7 +106,7 @@ class SocketServer(DataStream):
 
     def write(self, arg, line):
         line += "\n"
-        if type(arg) == str:  # arg is client name
+        if type(arg) == str:  # arg is naboris_client name
             self.client_writers[arg].write(line.encode())
         else:  # arg is writer
             arg.write(line.encode())
