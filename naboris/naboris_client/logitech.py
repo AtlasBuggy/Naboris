@@ -12,7 +12,7 @@ class Logitech(BuggyJoystick):
         )
         self.light_toggle = False
         self.socket = socket
-        self.max_speed = 150
+        self.max_speed = 255
 
     def update(self):
         # if value != 0:

@@ -16,9 +16,17 @@ class CameraSimulator(VideoPlayer):
             if not self.serial_simulator.next():
                 self.exit()
 
+data_sets = {
+    "my room": (
+        ("20;50", "2017_May_28"),
+    ),
+    "hallway": (
+        ("16;23", "2017_May_28"),
+    )
+}
 
-serial_file_name = "22;06;03"
-serial_directory = "2017_May_29"
+
+serial_file_name, serial_directory = data_sets["hallway"][0]
 
 video_name = serial_file_name.replace(";", "_")
 video_directory = "naboris/" + serial_directory

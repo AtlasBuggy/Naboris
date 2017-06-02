@@ -1,6 +1,6 @@
-
 import cv2
-import time
+from skimage.segmentation import slic
+from skimage.segmentation import mark_boundaries
 import numpy as np
 from atlasbuggy.cameras.cvpipeline import CvPipeline
 
@@ -11,7 +11,42 @@ class NaborisPipeline(CvPipeline):
         self.actuators = actuators
         self.autonomous_mode = False
 
-    def pipeline(self, input_frame):
+        self.orb = cv2.ORB_create()
+        self.num_segments = 300
+        self.kernel = np.ones((5, 5), np.uint8)
+
+    def pipeline(self, frame):
+        # over segment
+        # join with classifier
+        # hough line fit boundaries
+        # use vertical regions as basis for ground 3D orientation (use camera parameters)
+
+        # -- Make3D --
+        # over segment
+        # compute segment features: position, color, response magnitude, kurtosis texture, region shape
+        # Split image into 11 segments
+        # Use surrounding neighbors and linear predictor to predict 3D position of superpixel
+        # Use linear logistic regression to compute the confidence of these predictions
+        # Perform global inference using local constraints
+
+        # -- room as a box --
+        # use line segments to reconstruct room
+        #
+
+        return self.over_segment(frame)
+
+    def over_segment(self, frame):
+        erosion = cv2.erode(frame, self.kernel, iterations=2)
+        segments = slic(erosion, n_segments=self.num_segments, sigma=5)
+
+        return mark_boundaries(erosion, segments)
+
+    def orb(self, frame):
+        kp = self.orb.detect(frame, None)
+        kp, des = self.orb.compute(frame, kp)
+        return cv2.drawKeypoints(frame, kp, None, color=(128, 255, 0), flags=0)
+
+    def hough_detector(self, input_frame):
         blur = cv2.cvtColor(input_frame, cv2.COLOR_BGR2GRAY)
         blur = cv2.equalizeHist(blur)
         blur = cv2.GaussianBlur(blur, (11, 11), 0)
@@ -31,7 +66,7 @@ class NaborisPipeline(CvPipeline):
 
         # output_frame = cv2.add(cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR), input_frame)
         # output_frame = np.concatenate((output_frame, cv2.cvtColor(blur, cv2.COLOR_GRAY2BGR)), axis=1)
-        return blur #, lines, safety_percentage, line_angle
+        return blur  # , lines, safety_percentage, line_angle
 
     def draw_lines(self, frame, lines, draw_threshold=30):
         height, width = frame.shape[0:2]
