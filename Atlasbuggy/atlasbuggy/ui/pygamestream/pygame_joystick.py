@@ -90,6 +90,8 @@ class BuggyJoystick(PygameStream):
 
         :return: False if pygame signals the QUIT event
         """
+        await asyncio.sleep(1)
+
         while True:
             await asyncio.sleep(self.delay)
 
