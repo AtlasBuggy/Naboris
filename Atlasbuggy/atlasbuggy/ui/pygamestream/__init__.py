@@ -16,6 +16,10 @@ class PygameStream(DataStream):
         self.fps = fps
         self.width = width
         self.height = height
+        if self.fps is None:
+            self.delay = 0.0
+        else:
+            self.delay = 1 / fps
 
         self.display_size = (width, height)
 
@@ -24,10 +28,8 @@ class PygameStream(DataStream):
             if platform != "mac":
                 os.environ["SDL_VIDEODRIVER"] = "dummy"
             self.display = "dummy"
-            self.delay = 0.0
         else:
             self.display = pygame.display.set_mode(self.display_size, display_flags, display_depth)
-            self.delay = 1 / fps
 
     def start(self):
         self.init_pygame()

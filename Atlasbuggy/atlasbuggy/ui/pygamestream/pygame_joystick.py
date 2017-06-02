@@ -24,13 +24,13 @@ class BuggyJoystick(PygameStream):
     A generic joystick class using pygame. This class captures any joystick events
     """
 
-    def __init__(self, axes_mapping, axes_dead_zones, button_mapping, enabled=True, debug=False):
+    def __init__(self, axes_mapping, axes_dead_zones, button_mapping, enabled=True, debug=False, fps=30):
         """
         :param axes_mapping: A list of axis names that correspond to the axis number pygame assigns
         :param axes_dead_zones: If the corresponding axis number is less than a value in this list, it is considered zero
         :param button_mapping: A list of button names that correspond to the button number pygame assigns
         """
-        super(BuggyJoystick, self).__init__(enabled, debug)
+        super(BuggyJoystick, self).__init__(enabled, debug, fps=fps)
 
         self.axis_to_name = axes_mapping
         self.button_to_name = button_mapping
@@ -91,7 +91,9 @@ class BuggyJoystick(PygameStream):
         :return: False if pygame signals the QUIT event
         """
         while True:
-            await asyncio.sleep(0.001)
+            await asyncio.sleep(self.delay)
+
+            self.update()
 
             # Go through every event pygame sees
             for event in pygame.event.get():
