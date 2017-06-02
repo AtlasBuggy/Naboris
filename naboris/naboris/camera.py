@@ -1,4 +1,4 @@
-from atlasbuggy.camerastream.picamera import PiCamera
+from atlasbuggy.cameras.picamera import PiCamera
 
 
 class NaborisCam(PiCamera):

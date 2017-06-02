@@ -2,7 +2,7 @@ import time
 import cv2
 import numpy as np
 from atlasbuggy.datastream import DataStream
-from atlasbuggy.filestream import BaseFile
+from atlasbuggy.files import BaseFile
 from threading import Lock
 
 

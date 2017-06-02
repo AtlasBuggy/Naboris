@@ -1,4 +1,4 @@
-from atlasbuggy.filestream.parser import Parser
+from atlasbuggy.files.parser import Parser
 
 
 class SerialFile(Parser):

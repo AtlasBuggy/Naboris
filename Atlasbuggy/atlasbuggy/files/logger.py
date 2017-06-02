@@ -2,7 +2,7 @@
 Contains the Logger and Parser classes
 """
 
-from atlasbuggy.filestream import *
+from atlasbuggy.files import *
 
 
 class Logger(BaseWriteFile):

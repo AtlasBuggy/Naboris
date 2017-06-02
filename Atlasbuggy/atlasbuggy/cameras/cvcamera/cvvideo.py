@@ -1,7 +1,7 @@
 import cv2
 from atlasbuggy import get_platform
-from atlasbuggy.camerastream import VideoStream
-from atlasbuggy.filestream import default_video_name, default_log_dir_name
+from atlasbuggy.cameras import VideoStream
+from atlasbuggy.files import default_video_name, default_log_dir_name
 
 
 class CvVideoRecorder(VideoStream):

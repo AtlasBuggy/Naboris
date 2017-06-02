@@ -1,7 +1,7 @@
 import asyncio
 
-from atlasbuggy.filestream import *
-from atlasbuggy.serialstream.object import SerialObject
+from atlasbuggy.files import *
+from atlasbuggy.serial.object import SerialObject
 
 
 class Parser(BaseReadFile):

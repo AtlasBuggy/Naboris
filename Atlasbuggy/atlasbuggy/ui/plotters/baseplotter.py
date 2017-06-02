@@ -3,8 +3,8 @@ The base class shared by liveplotter and staticplotter. Contains properties shar
 """
 
 import numpy as np
-from atlasbuggy.uistream.plotters.plot import RobotPlot
-from atlasbuggy.uistream.plotters.collection import RobotPlotCollection
+from atlasbuggy.ui.plotters.plot import RobotPlot
+from atlasbuggy.ui.plotters.collection import RobotPlotCollection
 from atlasbuggy.datastream import DataStream
 
 

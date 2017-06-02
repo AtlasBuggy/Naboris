@@ -3,9 +3,9 @@ Contains the static plotter class. This class plots data retrieved from a log fi
 according to properties defined in RobotPlot.
 """
 
-from atlasbuggy.uistream.plotters.baseplotter import BasePlotter
-from atlasbuggy.uistream.plotters.plot import RobotPlot
-from atlasbuggy.uistream.plotters.collection import RobotPlotCollection
+from atlasbuggy.ui.plotters.baseplotter import BasePlotter
+from atlasbuggy.ui.plotters.plot import RobotPlot
+from atlasbuggy.ui.plotters.collection import RobotPlotCollection
 
 
 class StaticPlotter(BasePlotter):

@@ -6,10 +6,10 @@ import traceback
 import serial.tools.list_ports
 
 from atlasbuggy.datastream import DataStream
-from atlasbuggy.serialstream.clock import Clock, CommandPause, RecurringEvent
-from atlasbuggy.serialstream.errors import *
-from atlasbuggy.serialstream.object import SerialObject
-from atlasbuggy.serialstream.port import SerialPort
+from atlasbuggy.serial.clock import Clock, CommandPause, RecurringEvent
+from atlasbuggy.serial.errors import *
+from atlasbuggy.serial.object import SerialObject
+from atlasbuggy.serial.port import SerialPort
 
 
 class SerialStream(DataStream):

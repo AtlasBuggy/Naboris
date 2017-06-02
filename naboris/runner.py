@@ -5,15 +5,15 @@ from naboris.site import NaborisWebsite
 from naboris.socket_server import NaborisSocketServer
 from naboris import Naboris
 
-# from atlasbuggy.cameras.picamera.pivideo import PiVideoRecorder
-from atlasbuggy.cameras.cvcamera.cvvideo import CvVideoRecorder
+from atlasbuggy.cameras.picamera.pivideo import PiVideoRecorder as Recorder
+# from atlasbuggy.cameras.cvcamera.cvvideo import CvVideoRecorder as Recorder
 from atlasbuggy.files.logger import Logger
 from atlasbuggy.robot import Robot
 
 log = True
 
 logger = Logger(enabled=log)
-recorder = CvVideoRecorder(
+recorder = Recorder(
     logger.input_name.replace(";", "_") + ".mp4",
     ("naboris", logger.input_dir),
     enabled=log,

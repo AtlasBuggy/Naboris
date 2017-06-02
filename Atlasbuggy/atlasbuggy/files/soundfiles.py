@@ -1,7 +1,7 @@
 import os
 from subprocess import Popen, PIPE, DEVNULL
 
-from atlasbuggy.filestream import BaseFile
+from atlasbuggy.files import BaseFile
 
 
 class SoundStream(BaseFile):

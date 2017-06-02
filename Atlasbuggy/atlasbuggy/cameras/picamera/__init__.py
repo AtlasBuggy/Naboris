@@ -4,8 +4,8 @@ import time
 import picamera
 import numpy as np
 from picamera.array import PiRGBArray
-from atlasbuggy.camerastream import CameraStream
-from atlasbuggy.camerastream.picamera.pivideo import PiVideoRecorder
+from atlasbuggy.cameras import CameraStream
+from atlasbuggy.cameras.picamera.pivideo import PiVideoRecorder
 
 
 class PiCamera(CameraStream):

@@ -2,7 +2,7 @@
 import cv2
 import time
 import numpy as np
-from atlasbuggy.camerastream.cvpipeline import CvPipeline
+from atlasbuggy.cameras.cvpipeline import CvPipeline
 
 
 class NaborisPipeline(CvPipeline):

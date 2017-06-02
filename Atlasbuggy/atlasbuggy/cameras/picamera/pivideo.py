@@ -1,8 +1,8 @@
 import os
 import time
 from subprocess import Popen, PIPE, DEVNULL
-from atlasbuggy.filestream import default_video_name, default_log_dir_name
-from atlasbuggy.camerastream import VideoStream
+from atlasbuggy.files import default_video_name, default_log_dir_name
+from atlasbuggy.cameras import VideoStream
 
 
 class H264toMP4converter:

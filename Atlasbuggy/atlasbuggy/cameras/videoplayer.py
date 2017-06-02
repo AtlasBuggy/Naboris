@@ -1,8 +1,8 @@
 import cv2
 import time
-from atlasbuggy.camerastream import CameraStream
-from atlasbuggy.filestream import BaseFile
-from atlasbuggy.serialstream.clock import Clock
+from atlasbuggy.cameras import CameraStream
+from atlasbuggy.files import BaseFile
+from atlasbuggy.serial.clock import Clock
 
 
 

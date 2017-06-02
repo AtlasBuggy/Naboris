@@ -1,5 +1,5 @@
-from atlasbuggy.camerastream.videoplayer import VideoPlayer
-from atlasbuggy.uistream.camera_viewer import CameraViewer
+from atlasbuggy.cameras.videoplayer import VideoPlayer
+from atlasbuggy.ui.camera_viewer import CameraViewer
 
 from atlasbuggy.robot import Robot
 from naboris import Naboris, SerialSimulator

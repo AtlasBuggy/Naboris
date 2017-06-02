@@ -1,4 +1,4 @@
-from atlasbuggy.serialstream.object import SerialObject
+from atlasbuggy.serial.object import SerialObject
 
 
 class Actuators(SerialObject):

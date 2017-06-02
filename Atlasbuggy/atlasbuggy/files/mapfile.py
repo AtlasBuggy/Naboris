@@ -1,5 +1,5 @@
 import re
-from atlasbuggy.filestream import BaseReadFile, BaseWriteFile
+from atlasbuggy.files import BaseReadFile, BaseWriteFile
 
 
 class MapFile(BaseReadFile):

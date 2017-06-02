@@ -1,8 +1,8 @@
 import time
 from flask import render_template, Response, request
 
-from atlasbuggy.uistream.website import Website
-from atlasbuggy.serialstream.clock import Clock
+from atlasbuggy.website import Website
+from atlasbuggy.serial.clock import Clock
 
 class Button:
     def __init__(self, labels, command, button_id, group, current_label=0):

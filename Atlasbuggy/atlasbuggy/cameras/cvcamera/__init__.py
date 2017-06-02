@@ -1,8 +1,8 @@
 import cv2
 import time
 from atlasbuggy import get_platform
-from atlasbuggy.camerastream import CameraStream
-from atlasbuggy.camerastream.cvcamera.cvvideo import CvVideoRecorder
+from atlasbuggy.cameras import CameraStream
+from atlasbuggy.cameras.cvcamera.cvvideo import CvVideoRecorder
 
 
 class CvCamera(CameraStream):
@@ -22,7 +22,7 @@ class CvCamera(CameraStream):
         self.resize_frame = False
 
         self.skip_count = skip_count
-        
+
         self.key = -1
         platform = get_platform()
         if platform == "linux":
