@@ -14,6 +14,7 @@ class SocketClient(DataStream):
 
     async def run(self):
         self.reader, self.writer = await asyncio.open_connection(self.host, self.port)
+        self.debug_print("Connection opened with %s:%s" % (self.host, self.port))
         try:
             self.write(self.name + "\n")
             while self.all_running():

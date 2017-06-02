@@ -4,7 +4,7 @@ from atlasbuggy.ui.cmdline import CommandLine
 
 class NaborisSocketClient(SocketClient):
     def __init__(self, enabled=True, debug=False):
-        super(NaborisSocketClient, self).__init__("naboris cli", "naboris", enabled, debug)
+        super(NaborisSocketClient, self).__init__("naboris cli", "naboris", enabled=enabled, debug=debug)
 
     def received(self, data):
         print(data)
