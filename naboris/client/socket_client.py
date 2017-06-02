@@ -9,6 +9,7 @@ class NaborisSocketClient(SocketClient):
     def received(self, data):
         print(data)
 
+
 class CLI(CommandLine):
     def __init__(self, socket_client):
         super(CLI, self).__init__(False, True)

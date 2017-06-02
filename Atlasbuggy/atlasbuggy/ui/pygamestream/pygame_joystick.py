@@ -4,10 +4,8 @@ import math
 import asyncio
 
 import pygame
-from atlasbuggy import get_platform
 
-from atlasbuggy.datastream import DataStream
-
+from atlasbuggy.ui.pygamestream import PygameStream
 
 try:
     with os.popen('stty size', 'r') as terminal_window:
@@ -21,33 +19,18 @@ class JoysticksNotFoundError(Exception):
     """No joysticks found"""
 
 
-class BuggyJoystick(DataStream):
+class BuggyJoystick(PygameStream):
     """
     A generic joystick class using pygame. This class captures any joystick events
     """
 
-    def __init__(self, name, axes_mapping, axes_dead_zones, button_mapping):
+    def __init__(self, axes_mapping, axes_dead_zones, button_mapping, enabled=True, debug=False):
         """
         :param axes_mapping: A list of axis names that correspond to the axis number pygame assigns
         :param axes_dead_zones: If the corresponding axis number is less than a value in this list, it is considered zero
         :param button_mapping: A list of button names that correspond to the button number pygame assigns
         """
-        platform = get_platform()
-        if platform != "mac":
-            os.environ["SDL_VIDEODRIVER"] = "dummy"
-        pygame.init()
-        pygame.joystick.init()
-
-        # search for all available joysticks and initialize them
-        joysticks = [pygame.joystick.Joystick(x) for x in
-                     range(pygame.joystick.get_count())]
-        if len(joysticks) == 0:
-            raise JoysticksNotFoundError("No joysticks found!")
-
-        for joy in joysticks:
-            joy.init()
-            # print(joy.get_name(), joy.get_id(), joy.get_init(),
-            #       joy.get_numaxes())
+        super(BuggyJoystick, self).__init__(enabled, debug)
 
         self.axis_to_name = axes_mapping
         self.button_to_name = button_mapping
@@ -64,14 +47,22 @@ class BuggyJoystick(DataStream):
         self.buttons = [False] * len(button_mapping)
         self.dpad = (0, 0)
 
-        self.axis_changed = [False] * len(axes_mapping)
-        self.prev_buttons = [False] * len(button_mapping)
-        self.prev_dpad = (0, 0)
-
         self.t0 = time.time()
         self.active = False
 
-        super(BuggyJoystick, self).__init__(name, False)
+    def pygame_stream_start(self):
+        pygame.joystick.init()
+
+        # search for all available joysticks and initialize them
+        joysticks = [pygame.joystick.Joystick(x) for x in
+                     range(pygame.joystick.get_count())]
+        if len(joysticks) == 0:
+            raise JoysticksNotFoundError("No joysticks found!")
+
+        for joy in joysticks:
+            joy.init()
+            # print(joy.get_name(), joy.get_id(), joy.get_init(),
+            #       joy.get_numaxes())
 
     @staticmethod
     def create_mapping(list_mapping):
@@ -106,7 +97,7 @@ class BuggyJoystick(DataStream):
             for event in pygame.event.get():
                 self.t0 = time.time()
                 # if event.type != pygame.NOEVENT:
-                    # print(event)
+                # print(event)
                 if event.type == pygame.QUIT:
                     self.exit()
 
@@ -125,7 +116,7 @@ class BuggyJoystick(DataStream):
                         if self.axes[event.axis] != value:
                             # update the current value
                             self.axes[event.axis] = value
-                            self.axis_changed[event.axis] = True
+                            self.axis_updated(self.axis_to_name[event.axis], value)
                     else:
                         raise ValueError("Unregistered axis! '%s'. Please add "
                                          "it to your joystick class." % event.axis)
@@ -135,6 +126,7 @@ class BuggyJoystick(DataStream):
                 elif event.type == pygame.JOYHATMOTION:
                     self.active = True
                     self.dpad = event.value
+                    self.dpad_updated(self.dpad)
 
                 # if a button was pressed, set it to True and call the button
                 # down callback
@@ -146,6 +138,7 @@ class BuggyJoystick(DataStream):
                         raise ValueError(
                             "Unregistered button! '%s'. Please add "
                             "it to your joystick class." % event.button)
+                    self.button_updated(self.button_to_name[event.button], True)
 
                 # if a button was released, set it to False and call the button
                 # up callback
@@ -157,9 +150,11 @@ class BuggyJoystick(DataStream):
                         raise ValueError(
                             "Unregistered button! '%s'. Please add "
                             "it to your joystick class." % event.button)
-            # TODO: find better solution. Keeps listening to bumpers
-            # if self.active and (time.time() - self.t0) > 1:  # if no events received for more than timeout, signal stop
-                # return "error"
+
+                    self.button_updated(self.button_to_name[event.button], False)
+                    # TODO: find better solution. Keeps listening to bumpers
+                    # if self.active and (time.time() - self.t0) > 1:  # if no events received for more than timeout, signal stop
+                    # return "error"
 
     def get_button(self, name):
         """
@@ -169,19 +164,8 @@ class BuggyJoystick(DataStream):
         """
         return self.buttons[self.name_to_button[name]]
 
-    def button_updated(self, name):
-        """
-        Check if the button updated its value
-        :param name: The name of a button listed in button_mapping in __init__
-        :return: bool
-        """
-        prev_button = self.prev_buttons[self.name_to_button[name]]
-        button = self.buttons[self.name_to_button[name]]
-        if prev_button != button:
-            self.prev_buttons[self.name_to_button[name]] = button
-            return True
-        else:
-            return False
+    def button_updated(self, name, value):
+        pass
 
     def get_axis(self, name):
         """
@@ -191,26 +175,11 @@ class BuggyJoystick(DataStream):
         """
         return self.axes[self.name_to_axis[name]]
 
-    def axis_updated(self, name):
-        """
-        Check if the axis updated its value
-        :param name: The name of an axis listed in axis_mapping in __init__
-        :return: bool
-        """
-        if self.axis_changed[self.name_to_axis[name]]:
-            self.axis_changed[self.name_to_axis[name]] = False
-            return True
-        else:
-            return False
+    def axis_updated(self, name, value):
+        pass
 
-    def dpad_updated(self):
-        if self.prev_dpad != self.dpad:
-            self.prev_dpad = self.dpad
-            return True
-        else:
-            self.prev_dpad = self.dpad
-            return False
-
+    def dpad_updated(self, value):
+        pass
 
     @staticmethod
     def fill_line(line):

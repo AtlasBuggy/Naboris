@@ -32,11 +32,12 @@ class SocketClient(DataStream):
         finally:
             # self.debug_print("Disconnecting from %s %d", self.host, self.port)
             # self.writer.close()
-            self.debug_print("Disconnected from %s %d", self.host, self.port)
+            self.debug_print("Disconnected from %s %d" % (self.host, self.port))
 
     def write(self, data):
         if self.writer is None:
             raise Exception("async socket not started!")
+        data += "\n"
         self.writer.write(data.encode())
 
     def write_eof(self):
