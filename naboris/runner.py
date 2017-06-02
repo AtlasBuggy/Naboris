@@ -10,7 +10,7 @@ from atlasbuggy.cameras.picamera.pivideo import PiVideoRecorder as Recorder
 from atlasbuggy.files.logger import Logger
 from atlasbuggy.robot import Robot
 
-log = True
+log = False
 
 logger = Logger(enabled=log)
 recorder = Recorder(

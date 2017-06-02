@@ -2,6 +2,7 @@ import time
 import sys
 from atlasbuggy.datastream import DataStream
 import asyncio
+import traceback
 
 
 class CommandLine(DataStream):
@@ -23,7 +24,12 @@ class CommandLine(DataStream):
             print("\r%s" % self.prompt_text, end="")
             data = await self.queue.get()
             await asyncio.sleep(0.01)
-            self.handle_input(data.strip('\n'))
+            try:
+                self.handle_input(data.strip('\n'))
+            except BaseException as error:
+                traceback.print_exc()
+                print(error)
+                self.debug_print("Failed to parse input:", repr(data), ignore_flag=True)
 
     def handle_input(self, line):
         if line == 'q':
