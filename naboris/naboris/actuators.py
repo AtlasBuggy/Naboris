@@ -36,8 +36,16 @@ class Actuators(SerialObject):
             self.percentage_V = int(data[1])
             # print("Battery: %s%%, %s mV" % (self.percentage_V, self.value_V))
 
-    def drive(self, speed, angle):
-        command = "p%d%03d%03d" % (int(-speed > 0), angle, abs(speed))
+    def drive(self, speed, angle, rotational_speed=0):
+        direction_flag = 0
+        if speed > 0:
+            direction_flag = 1
+        if rotational_speed > 0:
+            if direction_flag == 1:
+                direction_flag = 3
+            else:
+                direction_flag = 2
+        command = "p%d%03d%03d%03d" % (direction_flag, angle, abs(speed), abs(rotational_speed))
 
         self.send(command)
 

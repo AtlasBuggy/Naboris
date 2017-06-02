@@ -18,6 +18,7 @@ class NaborisCLI(CommandLine):
     def drive(self, params):
         angle = 0
         speed = 75
+        angular = 0
         if len(params) > 1:
             values = params.split(" ")
 
@@ -27,9 +28,12 @@ class NaborisCLI(CommandLine):
 
                 if len(values) >= 2:
                     speed = int(values[1])
+
+                if len(values) >= 3:
+                    angular = int(values[2])
             except ValueError:
                 print("Failed to parse input:", repr(values))
-        self.actuators.drive(speed, angle)
+        self.actuators.drive(speed, angle, angular)
 
     def look(self, params):
         data = params.split(" ")

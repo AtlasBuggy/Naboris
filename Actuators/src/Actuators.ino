@@ -107,14 +107,20 @@ void setup() {
 
 void attach_turret()
 {
-    servo1.attach(YAW_PIN);
-    servo2.attach(AZIMUTH_PIN);
+    if (!attached) {
+        servo1.attach(YAW_PIN);
+        servo2.attach(AZIMUTH_PIN);
+        attached = true;
+    }
 }
 
 void detach_turret()
 {
-    servo1.detach();
-    servo2.detach();
+    if (attached) {
+        servo1.detach();
+        servo2.detach();
+        attached = false;
+    }
 }
 
 void set_yaw(int yaw) {
@@ -173,25 +179,25 @@ void set_motor_goals(int speed2, int speed1, int speed3, int speed4)
     set_motor_goal(3, speed4, BOTRIGHT_OFFSET);  // bottom right
 }
 
-void drive(int angle, int speed)
+void drive(int angle, int speed, int angular)
 {
     angle %= 360;
 
     if (0 <= angle && angle < 90) {
         int fraction_speed = -2 * speed / 90 * angle + speed;
-        set_motor_goals(speed, fraction_speed, fraction_speed, speed);
+        set_motor_goals(speed + angular, fraction_speed - angular, fraction_speed + angular, speed - angular);
     }
     else if (90 <= angle && angle < 180) {
         int fraction_speed = -2 * speed / 90 * (angle - 90) + speed;
-        set_motor_goals(fraction_speed, -speed, -speed, fraction_speed);
+        set_motor_goals(fraction_speed + angular, -speed - angular, -speed + angular, fraction_speed - angular);
     }
     else if (180 <= angle && angle < 270) {
         int fraction_speed = 2 * speed / 90 * (angle - 180) - speed;
-        set_motor_goals(-speed, fraction_speed, fraction_speed, -speed);
+        set_motor_goals(-speed + angular, fraction_speed - angular, fraction_speed + angular, -speed - angular);
     }
     else if (270 <= angle && angle < 360) {
         int fraction_speed = 2 * speed / 90 * (angle - 270) - speed;
-        set_motor_goals(fraction_speed, speed, speed, fraction_speed);
+        set_motor_goals(fraction_speed + angular, speed - angular, speed + angular, fraction_speed - angular);
     }
 }
 
@@ -254,11 +260,19 @@ void loop()
             String command = robot.getCommand();
             if (command.charAt(0) == 'p') {  // drive command
                 int angle = 360 - command.substring(2, 5).toInt();
-                int speed = -command.substring(5, 8).toInt();
+                int speed = command.substring(5, 8).toInt();
+                int angular = command.substring(8, 11).toInt();
                 if (command.charAt(1) == '1') {
                     speed *= -1;
                 }
-                drive(angle, speed);
+                else if (command.charAt(1) == '2') {
+                    angular *= -1;
+                }
+                else if (command.charAt(1) == '3') {
+                    speed *= -1;
+                    angular *= -1;
+                }
+                drive(angle, speed, angular * 2);
                 ping_timer = millis();
             }
             else if (command.charAt(0) == 'r') {  // spin command
@@ -269,10 +283,11 @@ void loop()
                 spin(speed);
                 ping_timer = millis();
             }
+
             else if (command.charAt(0) == 'h') {  // stop command
                 stop_motors();
             }
-            else if (command.charAt(0) == 'd') {  // release command
+            else if (command.charAt(0) == 'r') {  // release command
                 release_motors();
             }
             else if (command.charAt(0) == 'c') {  // turret command
@@ -344,7 +359,7 @@ void loop()
     if (!robot.isPaused()) {
         update_motors();
         if (ping_timer > millis())  ping_timer = millis();
-        if ((millis() - ping_timer) > 500) {
+        if ((millis() - ping_timer) > 750) {
             stop_motors();
             ping_timer = millis();
         }
@@ -354,19 +369,19 @@ void loop()
         if (goal_available && (millis() - servo_timer) > 250) {
             if (!attached) {
                 attach_turret();
-                attached = true;
             }
-            else if (yaw != goal_yaw) {
-                yaw = goal_yaw;
-                set_yaw(goal_yaw);
-            }
-            else if (azimuth != goal_azimuth) {
-                azimuth = goal_azimuth;
-                set_azimuth(goal_azimuth);
+            else if (yaw != goal_yaw || azimuth != goal_azimuth) {
+                if (yaw != goal_yaw) {
+                    yaw = goal_yaw;
+                    set_yaw(goal_yaw);
+                }
+                if (azimuth != goal_azimuth) {
+                    azimuth = goal_azimuth;
+                    set_azimuth(goal_azimuth);
+                }
             }
             else if (attached) {
                 detach_turret();
-                attached = false;
                 goal_available = false;
             }
             servo_timer = millis();
