@@ -58,7 +58,7 @@ class SocketServer(DataStream):
         self.client_writers = {}
 
     async def run(self):
-        self.debug_print("Starting server")
+        self.debug_print("Starting server on %s:%s" % (self.host, self.port), ignore_flag=True)
         await asyncio.start_server(self.accept_client, host=self.host, port=self.port)
         while self.all_running():
             await asyncio.sleep(0.5)
@@ -82,7 +82,7 @@ class SocketServer(DataStream):
         client_name = client_name.decode().rstrip()
 
         self.client_writers[client_name] = client_writer
-        self.debug_print("new connection with name '%s'" % client_name)
+        self.debug_print("new connection with name '%s'" % client_name, ignore_flag=True)
 
         while True:
             if self.timeout is None:
