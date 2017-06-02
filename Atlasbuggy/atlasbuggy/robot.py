@@ -4,22 +4,25 @@ from atlasbuggy.datastream import DataStream
 
 
 class Robot:
-    def __init__(self, *streams, setup_fn=None, loop_fn=None):
+    def __init__(self, *streams, setup_fn=None, loop_fn=None, run_forever=False):
         """
         :param robot_objects: instances of atlasbuggy.robot.object.RobotObject or
             atlasbuggy.robot.object.RobotObjectCollection
         """
 
         self.streams = []
+
         self.loop_fn = loop_fn
         self.setup_fn = setup_fn
+        self.run_forever = run_forever
+
         for stream in streams:
             if stream.enabled:
                 self.streams.append(stream)
         self.loop = asyncio.get_event_loop()
 
     @staticmethod
-    def run(*streams, setup_fn=None, loop_fn=None):
+    def run(*streams, setup_fn=None, loop_fn=None, run_forever=True):
         Robot(*streams, setup_fn=setup_fn, loop_fn=loop_fn)._run()
 
     def _run(self):
@@ -50,8 +53,11 @@ class Robot:
                 self.setup_fn(self)
 
             self.loop.run_until_complete(coroutine)
-            while DataStream.all_running():
-                time.sleep(0.1)  # in case there are no async functions to run
+            if self.run_forever:
+                self.loop.run_forever()
+            else:
+                while DataStream.all_running():
+                    time.sleep(0.1)  # in case there are no async functions to run
         except KeyboardInterrupt:
             coroutine.cancel()
         except asyncio.CancelledError:

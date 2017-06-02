@@ -4,7 +4,6 @@ from subprocess import Popen, PIPE, DEVNULL
 from atlasbuggy.filestream import BaseFile
 
 
-
 class SoundStream(BaseFile):
     def __init__(self, name, sound_directory, enabled=True, debug=False):
         super(SoundStream, self).__init__("", sound_directory, ["wav", "ogg"], "", False, enabled, debug,

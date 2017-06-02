@@ -1,15 +1,14 @@
 # This file is meant to collect data from manual control. Terminal interface only
 import argparse
-import cmd
 # from threading import Thread
-import sys
 import asyncio
-from http.server import SimpleHTTPRequestHandler, HTTPServer
+import cmd
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 
-from atlasbuggy.robot import Robot
 from atlasbuggy.interface.live import RobotRunner
 
-from actuators import Actuators
+from atlasbuggy.robot import Robot
+from naboris.actuators import Actuators
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-l", "--nolog", help="disable logging", action="store_false")

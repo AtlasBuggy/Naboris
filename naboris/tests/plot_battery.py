@@ -1,12 +1,10 @@
-from actuators import Actuators
-
 from atlasbuggy.interface.simulated import RobotSimulator
-from atlasbuggy.robot import Robot
-
-from atlasbuggy.plotters.collection import RobotPlotCollection
 from atlasbuggy.plotters.plot import RobotPlot
-
 from atlasbuggy.plotters.staticplotter import StaticPlotter
+
+from atlasbuggy.robot import Robot
+from naboris.actuators import Actuators
+
 
 class BatteryPlotter(Robot):
     def __init__(self):

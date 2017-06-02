@@ -1,7 +1,9 @@
 import asyncio
-from actuators import Actuators
+
 from atlasbuggy.serialstream import SerialStream
-from atlasbuggy.iostream.cmdline import CommandLine
+from atlasbuggy.uistream.cmdline import CommandLine
+
+from naboris.actuators import Actuators
 
 actuators = Actuators()
 serial = SerialStream(actuators, debug=True)

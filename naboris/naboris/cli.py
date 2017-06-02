@@ -1,4 +1,4 @@
-from atlasbuggy.iostream.cmdline import CommandLine
+from atlasbuggy.ui.cmdline import CommandLine
 
 
 class NaborisCLI(CommandLine):
