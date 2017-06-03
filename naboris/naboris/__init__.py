@@ -14,7 +14,7 @@ class Naboris(SerialStream):
 
         self.link_callback(self.actuators, self.receive_actuators)
         self.link_recurring(10, self.request_battery)
-        self.link_recurring(1, self.play_random_sound, include_event_in_params=True)
+        self.link_recurring(1, self.event_random_sound, include_event_in_params=True)
         self.link_recurring(0.1, self.led_clock)
         self.led_index = 0
         self.prev_led_state = None
@@ -27,8 +27,11 @@ class Naboris(SerialStream):
         self.actuators.set_all_leds(5, 5, 5)
         self.actuators.set_battery(5050, 5180)
 
-    def play_random_sound(self, event):
+    def event_random_sound(self, event):
         event.repeat_time = random.randint(30, 120)  # play a random sound every 30..120 seconds
+        self.play_random_sound()
+
+    def play_random_sound(self):
         folder = random.choice(self.random_sound_folders)
         sound = random.choice(self.sounds.list_sounds(folder))
         self.sounds.play(sound)

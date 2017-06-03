@@ -2,10 +2,11 @@ from atlasbuggy.ui.cmdline import CommandLine
 
 
 class NaborisCLI(CommandLine):
-    def __init__(self, actuators, sounds, enabled=True):
+    def __init__(self, naboris, enabled=True):
         super(NaborisCLI, self).__init__(False, enabled)
-        self.actuators = actuators
-        self.sounds = sounds
+        self.naboris = naboris
+        self.actuators = naboris.actuators
+        self.sounds = naboris.sounds
 
     def spin_left(self, params):
         value = int(params) if len(params) > 0 else 75
@@ -99,31 +100,35 @@ class NaborisCLI(CommandLine):
 
     def say_hello(self, params):
         self.sounds.play("emotes/hello")
+        self.actuators.pause(0.5)
         self.actuators.set_all_leds(0, 0, 15)
-        self.actuators.pause(0.1)
         self.actuators.look_straight()
-        self.actuators.pause(0.1)
+        self.actuators.pause(0.25)
         for _ in range(2):
             self.actuators.look_up()
-            self.actuators.pause(0.1)
+            self.actuators.pause(0.25)
             self.actuators.look_down()
-            self.actuators.pause(0.1)
+            self.actuators.pause(0.25)
         self.actuators.look_straight()
         self.actuators.set_all_leds(15, 15, 15)
 
     def say_alert(self, params):
         self.sounds.play("alert/high_alert")
+        self.actuators.pause(0.5)
         self.actuators.set_all_leds(15, 0, 0)
         self.actuators.pause(0.05)
         self.actuators.look_straight()
         for _ in range(3):
             self.actuators.look_left()
-            self.actuators.pause(0.1)
+            self.actuators.pause(0.15)
             self.actuators.look_right()
-            self.actuators.pause(0.1)
+            self.actuators.pause(0.15)
         self.actuators.look_straight()
         self.actuators.pause(0.1)
         self.actuators.set_all_leds(15, 15, 15)
+
+    def say_random_sound(self, params):
+        self.naboris.play_random_sound()
 
     def check_commands(self, line, **commands):
         function = None
@@ -153,4 +158,5 @@ class NaborisCLI(CommandLine):
                 battery=self.battery,
                 hello=self.say_hello,
                 alert=self.say_alert,
+                sound=self.say_random_sound,
             )

@@ -1,3 +1,4 @@
+import argparse
 from naboris.camera import NaborisCam
 from naboris.cli import NaborisCLI
 from naboris.pipeline import NaborisPipeline
@@ -10,7 +11,13 @@ from atlasbuggy.cameras.picamera.pivideo import PiVideoRecorder as Recorder
 from atlasbuggy.files.logger import Logger
 from atlasbuggy.robot import Robot
 
-log = False
+parser = argparse.ArgumentParser()
+parser.add_argument("-l", "--log", help="enable logging", action="store_true")
+parser.add_argument("-d", "--debug", help="enable debug prints", action="store_true")
+parser.add_argument("-nopipe", "--nopipeline", help="disable pipeline", action="store_false")
+args = parser.parse_args()
+
+log = args.log
 
 logger = Logger(enabled=log)
 recorder = Recorder(
@@ -21,8 +28,8 @@ recorder = Recorder(
 )
 camera = NaborisCam(logger, recorder)
 naboris = Naboris(logger, camera)
-pipeline = NaborisPipeline(camera, naboris.actuators)
-cmdline = NaborisCLI(naboris.actuators, naboris.sounds)
+pipeline = NaborisPipeline(camera, naboris.actuators, enabled=args.nopipeline)
+cmdline = NaborisCLI(naboris)
 website = NaborisWebsite("templates", "static", naboris.actuators, camera, pipeline, cmdline)
 socket = NaborisSocketServer(cmdline)
 

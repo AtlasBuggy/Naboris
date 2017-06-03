@@ -1,6 +1,6 @@
 import cv2
-from skimage.segmentation import slic
-from skimage.segmentation import mark_boundaries
+# from skimage.segmentation import slic
+# from skimage.segmentation import mark_boundaries
 import numpy as np
 from atlasbuggy.cameras.cvpipeline import CvPipeline
 
@@ -11,9 +11,9 @@ class NaborisPipeline(CvPipeline):
         self.actuators = actuators
         self.autonomous_mode = False
 
-        self.orb = cv2.ORB_create()
-        self.num_segments = 300
-        self.kernel = np.ones((5, 5), np.uint8)
+        # self.orb = cv2.ORB_create()
+        # self.num_segments = 300
+        # self.kernel = np.ones((5, 5), np.uint8)
 
     def pipeline(self, frame):
         # over segment
@@ -33,7 +33,8 @@ class NaborisPipeline(CvPipeline):
         # use line segments to reconstruct room
         #
 
-        return self.over_segment(frame)
+        # return self.over_segment(frame)
+        return frame
 
     def over_segment(self, frame):
         erosion = cv2.erode(frame, self.kernel, iterations=2)
