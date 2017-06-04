@@ -56,7 +56,7 @@ class Logitech(BuggyJoystick):
 
     def button_updated(self, name, value):
         if name == "RB":
-            self.look_straight()
+            self.socket.write("sound")
         elif name == "LB" and value:
             if self.light_toggle:
                 self.lights(15)
