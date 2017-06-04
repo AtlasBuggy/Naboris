@@ -201,6 +201,10 @@ void drive(int angle, int speed, int angular)
     }
 }
 
+void ping() {
+    ping_timer = millis();
+}
+
 void spin(int speed) {
     set_motor_goals(speed, -speed, speed, -speed);
 }
@@ -273,7 +277,7 @@ void loop()
                     angular *= -1;
                 }
                 drive(angle, speed, angular * 2);
-                ping_timer = millis();
+                ping();
             }
             else if (command.charAt(0) == 'r') {  // spin command
                 int speed = command.substring(2, 5).toInt();
@@ -281,7 +285,7 @@ void loop()
                     speed *= -1;
                 }
                 spin(speed);
-                ping_timer = millis();
+                ping();
             }
 
             else if (command.charAt(0) == 'h') {  // stop command
@@ -291,8 +295,16 @@ void loop()
                 release_motors();
             }
             else if (command.charAt(0) == 'c') {  // turret command
+                servo_timer = millis();
+                attach_turret();
+
                 goal_yaw = command.substring(1, 4).toInt();
                 goal_azimuth = command.substring(4, 7).toInt();
+
+                set_yaw(goal_yaw);
+                set_azimuth(goal_azimuth);
+
+                servo_timer = millis();
                 goal_available = true;
             }
             else if (command.charAt(0) == 'o') {  // pixel command
@@ -361,29 +373,16 @@ void loop()
         if (ping_timer > millis())  ping_timer = millis();
         if ((millis() - ping_timer) > 750) {
             stop_motors();
+            detach_turret();
             ping_timer = millis();
         }
 
         // Sequence of turret events to run (avoids use of delay)
         if (servo_timer > millis())  servo_timer = millis();
-        if (goal_available && (millis() - servo_timer) > 250) {
-            if (!attached) {
-                attach_turret();
-            }
-            else if (yaw != goal_yaw || azimuth != goal_azimuth) {
-                if (yaw != goal_yaw) {
-                    yaw = goal_yaw;
-                    set_yaw(goal_yaw);
-                }
-                if (azimuth != goal_azimuth) {
-                    azimuth = goal_azimuth;
-                    set_azimuth(goal_azimuth);
-                }
-            }
-            else if (attached) {
-                detach_turret();
-                goal_available = false;
-            }
+        if (goal_available && (millis() - servo_timer) > 500)
+        {
+            detach_turret();
+            goal_available = false;
             servo_timer = millis();
         }
 

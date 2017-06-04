@@ -66,7 +66,7 @@ class NaborisWebsite(Website):
         self.cmdline = cmdline
         self.pipeline = pipeline
 
-        self.show_orignal = False
+        self.show_orignal = not self.pipeline.enabled
         self.lights_are_on = False
 
         self.clock = Clock(float(self.camera.fps))
