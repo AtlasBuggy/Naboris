@@ -79,7 +79,7 @@ class SocketServer(DataStream):
         task.add_done_callback(client_done)
 
     async def handle_client(self, client_reader, client_writer, client_num):
-        self.debug_print("getting naboris_client name...")
+        self.debug_print("getting remote name...")
         client_name = await asyncio.wait_for(client_reader.readline(), timeout=10.0)
         client_name = client_name.decode().rstrip()
 
@@ -106,7 +106,7 @@ class SocketServer(DataStream):
 
     def write(self, arg, line):
         line += "\n"
-        if type(arg) == str:  # arg is naboris_client name
+        if type(arg) == str:  # arg is remote name
             self.client_writers[arg].write(line.encode())
         else:  # arg is writer
             arg.write(line.encode())

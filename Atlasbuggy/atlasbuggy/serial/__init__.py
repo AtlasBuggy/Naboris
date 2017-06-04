@@ -173,7 +173,6 @@ class SerialStream(DataStream):
         """
         Send each port's first packet to the corresponding object if it isn't an empty string
         """
-        status = True
         for whoiam in self.objects.keys():
             first_packet = self.ports[whoiam].first_packet
             if len(first_packet) > 0:

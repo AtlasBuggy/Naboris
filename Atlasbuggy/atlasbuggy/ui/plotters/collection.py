@@ -19,16 +19,19 @@ class RobotPlotCollection:
         self.enabled = enabled
         self.window_resizing = window_resizing
         for plot in robot_plots:
-            if plot.enabled:
-                plot.flat = self.flat
-                plot.properties["label"] = plot.name
-                plot.window_resizing = window_resizing
-
-                self.plots.append(plot)
-                plot.collection_plot = self
+            self.add_plot(plot)
 
         if len(self.plots) == 0:
-            self.enabled = False
+            print("Warning: No plots added to RobotPlotCollection!!")
+
+    def add_plot(self, plot):
+        if plot.enabled:
+            plot.flat = self.flat
+            plot.properties["label"] = plot.name
+            plot.window_resizing = self.window_resizing
+
+            self.plots.append(plot)
+            plot.collection_plot = self
 
     def ranges_set(self):
         for plot in self.plots:

@@ -40,6 +40,8 @@ class RobotPlot:
         self.properties = plot_properties
         self.changed_properties = {}
 
+        self.properties["label"] = self.name
+
         if x_range is not None:
             x_range = list(x_range)
             assert len(x_range) == 2

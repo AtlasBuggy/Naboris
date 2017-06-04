@@ -48,6 +48,9 @@ class BasePlotter(DataStream):
         self.plots_dict = {}
         self.extra_elements = {}
 
+        self.plot_num = 0
+        self.num_columns = num_columns
+
         if self.enabled:
             self.open_matplotlib()  # launch the python app only if the plotter is used
 
@@ -61,26 +64,28 @@ class BasePlotter(DataStream):
 
             # based on number of columns and plot number, get the number of rows
             num_plots = len(self.robot_plots)
-            if num_plots < num_columns:
-                num_columns = num_plots
-            num_rows = num_plots // num_columns
-            num_rows += num_plots % num_columns
+            if num_plots < self.num_columns:
+                self.num_columns = num_plots
+            self.num_rows = num_plots // self.num_columns
+            self.num_rows += num_plots % self.num_columns
 
             # create subplots for each robot plot
-            plot_num = 1
+            self.plot_num = 1
             for plot in self.robot_plots:
-                self.plots_dict[plot.name] = plot
-                if plot.flat:
-                    self.axes[plot.name] = self.fig.add_subplot(num_rows, num_columns, plot_num)
-                else:
-                    self.axes[plot.name] = self.fig.add_subplot(num_rows, num_columns, plot_num, projection='3d')
-
-                self.axes[plot.name].set_title(plot.name)
-
-                plot_num += 1
+                self.add_axis(plot)
         else:  # disable all plots if plotter is disabled
             for plot in self.robot_plots:
                 plot.enabled = False
+
+    def add_axis(self, plot):
+        if plot.name not in self.plots_dict:
+            self.plots_dict[plot.name] = plot
+            if plot.flat:
+                self.axes[plot.name] = self.fig.add_subplot(self.num_rows, self.num_columns, self.plot_num)
+            else:
+                self.axes[plot.name] = self.fig.add_subplot(self.num_rows, self.num_columns, self.plot_num, projection='3d')
+            self.axes[plot.name].set_title(plot.name)
+            self.plot_num += 1
 
     def open_matplotlib(self):
         from matplotlib import pyplot

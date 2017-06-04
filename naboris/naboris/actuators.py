@@ -1,8 +1,10 @@
 from atlasbuggy.serial.object import SerialObject
+from atlasbuggy.ui.plotters.plot import RobotPlot
+from atlasbuggy.ui.plotters.collection import RobotPlotCollection
 
 
 class Actuators(SerialObject):
-    def __init__(self, enabled=True):
+    def __init__(self, enabled=True, enable_led_plot=False):
         self.num_leds = None
         self.speed_increment = None
         self.speed_delay = None
@@ -13,6 +15,10 @@ class Actuators(SerialObject):
         self.turret_yaw = 90
         self.turret_azimuth = 90
         self.led_states = None
+
+        self.enable_led_plot = enable_led_plot
+        self.led_plots = None
+        self.strip_plot = None
 
         super(Actuators, self).__init__("naboris actuators", enabled)
 
@@ -28,6 +34,12 @@ class Actuators(SerialObject):
         self.percentage_V = int(data[5])
         self.value_V = int(data[6])
         self.led_states = [[0, 0, 0] for _ in range(self.num_leds)]
+
+        self.led_plots = [
+            RobotPlot("LED #%s" % x, enabled=self.enable_led_plot, marker='.', markersize=10,
+                      x_range=(-1, self.num_leds), color='black') for x in
+            range(self.num_leds)]
+        self.strip_plot = RobotPlotCollection("LEDs", *self.led_plots, enabled=self.enable_led_plot)
 
     def receive(self, timestamp, packet):
         if packet[0] == 'b':

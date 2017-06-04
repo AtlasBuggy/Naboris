@@ -2,7 +2,8 @@ from atlasbuggy.cameras.videoplayer import VideoPlayer
 from atlasbuggy.ui.camera_viewer import CameraViewer
 
 from atlasbuggy.robot import Robot
-from naboris import Naboris, SerialSimulator
+from naboris import Naboris
+from naboris.simulator import NaborisSimulator
 from naboris.pipeline import NaborisPipeline
 
 
@@ -32,7 +33,7 @@ video_name = serial_file_name.replace(";", "_")
 video_directory = "naboris/" + serial_directory
 
 naboris = Naboris()
-serial_file = SerialSimulator(naboris, serial_file_name, serial_directory)
+serial_file = NaborisSimulator(naboris, serial_file_name, serial_directory)
 capture = CameraSimulator(video_name, video_directory, serial_file)
 pipeline = NaborisPipeline(capture, naboris, enabled=True)
 viewer = CameraViewer(capture, pipeline, enabled=True, enable_slider=True)
