@@ -50,6 +50,12 @@ class Parser(BaseReadFile):
     def receive_user(self, whoiam, timestamp, packet):
         pass
 
+    def receive_object(self, whoiam, timestamp, packet):
+        pass
+
+    def receive_first(self, whoiam, packet):
+        pass
+
     def whoiams_equal(self, arg, whoiam):
         if isinstance(arg, SerialObject):
             return arg.whoiam == whoiam
@@ -58,6 +64,7 @@ class Parser(BaseReadFile):
 
     async def run(self):
         while self.next():
+            await self.update()
             await asyncio.sleep(0.0)
 
             # received packets
@@ -65,6 +72,11 @@ class Parser(BaseReadFile):
             # raise errors
             # print debugs
             # receive commands
+
+        self.file_finished()
+
+    def file_finished(self):
+        pass
 
     def receive(self, index, packet_type, timestamp, whoiam, packet):
         pass

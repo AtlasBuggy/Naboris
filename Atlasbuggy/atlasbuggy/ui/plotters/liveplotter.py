@@ -49,30 +49,44 @@ class LivePlotter(BasePlotter):
         if self.enabled:
             # create a plot line for each RobotPlot or RobotPlotCollection.
             for plot in self.robot_plots:
-                if isinstance(plot, RobotPlot):
-                    if plot.flat:  # if the plot is 2D
-                        self.lines[plot.name] = self.axes[plot.name].plot([], [], **plot.properties)[0]
-                    else:
-                        self.lines[plot.name] = self.axes[plot.name].plot([], [], [], **plot.properties)[0]
-                elif isinstance(plot,
-                                RobotPlotCollection):  # similar to RobotPlot initialization except there are subplots
-                    self.lines[plot.name] = {}
-
-                    if plot.flat:
-                        for subplot in plot.plots:
-                            self.lines[plot.name][subplot.name] = \
-                                self.axes[plot.name].plot([], [], **subplot.properties)[0]
-                    else:
-                        for subplot in plot.plots:
-                            self.lines[plot.name][subplot.name] = \
-                                self.axes[plot.name].plot([], [], [], **subplot.properties)[0]
+                self._create_lines(plot)
 
             # define a clean close event
             self.fig.canvas.mpl_connect('close_event', lambda event: self.close())
             self.init_legend()
             self.plt.show(block=False)
 
-    def start_time(self, time0=None):
+    def update_collection(self, plot):
+        if plot.name not in self.lines:
+            self.lines[plot.name] = {}
+
+        if plot.flat:
+            for subplot in plot.plots:
+                if subplot.name not in self.lines[plot.name]:
+                    self.lines[plot.name][subplot.name] = \
+                        self.axes[plot.name].plot([], [], **subplot.properties)[0]
+        else:
+            for subplot in plot.plots:
+                if subplot.name not in self.lines[plot.name]:
+                    self.lines[plot.name][subplot.name] = \
+                        self.axes[plot.name].plot([], [], [], **subplot.properties)[0]
+
+    def _create_lines(self, plot):
+        if isinstance(plot, RobotPlot):
+            if plot.name not in self.lines:
+                if plot.flat:  # if the plot is 2D
+                    self.lines[plot.name] = self.axes[plot.name].plot([], [], **plot.properties)[0]
+                else:
+                    self.lines[plot.name] = self.axes[plot.name].plot([], [], [], **plot.properties)[0]
+        elif isinstance(plot, RobotPlotCollection):  # similar to RobotPlot initialization except there are subplots
+            self.update_collection(plot)
+
+    def add_plots(self, *robot_plots, num_columns=None):
+        self.add_subplots(*robot_plots, num_columns=num_columns)
+        for plot in self.robot_plots:
+            self._create_lines(plot)
+
+    def set_time(self, time0=None):
         """
         Supply a start time. This keeps all timers in sync
 
@@ -119,7 +133,7 @@ class LivePlotter(BasePlotter):
                 self.exit()
                 return
 
-            if not self.enabled: #or not self.should_update(timestamp):
+            if not self.enabled:  # or not self.should_update(timestamp):
                 continue
 
             if self.is_paused:
@@ -162,7 +176,7 @@ class LivePlotter(BasePlotter):
             try:
                 self.fig.canvas.draw()
                 self.plt.pause(0.005)  # can't be less than ~0.005
-                await asyncio.sleep(0.0)
+                await asyncio.sleep(0.005)
 
             except BaseException as error:
                 traceback.print_exc()

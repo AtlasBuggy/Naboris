@@ -3,6 +3,7 @@ The base class shared by liveplotter and staticplotter. Contains properties shar
 """
 
 import numpy as np
+import matplotlib.gridspec as gridspec
 from atlasbuggy.ui.plotters.plot import RobotPlot
 from atlasbuggy.ui.plotters.collection import RobotPlotCollection
 from atlasbuggy.datastream import DataStream
@@ -11,7 +12,8 @@ from atlasbuggy.datastream import DataStream
 class BasePlotter(DataStream):
     fig_num = 0
 
-    def __init__(self, num_columns, legend_args, draw_legend, matplotlib_events, enabled, debug, asynchronous, *robot_plots):
+    def __init__(self, num_columns, legend_args, draw_legend, matplotlib_events, enabled, debug, asynchronous,
+                 *robot_plots):
         """
         A plotter is one matplotlib figure. Having multiple robot plots creates subplots
         :param num_columns: Configure how the subplots are arranged
@@ -29,11 +31,11 @@ class BasePlotter(DataStream):
             if plot.enabled:  # only append plot if it is enabled
                 self.robot_plots.append(plot)
 
-        if self.enabled:  # if plotter is enabled check if all the plots are enabled
-            if len(self.robot_plots) == 0:
-                self.enabled = False
-            else:
-                self.enabled = True
+        # if self.enabled:  # if plotter is enabled check if all the plots are enabled
+        #     if len(self.robot_plots) == 0:
+        #         self.enabled = False
+        #     else:
+        #         self.enabled = True
 
         self.legend_args = legend_args
         if self.legend_args is None:
@@ -48,6 +50,10 @@ class BasePlotter(DataStream):
         self.plots_dict = {}
         self.extra_elements = {}
 
+        self.num_plots = 0
+        self.num_rows = 0
+        self.num_columns = 0
+
         if self.enabled:
             self.open_matplotlib()  # launch the python app only if the plotter is used
 
@@ -59,28 +65,49 @@ class BasePlotter(DataStream):
                 for event_name in matplotlib_events:
                     self.fig.canvas.mpl_connect(event_name, matplotlib_events[event_name])
 
-            # based on number of columns and plot number, get the number of rows
-            num_plots = len(self.robot_plots)
-            if num_plots < num_columns:
-                num_columns = num_plots
-            num_rows = num_plots // num_columns
-            num_rows += num_plots % num_columns
+            self.num_columns = num_columns
+
+            self._adjust_grid(self.num_columns, len(self.robot_plots))
 
             # create subplots for each robot plot
-            plot_num = 1
-            for plot in self.robot_plots:
-                self.plots_dict[plot.name] = plot
-                if plot.flat:
-                    self.axes[plot.name] = self.fig.add_subplot(num_rows, num_columns, plot_num)
-                else:
-                    self.axes[plot.name] = self.fig.add_subplot(num_rows, num_columns, plot_num, projection='3d')
-
-                self.axes[plot.name].set_title(plot.name)
-
-                plot_num += 1
+            for plot_num, plot in enumerate(self.robot_plots):
+                self._create_subplot(plot, plot_num + 1)
         else:  # disable all plots if plotter is disabled
             for plot in self.robot_plots:
                 plot.enabled = False
+
+    def _create_subplot(self, plot, plot_num):
+        self.plots_dict[plot.name] = plot
+        if plot.flat:
+            self.axes[plot.name] = self.fig.add_subplot(self.num_rows, self.num_columns, plot_num)
+        else:
+            self.axes[plot.name] = self.fig.add_subplot(self.num_rows, self.num_columns, plot_num, projection='3d')
+
+        self.axes[plot.name].set_title(plot.name)
+
+    def _adjust_grid(self, num_columns, num_plots):
+        # based on number of columns and plot number, get the number of rows
+        if num_plots > 0:
+            self.num_plots = num_plots
+            if num_columns is not None:
+                self.num_columns = num_columns
+            if self.num_plots < self.num_columns:
+                self.num_columns = self.num_plots
+            self.num_rows = self.num_plots // self.num_columns
+            self.num_rows += self.num_plots % self.num_columns
+
+    def add_subplots(self, *new_plots, num_columns=None):
+        self._adjust_grid(num_columns, len(new_plots) + self.num_plots)
+
+        grid = gridspec.GridSpec(self.num_rows, self.num_columns)
+        for plot_num, plot in enumerate(self.robot_plots):
+            self.axes[plot.name].set_position(grid[plot_num].get_position(self.fig))
+
+        for plot_num, plot in enumerate(new_plots):
+            self._create_subplot(plot, plot_num + 1 + len(self.robot_plots))
+
+        self.robot_plots.extend(new_plots)
+        self.update_legend()
 
     def open_matplotlib(self):
         from matplotlib import pyplot
@@ -100,6 +127,10 @@ class BasePlotter(DataStream):
                 self.legend_args["loc"] = 0
 
             # self.plt.legend()
+            self.update_legend()
+
+    def update_legend(self):
+        if len(self.robot_plots) > 0:
             self.axes[list(self.axes.keys())[0]].legend(**self.legend_args)
 
     def _get_name(self, arg):
