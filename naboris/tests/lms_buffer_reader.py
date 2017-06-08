@@ -28,7 +28,8 @@ def lms200_crc(data):
 
 index = 0
 command = b''
-num_commands = 
+num_commands = 0
+
 
 def read(n):
     global index, command
@@ -45,7 +46,7 @@ def parse_16bit(lower_byte, upper_byte):
 
 
 async def run(robot):
-    global index, command
+    global index, command, num_commands
     while index < len(contents):
         char_num = read(1)
         if char_num == b'\x02':
@@ -79,7 +80,7 @@ async def run(robot):
                     unit_info_2 = sample_info >> 15 & 1
                     if not unit_info_1 and not unit_info_2:
                         units = "cm"
-                    if unit_info_1 and not unit_info_2:
+                    elif unit_info_1 and not unit_info_2:
                         units = "mm"
                     else:
                         units = "Reserved"
@@ -89,7 +90,6 @@ async def run(robot):
                     is_complete_scan = not bool(scan_info)
                     print("complete scan:", is_complete_scan)
 
-                    print(sample_info >> 11)
                     resolution_info_1 = sample_info >> 11 & 1
                     resolution_info_2 = sample_info >> 12 & 1
 
@@ -113,11 +113,15 @@ async def run(robot):
                     scan_plot.update(distances * np.cos(angles), distances * np.sin(angles))
                     await asyncio.sleep(0.5)
 
-                    plotter.active_window_resizing = False
+                    print(num_commands)
+                    if num_commands > 2:
+                        plotter.active_window_resizing = False
+                        scan_plot.window_resizing = False
+                    num_commands += 1
     plotter.plot()
     # robot.exit()
 
 
 scan_plot = RobotPlot("lms200", marker='.', linestyle='')
-plotter = LivePlotter(1, scan_plot, active_window_resizing=False)
+plotter = LivePlotter(1, scan_plot)
 Robot.run(plotter, loop_fn=run)
