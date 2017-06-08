@@ -1,13 +1,16 @@
 import time
+
 from atlasbuggy.robot import Robot
-from atlasbuggy.ui.plotters.plot import RobotPlot
 from atlasbuggy.ui.plotters.liveplotter import LivePlotter
-from atlasbuggy.sensors.lms200 import LMS200
+from atlasbuggy.ui.plotters.plot import RobotPlot
+from naboris.lms200 import LMS200
+
+is_live = False
 
 
 class MyLMS(LMS200):
     def __init__(self):
-        super(MyLMS, self).__init__("/dev/cu.usbserial", is_live=False)
+        super(MyLMS, self).__init__("/dev/cu.usbserial", is_live=is_live)
 
     def point_cloud_received(self, point_cloud):
         scan_plot.update(point_cloud[:, 0], point_cloud[:, 1])
@@ -20,9 +23,10 @@ lms200 = MyLMS()
 
 
 def start(robot):
-    with open("buffer3.txt", 'rb') as buffer_file:
-        contents = buffer_file.read()
-    lms200.append_simulated_data(contents)
+    if not is_live:
+        with open("buffer1.txt", 'rb') as buffer_file:
+            contents = buffer_file.read()
+        lms200.append_simulated_data(contents)
 
 
 Robot.run(lms200, plotter, setup_fn=start)
