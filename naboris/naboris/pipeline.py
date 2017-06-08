@@ -10,7 +10,6 @@ from atlasbuggy.files import BaseFile
 
 class NaborisPipeline(CvPipeline):
     def __init__(self, actuators, enabled=True, capture=None, debug=False, generate_database=False):
-        print("generate_database", generate_database)
         super(NaborisPipeline, self).__init__(enabled, debug, capture=capture, generate_bytes=True)
         self.actuators = actuators
         self.autonomous_mode = False

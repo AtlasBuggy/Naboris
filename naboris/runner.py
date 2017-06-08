@@ -14,7 +14,7 @@ from atlasbuggy.robot import Robot
 parser = argparse.ArgumentParser()
 parser.add_argument("-l", "--log", help="enable logging", action="store_true")
 parser.add_argument("-d", "--debug", help="enable debug prints", action="store_true")
-parser.add_argument("-nopipe", "--nopipeline", help="disable pipeline", action="store_false")
+parser.add_argument("-pipe", "--pipeline", help="enable pipeline", action="store_true")
 args = parser.parse_args()
 
 log = args.log
@@ -28,7 +28,7 @@ recorder = Recorder(
 )
 camera = NaborisCam(logger, recorder)
 naboris = Naboris(logger, camera)
-pipeline = NaborisPipeline(naboris.actuators, args.nopipeline, camera)
+pipeline = NaborisPipeline(naboris.actuators, args.pipeline, camera)
 cmdline = NaborisCLI(naboris)
 website = NaborisWebsite("templates", "static", naboris.actuators, camera, pipeline, cmdline)
 socket = NaborisSocketServer(cmdline)
