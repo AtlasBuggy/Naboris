@@ -1,0 +1,97 @@
+with open("../buffer1.txt", 'rb') as buffer_file:
+    contents = buffer_file.read()
+
+
+def lms200_crc(data):
+    crc16 = 0
+    byte = [0, 0]
+    for c in data:
+        byte[1] = byte[0]
+        byte[0] = c
+
+        if crc16 & 0x8000:
+            crc16 = (crc16 & 0x7FFF) << 1
+            crc16 ^= 0x8005
+        else:
+            crc16 = crc16 << 1
+
+        crc16 ^= (byte[1] << 8) | byte[0]
+
+    return crc16
+
+
+index = 0
+command = b''
+
+def read(n):
+    global index, command
+    result = contents[index: index + n]
+    index += n
+    command += result
+    if len(result) == 0:
+        result = '\x00'
+    return result
+
+def parse_16bit(lower_byte, upper_byte):
+    return (upper_byte << 8) + lower_byte
+
+
+while index < len(contents):
+    char_num = read(1)
+    print("-----")
+    if char_num == b'\x02':
+        if read(1) == b'\x80':
+            print("response")
+            length = parse_16bit(ord(read(1)), ord(read(1)))
+            print("length:", length)
+
+            payload = read(length)
+            response = payload[0]
+            data = payload[1:]
+            print("response: %s, data: %s" % (hex(response), data))
+            checksum = parse_16bit(ord(read(1)), ord(read(1)))
+            calc_checksum = lms200_crc(command[:-2])
+
+            print("command checksum:", checksum)
+            print("calculated checksum:", calc_checksum)
+            assert calc_checksum == checksum
+
+            command = b''
+
+            if response == 0xA0:
+                print("power on response")
+            elif response == 0xB0:
+                print(hex(data[0]), hex(data[1]))
+                sample_info = parse_16bit(data[0], data[1])
+                num_samples = sample_info & 0x3ff
+
+                unit_info_1 = sample_info >> 14 & 1
+                unit_info_2 = sample_info >> 15 & 1
+                if not unit_info_1 and not unit_info_2:
+                    units = "cm"
+                if unit_info_1 and not unit_info_2:
+                    units = "mm"
+                else:
+                    units = "Reserved"
+                print("units:", units)
+
+                scan_info = sample_info >> 13 & 1
+                is_complete_scan = not bool(scan_info)
+                print("complete scan:", is_complete_scan)
+
+                print(sample_info >> 11)
+                resolution_info_1 = sample_info >> 11 & 1
+                resolution_info_2 = sample_info >> 12 & 1
+
+                if not resolution_info_1 and not resolution_info_2:
+                    resolution = 0
+                elif resolution_info_1 and not resolution_info_2:
+                    resolution = 0.25
+                elif not resolution_info_1 and resolution_info_2:
+                    resolution = 0.5
+                else:
+                    resolution = 0.75
+                print("resolution: %sº" % resolution)
+
+
+
