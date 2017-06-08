@@ -3,32 +3,48 @@ import asyncio
 from atlasbuggy.serial.file import SerialFile
 from atlasbuggy.ui.plotters.plot import RobotPlot
 from atlasbuggy.ui.plotters.collection import RobotPlotCollection
+from atlasbuggy.ui.plotters.staticplotter import StaticPlotter
+from atlasbuggy.ui.plotters.liveplotter import LivePlotter
 
 
 class NaborisSimulator(SerialFile):
-    def __init__(self, naboris, file_name, directory, plotter):
+    def __init__(self, naboris, file_name, directory, plotter=None):
         self.naboris = naboris
         super(NaborisSimulator, self).__init__(naboris, file_name, directory)
 
         self.current_frame = 0
         self.plotter = plotter
         self.led_plot = RobotPlotCollection("led plot")
-        self.plotter.add_plots(self.led_plot)
+        if self.plotter is not None:
+            self.plotter.add_plots(self.led_plot)
 
     async def update(self):
-        await asyncio.sleep(0.001)
+        if self.plotter is not None:
+            if isinstance(self.plotter, StaticPlotter):
+                await asyncio.sleep(0.0)
+            elif isinstance(self.plotter, LivePlotter):
+                await asyncio.sleep(0.001)
+
+    def file_finished(self):
+        if self.plotter is not None:
+            if isinstance(self.plotter, StaticPlotter):
+                self.exit()
+                self.plotter.plot()
+            elif isinstance(self.plotter, LivePlotter):
+                self.plotter.plot()
 
     def receive_first(self, whoiam, packet):
         if whoiam == self.naboris.actuators.whoiam:
-            num_leds = self.naboris.actuators.num_leds
-            for index in range(num_leds):
-                led = RobotPlot("LED #%s" % index, marker='.', markersize=10,
-                                x_range=(-2, 2), y_range=(-2, 2), color='black')
-                self.led_plot.add_plot(led)
+            if self.plotter is not None:
+                num_leds = self.naboris.actuators.num_leds
+                for index in range(num_leds):
+                    led = RobotPlot("LED #%s" % index, marker='.', markersize=10,
+                                    x_range=(-2, 2), y_range=(-2, 2), color='black')
+                    self.led_plot.add_plot(led)
 
-                led.append(math.cos(-index / num_leds * 2 * math.pi), math.sin(-index / num_leds * 2 * math.pi))
-            self.plotter.update_collection(self.led_plot)
-            self.plotter.set_time(self.start_time)
+                    led.append(math.cos(-index / num_leds * 2 * math.pi), math.sin(-index / num_leds * 2 * math.pi))
+                self.plotter.update_collection(self.led_plot)
+                self.plotter.set_time(self.start_time)
 
     def receive_command(self, whoiam, timestamp, packet):
         if whoiam == "naboris actuators":
@@ -65,7 +81,7 @@ class NaborisSimulator(SerialFile):
                     print()
 
             elif packet[0] == "o":
-                if self.led_plot.enabled:
+                if self.plotter is not None and self.led_plot.enabled:
                     start_led = int(packet[1:4])
                     r = int(packet[4:7])
                     g = int(packet[7:10])

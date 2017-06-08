@@ -191,7 +191,7 @@ class LivePlotter(BasePlotter):
     def toggle_pause(self):
         self.is_paused = not self.is_paused
 
-    def freeze_plot(self):
+    def plot(self):
         """
         Turn of live plotting and freeze the plot in place
         """

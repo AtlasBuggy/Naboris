@@ -17,25 +17,38 @@ class StaticPlotter(BasePlotter):
         :param legend_args: dictionary of arguments to pass to plt.legend
         """
         super(StaticPlotter, self).__init__(
-            num_columns, legend_args, draw_legend, matplotlib_events, enabled, False, *robot_plots
+            num_columns, legend_args, draw_legend, matplotlib_events, enabled, False, False, *robot_plots
         )
 
         if self.enabled:
             for plot in self.robot_plots:
-                if isinstance(plot, RobotPlot):
-                    if plot.flat:
-                        self.lines[plot.name] = None
-                    else:
-                        self.lines[plot.name] = None
-                elif isinstance(plot, RobotPlotCollection):
-                    self.lines[plot.name] = {}
+                self._create_lines(plot)
+            self.init_legend()
 
-                    if plot.flat:
-                        for subplot in plot.plots:
-                            self.lines[plot.name][subplot.name] = None
-                    else:
-                        for subplot in plot.plots:
-                            self.lines[plot.name][subplot.name] = None
+    def update_collection(self, plot):
+        if plot.name not in self.lines:
+            self.lines[plot.name] = {}
+
+        if plot.flat:
+            for subplot in plot.plots:
+                self.lines[plot.name][subplot.name] = None
+        else:
+            for subplot in plot.plots:
+                self.lines[plot.name][subplot.name] = None
+
+    def _create_lines(self, plot):
+        if isinstance(plot, RobotPlot):
+            if plot.flat:
+                self.lines[plot.name] = None
+            else:
+                self.lines[plot.name] = None
+        elif isinstance(plot, RobotPlotCollection):
+            self.update_collection(plot)
+
+    def add_plots(self, *robot_plots, num_columns=None):
+        self.add_subplots(*robot_plots, num_columns=num_columns)
+        for plot in self.robot_plots:
+            self._create_lines(plot)
 
     def plot(self):
         """
@@ -73,6 +86,11 @@ class StaticPlotter(BasePlotter):
                     self.axes[plot.name].set_ylim3d(plot.y_range)
                     self.axes[plot.name].set_zlim3d(plot.z_range)
 
-        self.init_legend()
-
         self.plt.show()
+
+    def close(self):
+        self.plot_close()
+        self.plot()
+
+    def plot_close(self):
+        pass

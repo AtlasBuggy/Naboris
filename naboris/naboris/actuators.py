@@ -1,7 +1,7 @@
-from atlasbuggy.serial.object import SerialObject
+from atlasbuggy.serial.objects.microcontroller import Microcontroller
 
 
-class Actuators(SerialObject):
+class Actuators(Microcontroller):
     def __init__(self, enabled=True):
         self.num_leds = None
         self.speed_increment = None

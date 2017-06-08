@@ -6,12 +6,16 @@ from atlasbuggy import get_platform
 
 class CameraViewer(DataStream):
     def __init__(self, capture, pipeline=None, enabled=True, debug=False, name=None, enable_slider=False):
-        super(CameraViewer, self).__init__(enabled, debug, False, True, name)
 
         self.capture = capture
+        if name is None:
+            name = self.capture.name
+
+        super(CameraViewer, self).__init__(enabled, debug, False, True, name)
+
         self.pipeline = pipeline
         if self.enabled:
-            cv2.namedWindow(self.capture.name)
+            cv2.namedWindow(self.name)
 
         self.key = -1
         self.slider_pos = 0
@@ -23,7 +27,7 @@ class CameraViewer(DataStream):
             self.slider_ticks = self.capture.num_frames
 
         if self.enabled and self.enable_slider:
-            cv2.createTrackbar(self.slider_name, self.capture.name, 0, self.slider_ticks, self.on_slider)
+            cv2.createTrackbar(self.slider_name, self.name, 0, self.slider_ticks, self.on_slider)
 
         platform = get_platform()
         if platform == "linux":
@@ -83,7 +87,7 @@ class CameraViewer(DataStream):
         if frame is None:
             return
 
-        cv2.imshow(self.capture.name, frame)
+        cv2.imshow(self.name, frame)
         self.key_pressed()
 
     def key_pressed(self, delay=1):

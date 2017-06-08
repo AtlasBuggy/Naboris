@@ -76,6 +76,21 @@ class BasePlotter(DataStream):
             for plot in self.robot_plots:
                 plot.enabled = False
 
+    def update_collection(self, plot):
+        pass
+
+    def _create_lines(self, plot):
+        pass
+
+    def add_plots(self, *robot_plots, num_columns=None):
+        pass
+
+    def set_time(self, start_time=None):
+        pass
+
+    def plot(self):
+        pass
+
     def _create_subplot(self, plot, plot_num):
         self.plots_dict[plot.name] = plot
         if plot.flat:

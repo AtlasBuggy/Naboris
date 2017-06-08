@@ -1,7 +1,7 @@
 import asyncio
 
 from atlasbuggy.files import *
-from atlasbuggy.serial.object import SerialObject
+from atlasbuggy.serial.objects.microcontroller import Microcontroller
 
 
 class Parser(BaseReadFile):
@@ -57,7 +57,7 @@ class Parser(BaseReadFile):
         pass
 
     def whoiams_equal(self, arg, whoiam):
-        if isinstance(arg, SerialObject):
+        if isinstance(arg, Microcontroller):
             return arg.whoiam == whoiam
         else:
             return arg == whoiam

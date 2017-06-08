@@ -4,11 +4,11 @@ Data is directed using a RobotRunner class. Every robot object has a unique whoi
 also defined on the microcontroller.
 """
 
-from multiprocessing import Queue
+from atlasbuggy.serial.objects import SerialObject
 from atlasbuggy.serial.clock import CommandPause
 
 
-class SerialObject:
+class Microcontroller(SerialObject):
     def __init__(self, whoiam, enabled=True, baud=None):
         """
         A container for data received from the corresponding microcontroller.
@@ -22,11 +22,8 @@ class SerialObject:
         :param enabled: disable or enable object
         """
         self.whoiam = whoiam
-        self.enabled = enabled
-        self.baud = baud  # set this if a different baud rate is desired
-        self.is_live = False
-        self.command_packets = Queue(maxsize=255)
         self._pause_command = None
+        super(Microcontroller, self).__init__(enabled, baud)
 
     def receive_first(self, packet):
         """
@@ -38,31 +35,7 @@ class SerialObject:
         :param packet: The first packet received by the robot object's port
         :return: a string if the program needs to exit ("done" or "error"), None if everything is ok
         """
-        raise NotImplementedError("Please override this method when subclassing RobotObject")
-
-    def receive(self, timestamp, packet):
-        """
-        Override this method when subclassing RobotObject
-
-        Parse incoming packets received by the corresponding port.
-        I would recommend ONLY parsing packets here and not doing anything else.
-
-        :param timestamp: The time the packet arrived
-        :param packet: A packet (string) received from the robot object's port
-        :return: a string if the program needs to exit ("done" or "error"), None if everything is ok
-        """
-        raise NotImplementedError("Please override this method when subclassing RobotObject")
-
-    def send(self, packet):
-        """
-        Do NOT override this method when subclassing RobotObject
-
-        Queue a new packet for sending. The packet end (\n) will automatically be appended
-
-        :param packet: A packet (string) to send to the microcontroller without the packet end character
-        """
-        if self.enabled and self.is_live:
-            self.command_packets.put(packet)
+        raise NotImplementedError("Please override this method when subclassing Microcontroller")
 
     def pause(self, gap_time):
         """

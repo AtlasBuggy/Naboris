@@ -1,19 +1,29 @@
+import os
 import cv2
-# from skimage.segmentation import slic
-# from skimage.segmentation import mark_boundaries
+from skimage.segmentation import slic
+from skimage.segmentation import mark_boundaries
 import numpy as np
+
 from atlasbuggy.cameras.cvpipeline import CvPipeline
+from atlasbuggy.files import BaseFile
 
 
 class NaborisPipeline(CvPipeline):
-    def __init__(self, capture, actuators, enabled=True, debug=False):
-        super(NaborisPipeline, self).__init__(capture, enabled, debug, generate_bytes=True)
+    def __init__(self, actuators, enabled=True, capture=None, debug=False, generate_database=False):
+        print("generate_database", generate_database)
+        super(NaborisPipeline, self).__init__(enabled, debug, capture=capture, generate_bytes=True)
         self.actuators = actuators
         self.autonomous_mode = False
 
         # self.orb = cv2.ORB_create()
-        # self.num_segments = 300
-        # self.kernel = np.ones((5, 5), np.uint8)
+        self.num_segments = 50
+        self.kernel = np.ones((5, 5), np.uint8)
+        self.generate_database = generate_database
+
+        directory = BaseFile.format_path_as_time("", None, "", "%Y_%b_%d %H;%M;%S", )[1]
+        self.database_dir = BaseFile("", directory, "", "", False, self.generate_bytes, False, False, False)
+        if self.generate_database:
+            self.database_dir.make_dir()
 
     def pipeline(self, frame):
         # over segment
@@ -33,14 +43,33 @@ class NaborisPipeline(CvPipeline):
         # use line segments to reconstruct room
         #
 
-        # return self.over_segment(frame)
-        return frame
+        return self.over_segment(frame)
+        # return frame
 
     def over_segment(self, frame):
         erosion = cv2.erode(frame, self.kernel, iterations=2)
         segments = slic(erosion, n_segments=self.num_segments, sigma=5)
 
-        return mark_boundaries(erosion, segments)
+        if self.generate_database:
+            file_name = "%s-x.png" % self.capture.current_frame
+            full_path = os.path.join(self.database_dir.directory, file_name)
+            cv2.imwrite(full_path, frame)
+
+            for (i, seg_value) in enumerate(np.unique(segments)):
+                mask = np.zeros(frame.shape[:2], dtype=np.uint8)
+                mask[segments == seg_value] = 255
+
+                alpha_channel = np.ones(mask.shape, dtype=np.uint8)
+                alpha_channel = cv2.bitwise_and(alpha_channel, alpha_channel, mask=mask) * 255
+
+                b_channel, g_channel, r_channel = cv2.split(frame)
+                frame_rgba = cv2.merge((b_channel, g_channel, r_channel, alpha_channel))
+
+                file_name = "%s-%s.png" % (self.capture.current_frame, i)
+                full_path = os.path.join(self.database_dir.directory, file_name)
+                cv2.imwrite(full_path, frame_rgba)
+
+        return mark_boundaries(frame, segments)
 
     def orb(self, frame):
         kp = self.orb.detect(frame, None)

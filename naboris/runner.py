@@ -28,7 +28,7 @@ recorder = Recorder(
 )
 camera = NaborisCam(logger, recorder)
 naboris = Naboris(logger, camera)
-pipeline = NaborisPipeline(camera, naboris.actuators, enabled=args.nopipeline)
+pipeline = NaborisPipeline(naboris.actuators, args.nopipeline, camera)
 cmdline = NaborisCLI(naboris)
 website = NaborisWebsite("templates", "static", naboris.actuators, camera, pipeline, cmdline)
 socket = NaborisSocketServer(cmdline)
