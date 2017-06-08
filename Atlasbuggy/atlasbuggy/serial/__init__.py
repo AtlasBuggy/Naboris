@@ -8,8 +8,8 @@ import serial.tools.list_ports
 from atlasbuggy.datastream import DataStream
 from atlasbuggy.serial.clock import Clock, CommandPause, RecurringEvent
 from atlasbuggy.serial.errors import *
-from atlasbuggy.serial.objects.microcontroller import Microcontroller
-from atlasbuggy.serial.ports.port import SerialPort
+from atlasbuggy.serial.object import SerialObject
+from atlasbuggy.serial.port import SerialPort
 
 
 class SerialStream(DataStream):
@@ -40,7 +40,7 @@ class SerialStream(DataStream):
         """
         if type(arg) == str and arg in self.objects.keys():
             whoiam = arg
-        elif isinstance(arg, Microcontroller):
+        elif isinstance(arg, SerialObject):
             whoiam = arg.whoiam
         else:
             raise RobotObjectInitializationError("Linked callback input is an invalid whoiam ID or invalid object:",
@@ -59,7 +59,7 @@ class SerialStream(DataStream):
     def init_objects(self, serial_objects):
         for serial_object in serial_objects:
             serial_object.is_live = True
-            if isinstance(serial_object, Microcontroller):
+            if isinstance(serial_object, SerialObject):
                 self.objects[serial_object.whoiam] = serial_object
             else:
                 raise RobotObjectInitializationError(

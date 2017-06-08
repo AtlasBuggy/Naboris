@@ -1,7 +1,6 @@
 import asyncio
 
 from atlasbuggy.files import *
-from atlasbuggy.serial.objects.microcontroller import Microcontroller
 
 
 class Parser(BaseReadFile):

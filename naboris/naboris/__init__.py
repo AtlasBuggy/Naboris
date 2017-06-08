@@ -2,7 +2,6 @@ import random
 
 from atlasbuggy.files.soundfiles import SoundStream
 from atlasbuggy.serial import SerialStream
-from atlasbuggy.serial.file import SerialFile
 
 from naboris.actuators import Actuators
 
