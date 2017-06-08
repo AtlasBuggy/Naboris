@@ -1,4 +1,10 @@
-with open("../buffer1.txt", 'rb') as buffer_file:
+import numpy as np
+import asyncio
+from atlasbuggy.ui.plotters.liveplotter import LivePlotter
+from atlasbuggy.ui.plotters.plot import RobotPlot
+from atlasbuggy.robot import Robot
+
+with open("../buffer2.txt", 'rb') as buffer_file:
     contents = buffer_file.read()
 
 
@@ -22,6 +28,7 @@ def lms200_crc(data):
 
 index = 0
 command = b''
+num_commands = 
 
 def read(n):
     global index, command
@@ -32,66 +39,85 @@ def read(n):
         result = '\x00'
     return result
 
+
 def parse_16bit(lower_byte, upper_byte):
     return (upper_byte << 8) + lower_byte
 
 
-while index < len(contents):
-    char_num = read(1)
-    print("-----")
-    if char_num == b'\x02':
-        if read(1) == b'\x80':
-            print("response")
-            length = parse_16bit(ord(read(1)), ord(read(1)))
-            print("length:", length)
+async def run(robot):
+    global index, command
+    while index < len(contents):
+        char_num = read(1)
+        if char_num == b'\x02':
+            print("-----")
+            if read(1) == b'\x80':
+                print("response")
+                length = parse_16bit(ord(read(1)), ord(read(1)))
+                print("length:", length)
 
-            payload = read(length)
-            response = payload[0]
-            data = payload[1:]
-            print("response: %s, data: %s" % (hex(response), data))
-            checksum = parse_16bit(ord(read(1)), ord(read(1)))
-            calc_checksum = lms200_crc(command[:-2])
+                payload = read(length)
+                response = payload[0]
+                data = payload[1:]
+                print("response: %s, data: %s" % (hex(response), data))
+                checksum = parse_16bit(ord(read(1)), ord(read(1)))
+                calc_checksum = lms200_crc(command[:-2])
 
-            print("command checksum:", checksum)
-            print("calculated checksum:", calc_checksum)
-            assert calc_checksum == checksum
+                print("command checksum:", checksum)
+                print("calculated checksum:", calc_checksum)
+                if calc_checksum != checksum:
+                    print("!!invalid checksum!!")
 
-            command = b''
+                command = b''
 
-            if response == 0xA0:
-                print("power on response")
-            elif response == 0xB0:
-                print(hex(data[0]), hex(data[1]))
-                sample_info = parse_16bit(data[0], data[1])
-                num_samples = sample_info & 0x3ff
+                if response == 0xA0:
+                    print("power on response")
+                elif response == 0xB0:
+                    sample_info = parse_16bit(data[0], data[1])
+                    num_samples = sample_info & 0x3ff
 
-                unit_info_1 = sample_info >> 14 & 1
-                unit_info_2 = sample_info >> 15 & 1
-                if not unit_info_1 and not unit_info_2:
-                    units = "cm"
-                if unit_info_1 and not unit_info_2:
-                    units = "mm"
-                else:
-                    units = "Reserved"
-                print("units:", units)
+                    unit_info_1 = sample_info >> 14 & 1
+                    unit_info_2 = sample_info >> 15 & 1
+                    if not unit_info_1 and not unit_info_2:
+                        units = "cm"
+                    if unit_info_1 and not unit_info_2:
+                        units = "mm"
+                    else:
+                        units = "Reserved"
+                    print("units:", units)
 
-                scan_info = sample_info >> 13 & 1
-                is_complete_scan = not bool(scan_info)
-                print("complete scan:", is_complete_scan)
+                    scan_info = sample_info >> 13 & 1
+                    is_complete_scan = not bool(scan_info)
+                    print("complete scan:", is_complete_scan)
 
-                print(sample_info >> 11)
-                resolution_info_1 = sample_info >> 11 & 1
-                resolution_info_2 = sample_info >> 12 & 1
+                    print(sample_info >> 11)
+                    resolution_info_1 = sample_info >> 11 & 1
+                    resolution_info_2 = sample_info >> 12 & 1
 
-                if not resolution_info_1 and not resolution_info_2:
-                    resolution = 0
-                elif resolution_info_1 and not resolution_info_2:
-                    resolution = 0.25
-                elif not resolution_info_1 and resolution_info_2:
-                    resolution = 0.5
-                else:
-                    resolution = 0.75
-                print("resolution: %sº" % resolution)
+                    if not resolution_info_1 and not resolution_info_2:
+                        resolution = 0
+                    elif resolution_info_1 and not resolution_info_2:
+                        resolution = 0.25
+                    elif not resolution_info_1 and resolution_info_2:
+                        resolution = 0.5
+                    else:
+                        resolution = 0.75
+                    print("resolution: %sº" % resolution)
+
+                    distances = []
+                    angles = np.linspace(0, np.pi, int(num_samples / 2))
+                    for sample_index in range(0, num_samples, 2):
+                        distances.append(parse_16bit(data[sample_index], data[sample_index + 1]))
+
+                    distances = np.array(distances)
+
+                    scan_plot.update(distances * np.cos(angles), distances * np.sin(angles))
+                    await asyncio.sleep(0.5)
+
+                    plotter.active_window_resizing = False
+    plotter.plot()
+    # robot.exit()
 
 
-
+scan_plot = RobotPlot("lms200", marker='.', linestyle='')
+plotter = LivePlotter(1, scan_plot, active_window_resizing=False)
+Robot.run(plotter, loop_fn=run)

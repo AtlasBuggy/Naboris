@@ -4,7 +4,7 @@ from atlasbuggy.datastream import DataStream
 
 
 class Robot:
-    def __init__(self, *streams, setup_fn=None, loop_fn=None, run_forever=False):
+    def __init__(self, *streams, setup_fn=None, loop_fn=None, close_fn=None, run_forever=False):
         """
         :param robot_objects: instances of atlasbuggy.robot.object.RobotObject or
             atlasbuggy.robot.object.RobotObjectCollection
@@ -14,6 +14,9 @@ class Robot:
 
         self.loop_fn = loop_fn
         self.setup_fn = setup_fn
+        self.close_fn = close_fn
+        self.close_fn_called = False
+
         self.run_forever = run_forever
 
         for stream in streams:
@@ -22,8 +25,8 @@ class Robot:
         self.loop = asyncio.get_event_loop()
 
     @staticmethod
-    def run(*streams, setup_fn=None, loop_fn=None, run_forever=True):
-        Robot(*streams, setup_fn=setup_fn, loop_fn=loop_fn)._run()
+    def run(*streams, setup_fn=None, loop_fn=None, close_fn=None, run_forever=True):
+        Robot(*streams, setup_fn=setup_fn, loop_fn=loop_fn, close_fn=close_fn)._run()
 
     def _run(self):
         """
@@ -53,6 +56,11 @@ class Robot:
                 self.setup_fn(self)
 
             self.loop.run_until_complete(coroutine)
+
+            if self.close_fn is not None:
+                self.close_fn(self)
+                self.close_fn_called = True
+
             if self.run_forever:
                 self.loop.run_forever()
             else:
@@ -63,7 +71,13 @@ class Robot:
         except asyncio.CancelledError:
             pass
         finally:
-            DataStream.all_exited.set()
+            if self.close_fn is not None and not self.close_fn_called:
+                self.close_fn(self)
+                self.close_fn_called = True
+            self.exit()
             for stream in self.streams:
                 stream.stream_close()
             self.loop.close()
+
+    def exit(self):
+        DataStream.all_exited.set()
