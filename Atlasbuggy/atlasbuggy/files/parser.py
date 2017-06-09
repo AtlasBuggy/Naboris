@@ -1,5 +1,4 @@
 import asyncio
-
 from atlasbuggy.files import *
 
 
@@ -19,7 +18,7 @@ class Parser(BaseReadFile):
     return the IMU's data three times and then the GPS last
     """
 
-    def __init__(self, file_name, directory=None, debug=False, start_index=0, end_index=-1):
+    def __init__(self, file_name, directory=None, enabled=True, debug=False, start_index=0, end_index=-1):
         """
         :param file_name: name to search for
             can be part of the name. If the desired file is named
@@ -29,10 +28,13 @@ class Parser(BaseReadFile):
         :param start_index: line number to start the log file from
         :param end_index: line number to end the log file on
         """
-        super(Parser, self).__init__(file_name, directory, True, log_file_type, log_dir, True, debug,
+        super(Parser, self).__init__(file_name, directory, True, log_file_type, log_dir, enabled, debug,
                                      False, True)
-        self.open()
-        self.contents = self.contents.split("\n")
+        if self.enabled:
+            self.open()
+            self.contents = self.contents.split("\n")
+        else:
+            self.contents = ""
 
         # index variables
         self.start_index = start_index
@@ -49,36 +51,62 @@ class Parser(BaseReadFile):
     def receive_user(self, whoiam, timestamp, packet):
         pass
 
+    def receive_debug(self, whoiam, timestamp, packet):
+        pass
+
+    def receive_error(self, whoiam, timestamp, packet):
+        pass
+
     def receive_object(self, whoiam, timestamp, packet):
         pass
 
     def receive_first(self, whoiam, packet):
         pass
 
-    def whoiams_equal(self, arg, whoiam):
-        if isinstance(arg, Microcontroller):
-            return arg.whoiam == whoiam
-        else:
-            return arg == whoiam
-
     async def run(self):
-        while self.next():
-            await self.update()
-            await asyncio.sleep(0.0)
+        if self.enabled:
+            while self.next():
+                await self.update()
 
-            # received packets
-            # linked callbacks
-            # raise errors
-            # print debugs
-            # receive commands
+                # received packets
+                # linked callbacks
+                # raise errors
+                # print debugs
+                # receive commands
 
-        self.file_finished()
+            self.file_finished()
+
+    async def update(self):
+        await asyncio.sleep(0.0)
 
     def file_finished(self):
         pass
 
     def receive(self, index, packet_type, timestamp, whoiam, packet):
         pass
+
+    def _receive(self, index, packet_type, timestamp, whoiam, packet):
+        self.receive(index, packet_type, timestamp, whoiam, packet)
+
+        if packet_type == "error":
+            self.debug_print("%s" % packet, ignore_flag=True)
+            self.receive_error(whoiam, timestamp, packet)
+
+        elif packet_type == "debug":
+            self.debug_print("%s" % packet)
+            self.receive_debug(whoiam, timestamp, packet)
+
+        elif packet_type == "command":
+            self.receive_command(whoiam, timestamp, packet)
+
+        elif packet_type == "user":
+            self.receive_user(whoiam, timestamp, packet)
+
+        elif self.start_time is None:
+            self.receive_first(whoiam, packet)
+
+        else:
+            self.receive_object(whoiam, timestamp, packet)
 
     def next(self):
         """
@@ -92,7 +120,7 @@ class Parser(BaseReadFile):
 
             if line is not None:
                 packet_type, timestamp, whoiam, packet = line
-                self.receive(self.index - 1, packet_type, timestamp, whoiam, packet)
+                self._receive(self.index - 1, packet_type, timestamp, whoiam, packet)
                 return True
         return False
 
