@@ -9,9 +9,9 @@ from atlasbuggy.files import BaseFile
 
 
 class NaborisPipeline(CvPipeline):
-    def __init__(self, actuators, enabled=True, capture=None, debug=False, generate_database=False):
-        super(NaborisPipeline, self).__init__(enabled, debug, capture=capture, generate_bytes=True)
-        self.actuators = actuators
+    def __init__(self, enabled=True, log_level=None, generate_database=False):
+        super(NaborisPipeline, self).__init__(enabled, log_level, generate_bytes=True)
+        self.actuators = None
         self.autonomous_mode = False
 
         # self.orb = cv2.ORB_create()
@@ -23,6 +23,10 @@ class NaborisPipeline(CvPipeline):
         self.database_dir = BaseFile("", directory, "", "", False, self.generate_bytes, False, False, False)
         if self.generate_database:
             self.database_dir.make_dir()
+
+    def take(self):
+        self.capture = self.streams["capture"]
+        self.actuators = self.streams["actuators"]
 
     def pipeline(self, frame):
         # over segment

@@ -7,9 +7,9 @@ from naboris.actuators import Actuators
 
 
 class Naboris(SerialStream):
-    def __init__(self, logger=None, camera=None, debug=False, enabled=True):
+    def __init__(self, enabled=True, log_level=None):
         self.actuators = Actuators()
-        super(Naboris, self).__init__(self.actuators, logger=logger, debug=debug, enabled=enabled)
+        super(Naboris, self).__init__(self.actuators, enabled=enabled, log_level=log_level)
 
         self.link_callback(self.actuators, self.receive_actuators)
         self.link_recurring(10, self.request_battery)
@@ -20,7 +20,6 @@ class Naboris(SerialStream):
 
         self.sounds = SoundStream("sounds", "/home/pi/Music/Bastion/")
         self.random_sound_folders = ["humming", "curiousity", "nothing", "confusion", "concern", "sleepy", "vibrating"]
-        self.camera = camera
 
     def serial_start(self):
         self.actuators.set_all_leds(5, 5, 5)

@@ -1,5 +1,5 @@
+from atlasbuggy.plotters import LivePlotter
 from atlasbuggy.robot import Robot
-from atlasbuggy.ui.plotters.liveplotter import LivePlotter
 # from atlasbuggy.ui.plotters.staticplotter import StaticPlotter
 from naboris import Naboris
 from naboris.serial_simulator import NaborisSimulator

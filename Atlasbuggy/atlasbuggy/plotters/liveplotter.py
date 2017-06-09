@@ -3,20 +3,21 @@ Contains the LivePlotter class, a subclass of BasePlotter. This class plots inco
 according to properties defined in RobotPlot.
 """
 
-import time
-import traceback
 import asyncio
+import traceback
 
 from atlasbuggy.ui.plotters.baseplotter import BasePlotter
 from atlasbuggy.ui.plotters.plot import RobotPlot
-from atlasbuggy.ui.plotters.collection import RobotPlotCollection
+
+from atlasbuggy.datastream import AsyncStream
+from atlasbuggy.plotters.collection import RobotPlotCollection
 
 
-class LivePlotter(BasePlotter):
+class LivePlotter(BasePlotter, AsyncStream):
     initialized = False
 
-    def __init__(self, num_columns, *robot_plots, enabled=True, draw_legend=True, legend_args=None, lag_cap=0.005,
-                 skip_count=0, matplotlib_events=None, active_window_resizing=True):
+    def __init__(self, num_columns, *robot_plots, enabled=True, name=None, log_level=None, draw_legend=True,
+                 legend_args=None, lag_cap=0.005, skip_count=0, matplotlib_events=None, active_window_resizing=True):
         """
         Only one LivePlotter instance can run at one time. Multiple interactive matplotlib
         windows don't behave well. This also conserves CPU usage.
@@ -34,11 +35,11 @@ class LivePlotter(BasePlotter):
             raise Exception("Can't have multiple plotter instances!")
         LivePlotter.initialized = True
 
-        super(LivePlotter, self).__init__(
-            num_columns, legend_args, draw_legend, matplotlib_events, enabled, False, True, *robot_plots
+        BasePlotter.__init__(
+            self, num_columns, legend_args, draw_legend, matplotlib_events, enabled, False, True, *robot_plots
         )
+        AsyncStream.__init__(self, enabled, name, log_level)
 
-        self.time0 = None
         self.lag_cap = lag_cap
         self.plot_skip_count = skip_count
         self.skip_counter = 0
@@ -86,42 +87,6 @@ class LivePlotter(BasePlotter):
         for plot in self.robot_plots:
             self._create_lines(plot)
 
-    def set_time(self, time0=None):
-        """
-        Supply a start time. This keeps all timers in sync
-
-        :param time0: a value supplied by time.time()
-        :return: None
-        """
-        if time0 is None:
-            time0 = time.time()
-        self.time0 = time0
-
-    def should_update(self, dt):
-        """
-        Signal whether or not the plot should update using self.lag_cap.
-        If the packet_timestamp - current_time is greater than self.lag_cap, return False
-
-        :param dt: current time since program start
-        :return: True or False whether the plot should update or not
-        """
-        if not self.enabled:
-            return False
-
-        if self.time0 is not None and dt is not None:
-            current_time = time.time() - self.time0
-
-            lag_status = abs(dt - current_time) < self.lag_cap
-        else:
-            lag_status = True
-
-        self.skip_counter += 1
-        if self.plot_skip_count > 0:
-            skip_status = self.skip_counter % self.plot_skip_count == 0
-        else:
-            skip_status = True
-        return lag_status and skip_status
-
     async def run(self):
         """
         Update plot using data supplied to the robot plot objects
@@ -133,7 +98,7 @@ class LivePlotter(BasePlotter):
                 self.exit()
                 return
 
-            if not self.enabled:  # or not self.should_update(timestamp):
+            if not self.enabled:
                 continue
 
             if self.is_paused:

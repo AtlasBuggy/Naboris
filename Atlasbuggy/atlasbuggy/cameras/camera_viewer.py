@@ -1,19 +1,14 @@
 import cv2
 import asyncio
-from atlasbuggy.datastream import DataStream
+from atlasbuggy.datastream import AsyncStream
 from atlasbuggy import get_platform
 
 
-class CameraViewer(DataStream):
-    def __init__(self, capture, pipeline=None, enabled=True, debug=False, name=None, enable_slider=False):
+class CameraViewer(AsyncStream):
+    def __init__(self, enabled=True, log_level=None, name=None, enable_slider=False):
 
-        self.capture = capture
-        if name is None:
-            name = self.capture.name
+        super(CameraViewer, self).__init__(enabled, name, log_level)
 
-        super(CameraViewer, self).__init__(enabled, debug, False, True, name)
-
-        self.pipeline = pipeline
         if self.enabled:
             cv2.namedWindow(self.name)
 
@@ -21,13 +16,10 @@ class CameraViewer(DataStream):
         self.slider_pos = 0
         self.slider_name = "frame:"
         self.enable_slider = enable_slider
+        self.slider_ticks = 0
 
-        self.slider_ticks = int(self.capture.capture.get(cv2.CAP_PROP_FRAME_WIDTH) // 3)
-        if self.slider_ticks > self.capture.num_frames:
-            self.slider_ticks = self.capture.num_frames
-
-        if self.enabled and self.enable_slider:
-            cv2.createTrackbar(self.slider_name, self.name, 0, self.slider_ticks, self.on_slider)
+        self.capture = None
+        self.pipeline = None
 
         platform = get_platform()
         if platform == "linux":
@@ -47,13 +39,24 @@ class CameraViewer(DataStream):
         else:
             self.key_codes = {}
 
+    def take(self):
+        self.capture = self.streams["capture"]
+        self.pipeline = self.streams["pipeline"]
+
+        self.slider_ticks = int(self.capture.capture.get(cv2.CAP_PROP_FRAME_WIDTH) // 3)
+        if self.slider_ticks > self.capture.num_frames:
+            self.slider_ticks = self.capture.num_frames
+
+        if self.enabled and self.enable_slider:
+            cv2.createTrackbar(self.slider_name, self.name, 0, self.slider_ticks, self.on_slider)
+
     def update_key_codes(self, **new_key_codes):
         self.key_codes.update(new_key_codes)
 
     async def run(self):
         if not self.enabled:
             return
-        while self.all_running():
+        while self.running():
             self.show_frame()
             self.update()
             await asyncio.sleep(0.1 / self.capture.fps)

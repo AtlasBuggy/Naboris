@@ -2,18 +2,17 @@
 The base class shared by liveplotter and staticplotter. Contains properties shared by the two types.
 """
 
-import numpy as np
 import matplotlib.gridspec as gridspec
+import numpy as np
 from atlasbuggy.ui.plotters.plot import RobotPlot
-from atlasbuggy.ui.plotters.collection import RobotPlotCollection
-from atlasbuggy.datastream import DataStream
+
+from atlasbuggy.plotters.collection import RobotPlotCollection
 
 
-class BasePlotter(DataStream):
+class BasePlotter:
     fig_num = 0
 
-    def __init__(self, num_columns, legend_args, draw_legend, matplotlib_events, enabled, debug, asynchronous,
-                 *robot_plots):
+    def __init__(self, num_columns, legend_args, draw_legend, matplotlib_events, enabled, *robot_plots):
         """
         A plotter is one matplotlib figure. Having multiple robot plots creates subplots
         :param num_columns: Configure how the subplots are arranged
@@ -24,8 +23,8 @@ class BasePlotter(DataStream):
         :param enabled: enable or disable plot
         :param robot_plots: RobotPlot or RobotPlotCollection instances. Each one will be a subplot
         """
-        super(BasePlotter, self).__init__(enabled, debug, False, asynchronous)
 
+        self.enabled = enabled
         self.robot_plots = []
         for plot in robot_plots:
             if plot.enabled:  # only append plot if it is enabled

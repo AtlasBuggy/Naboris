@@ -10,8 +10,8 @@ class PygameStream(DataStream):
     pygame_initialized = False
     pygame_exit_event = Event()
 
-    def __init__(self, enabled, debug, width=None, height=None, fps=None, debug_name=None, display_flags=0, display_depth=0):
-        super(PygameStream, self).__init__(enabled, debug, False, True, debug_name)
+    def __init__(self, enabled, debug, width=None, height=None, fps=None, name=None, display_flags=0, display_depth=0):
+        super(PygameStream, self).__init__(enabled, debug, False, True, name)
 
         self.fps = fps
         self.width = width

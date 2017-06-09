@@ -1,12 +1,12 @@
 from queue import Queue
 from threading import Lock
-from atlasbuggy.datastream import DataStream
+from atlasbuggy.datastream import ThreadedStream
 
 
-class CvPipeline(DataStream):
-    def __init__(self, enabled, debug, capture=None, name=None, generate_bytes=False, use_output_queue=False):
-        super(CvPipeline, self).__init__(enabled, debug, True, False, name)
-        self.capture = capture
+class CvPipeline(ThreadedStream):
+    def __init__(self, enabled, log_level, name=None, generate_bytes=False, use_output_queue=False):
+        super(CvPipeline, self).__init__(enabled, name, log_level)
+        self.capture = None
 
         self.frame = None
         self.bytes_frame = None
@@ -15,6 +15,9 @@ class CvPipeline(DataStream):
         self.generate_bytes = generate_bytes
         self.output_queue = Queue()
         self.use_output_queue = use_output_queue
+
+    def take(self):
+        self.capture = self.streams["capture"]
 
     def run(self):
         if self.capture is not None:

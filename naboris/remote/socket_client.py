@@ -1,5 +1,5 @@
+from atlasbuggy.cmdline import CommandLine
 from atlasbuggy.website.socket import SocketClient
-from atlasbuggy.ui.cmdline import CommandLine
 
 
 class NaborisSocketClient(SocketClient):

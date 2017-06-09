@@ -26,10 +26,9 @@ class SerialPort(Process):
 
     port_updates_per_second = 1000
 
-    def __init__(self, port_address, debug):
+    def __init__(self, port_address):
         """
 
-        :param debug: Enable verbose print statements
         :param queue: a multiprocessing queue to which packets are passed
         :param lock: a shared lock to prevent multiple sources accessing the queue
         :param counter: a queue size counter. Keeps track of the number of packets in the queue
@@ -41,11 +40,9 @@ class SerialPort(Process):
         self.packet_queue = Queue()
         self.counter = Value('i', 0)
         self.lock = Lock()
-
         self.queue_len = 0
 
         # status variables
-        self.debug_enabled = debug
         self.configured = True
         self.abides_protocols = True
         self.port_assigned = False
@@ -265,8 +262,6 @@ class SerialPort(Process):
         for line in stack_trace:
             full_message += str(line)
 
-        self.debug_print(str(error))
-
         if type(error) == str:
             full_message += error
         else:
@@ -476,12 +471,9 @@ class SerialPort(Process):
         :param ignore_flag:
         :return:
         """
-        string = "[%s, %s] %s" % (self.address, self.whoiam, " ".join(map(str, strings)))
+        string = "[%s] %s" % (self.whoiam, " ".join(map(str, strings)))
         with self.print_out_lock:
             self.debug_print_outs.put(string)
-
-        if self.debug_enabled or ignore_flag:
-            print(string)
 
     def change_rate(self, new_baud_rate):
         """

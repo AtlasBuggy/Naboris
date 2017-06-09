@@ -1,20 +1,27 @@
+import os
 import cv2
 import time
 from atlasbuggy.cameras import CameraStream
-from atlasbuggy.files import BaseFile
 from atlasbuggy.serial.clock import Clock
 
 
-
 class VideoPlayer(CameraStream):
-    def __init__(self, file_name, directory, width=None, height=None, enabled=True, debug=False, frame_skip=0,
+    def __init__(self, file_name, directory, width=None, height=None, enabled=True, log_level=None, frame_skip=0,
                  loop_video=False, start_frame=0):
 
-        self.file_info = BaseFile(file_name, directory, ['mp4', 'avi'], "videos", False, True, False, False, False)
+        if file_name is None:
+            file_name = time.strftime("%H;%M;%S.avi")
+        if directory is None:
+            directory = time.strftime("videos/%Y_%b_%d")
 
-        super(VideoPlayer, self).__init__(enabled, debug, True, False, self.file_info.file_name, None, None)
+        self.file_name = file_name
+        self.directory = directory
 
-        self.capture = cv2.VideoCapture(self.file_info.full_path)
+        self.full_path = os.path.join(self.file_name, self.directory)
+
+        super(VideoPlayer, self).__init__(enabled, file_name, log_level)
+
+        self.capture = cv2.VideoCapture(self.full_path)
 
         self.fps = self.capture.get(cv2.CAP_PROP_FPS)
         self.num_frames = int(self.capture.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -104,7 +111,7 @@ class VideoPlayer(CameraStream):
             cv2.setTrackbarPos(self.camera_viewer.slider_name, self.name, slider_pos)
 
     def run(self):
-        while self.all_running():
+        while self.running():
             self._get_frame()
             self.update()
             self.clock.update()

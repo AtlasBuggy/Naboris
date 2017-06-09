@@ -1,11 +1,11 @@
+import asyncio
+import math
 import os
 import time
-import math
-import asyncio
 
 import pygame
 
-from atlasbuggy.ui.pygamestream import PygameStream
+from atlasbuggy.pygamestream import PygameStream
 
 try:
     with os.popen('stty size', 'r') as terminal_window:

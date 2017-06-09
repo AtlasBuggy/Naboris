@@ -1,16 +1,16 @@
+import os
 from flask import Flask, render_template
-from atlasbuggy.datastream import DataStream
-from atlasbuggy.files import BaseFile
+from atlasbuggy.datastream import ThreadedStream
 
 
-class Website(DataStream):
-    def __init__(self, template_folder, static_folder, flask_params=None, app_params=None, enabled=True, debug=False,
+class Website(ThreadedStream):
+    def __init__(self, template_folder, static_folder, flask_params=None, app_params=None, enabled=True, log_level=None,
                  name=None, use_index=True, host='0.0.0.0', port=5000):
         if flask_params is None:
             flask_params = {}
 
-        template_folder = BaseFile.get_full_dir(template_folder)
-        static_folder = BaseFile.get_full_dir(static_folder)
+        template_folder = os.path.abspath(template_folder)
+        static_folder = os.path.abspath(static_folder)
 
         self.host = host
         self.port = port
@@ -25,7 +25,7 @@ class Website(DataStream):
         else:
             self.app_params = {}
 
-        super(Website, self).__init__(enabled, debug, True, False, name)
+        super(Website, self).__init__(enabled, name, log_level)
 
     def index(self):
         """

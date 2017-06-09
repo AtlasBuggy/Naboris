@@ -1,7 +1,8 @@
-import numpy as np
 import asyncio
-from atlasbuggy.ui.plotters.liveplotter import LivePlotter
-from atlasbuggy.ui.plotters.plot import RobotPlot
+
+import numpy as np
+
+from atlasbuggy.plotters import LivePlotter, RobotPlot
 from atlasbuggy.robot import Robot
 
 with open("../buffer2.txt", 'rb') as buffer_file:

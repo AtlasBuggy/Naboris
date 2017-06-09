@@ -1,5 +1,6 @@
 import math
-from atlasbuggy.ui.pygamestream.pygame_joystick import BuggyJoystick
+
+from atlasbuggy.pygamestream import BuggyJoystick
 
 
 class Logitech(BuggyJoystick):

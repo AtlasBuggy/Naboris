@@ -46,7 +46,7 @@ class ButtonCollection:
 
 
 class NaborisWebsite(Website):
-    def __init__(self, template_folder, static_folder, actuators, camera, pipeline, cmdline, enabled=True):
+    def __init__(self, template_folder, static_folder, enabled=True):
         # website hosted under http://naboris:5000
         # check /etc/hosts for host names
 
@@ -61,16 +61,28 @@ class NaborisWebsite(Website):
         self.app.add_url_rule("/cmd", view_func=self.command_response, methods=['POST'])
         self.app.add_url_rule("/video_feed", view_func=self.video_feed)
 
-        self.actuators = actuators
-        self.camera = camera
-        self.cmdline = cmdline
-        self.pipeline = pipeline
+        self.actuators = None
+        self.camera = None
+        self.cmdline = None
+        self.pipeline = None
 
-        self.show_orignal = not self.pipeline.enabled
+        self.show_orignal = True
         self.lights_are_on = False
 
-        self.clock = Clock(float(self.camera.fps))
+        self.clock = None
         self.prev_time = time.time()
+
+        self.commands = None
+
+    def take(self):
+        self.actuators = self.streams["actuators"]
+        self.camera = self.streams["camera"]
+        self.cmdline = self.streams["cmdline"]
+        self.pipeline = self.streams["pipeline"]
+
+        self.show_orignal = not self.pipeline.enabled
+
+        self.clock = Clock(float(self.camera.fps))
 
         self.commands = ButtonCollection(
             Button("spin left", "l", "spin_left_button", "command_button drive"),
@@ -82,12 +94,14 @@ class NaborisWebsite(Website):
             Button("stop", "s", "stop_driving_button", "command_button drive"),
 
             Button(["lights on", "lights off"], ":toggle_lights", "toggle_lights_button", "command_button toggles",
-                int(self.lights_are_on)),
+                   int(self.lights_are_on)),
             Button(["autonomous", "manual"], ":toggle_autonomy", "toggle_autonomy_button", "command_button toggles",
-                int(self.pipeline.autonomous_mode)),
-            Button(["pause video", "unpause video"], ":toggle_camera", "toggle_camera_button", "command_button toggles"),
-            Button(["show original", "show pipeline"], ":toggle_pipeline", "toggle_pipeline_button", "command_button toggles",
-                int(self.show_orignal)),
+                   int(self.pipeline.autonomous_mode)),
+            Button(["pause video", "unpause video"], ":toggle_camera", "toggle_camera_button",
+                   "command_button toggles"),
+            Button(["show original", "show pipeline"], ":toggle_pipeline", "toggle_pipeline_button",
+                   "command_button toggles",
+                   int(self.show_orignal)),
 
             Button("say hello!", "hello", "say hello button", "command_button speak"),
             Button("PANIC!!!", "alert", "alert button", "command_button speak"),

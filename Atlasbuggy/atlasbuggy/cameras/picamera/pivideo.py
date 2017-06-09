@@ -1,7 +1,6 @@
 import os
 import time
 from subprocess import Popen, PIPE, DEVNULL
-from atlasbuggy.files import default_video_name, default_log_dir_name
 from atlasbuggy.cameras import VideoStream
 
 
@@ -35,22 +34,16 @@ class H264toMP4converter:
 
 
 class PiVideoRecorder(VideoStream):
-    def __init__(self, file_name=None, directory=None, enabled=True, debug=False, **recorder_options):
-        file_name, directory = self.format_path_as_time(
-            file_name, directory, default_video_name, default_log_dir_name
-        )
-
-        super(PiVideoRecorder, self).__init__(file_name, directory, 'h264', enabled, debug)
+    def __init__(self, file_name=None, directory=None, enabled=True, log_level=None, **recorder_options):
+        super(PiVideoRecorder, self).__init__(file_name, directory, enabled, log_level)
         self.options = recorder_options
 
-    def start_recording(self, capture):
-        self.capture = capture
-
+    def start_recording(self):
         if self.enabled:
-            self.make_dir()
+            self.make_dirs()
             if not self.is_recording:
-                self.debug_print("Recording video on '%s'" % self.full_path, ignore_flag=True)
-                self.capture.start_recording(self.full_path, self.file_types[0], **self.options)
+                self.logger.info("Recording video on '%s'" % self.full_path, ignore_flag=True)
+                self.capture.start_recording(self.full_path, **self.options)
                 self.is_recording = True
 
     def stop_recording(self):
@@ -62,7 +55,6 @@ class PiVideoRecorder(VideoStream):
             converter.start()
             while converter.is_running():
                 pass
-            self.debug_print("Conversion complete!")
 
-            self.debug_print("Removing temp file: '%s'" % self.full_path)
+            self.logger.info("Conversion complete! Removing temp file: '%s'" % self.full_path)
             os.remove(self.full_path)

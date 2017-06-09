@@ -1,6 +1,6 @@
-from atlasbuggy.website.socket import SocketClient
-from atlasbuggy.ui.cmdline import CommandLine
+from atlasbuggy.cmdline import CommandLine
 from atlasbuggy.robot import Robot
+from atlasbuggy.website.socket import SocketClient
 
 
 class CLI(CommandLine):

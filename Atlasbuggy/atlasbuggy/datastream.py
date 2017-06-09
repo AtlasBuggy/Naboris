@@ -1,98 +1,240 @@
 import time
+import logging
 from threading import Thread, Event
 
 
 class DataStream:
-    all_exited = Event()
+    exit_events = []
 
-    def __init__(self, enabled, debug, threaded, asynchronous, debug_name=None):
-        if debug_name is None:
-            debug_name = self.__class__.__name__
-        self.name = debug_name
-        self.debug = debug
+    def __init__(self, enabled, name=None, log_level=None):
+        """
+        Initialization. No streams have started yet.
+        :param enabled: True or False
+        :param name: Name to show in the logger output. Class name by default
+        """
+        if name is None:
+            name = self.__class__.__name__
+        if log_level is None:
+            log_level = logging.DEBUG
+        self.name = name
         self.enabled = enabled
 
         self.timestamp = None
-        self.packet = ""
-
         self.start_time = None
 
         self.started = Event()
         self.closed = Event()
         self.exited = Event()
+        DataStream.exit_events.append(self.exited)
 
-        self.asynchronous = asynchronous
-        self.asyncio_loop = None
-        self.task = None
-        self.coroutine = None
+        self.streams = {}
 
-        self.threaded = threaded
-        if self.threaded:
-            self.thread = Thread(target=self.run)
-            self.thread.daemon = True
-        else:
-            self.thread = None
+        self.log_info = {}
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(log_level)
+        if self.log_info["print_handle"] is not None:
+            self.logger.addHandler(self.log_info["print_handle"])
+        if self.log_info["file_handle"] is not None:
+            self.logger.addHandler(self.log_info["file_handle"])
 
-        # can't be threaded and asynchronous at the same time
-        assert not (self.threaded and self.asynchronous)
+    def dt(self, current_time=None, use_current_time=True):
+        """
+        Time since stream_start was called. Supply your own timestamp or use the current system time
+        Overwrite time_started to change the initial time
+        :return: 
+        """
+        if current_time is None and use_current_time:
+            current_time = time.time()
+        self.timestamp = current_time
 
-    def dt(self):
         if self.start_time is None or self.timestamp is None:
             return 0.0
         else:
             return self.timestamp - self.start_time
 
+    def give(self, **streams):
+        """
+        Share an instance of another stream. Should be called before start
+        :param streams: keyword arguments of all streams being shared
+        :return: 
+        """
+        self.streams = streams
+        self.take()
+        self.logger.info("receiving streams:", [str(stream) for stream in streams.values()])
+
+    def take(self):
+        """
+        Callback for give. Called before start 
+        :return: 
+        """
+        pass
+
     def start(self):
+        """
+        Callback for stream_start. Time has started, run has not been called.
+        :return: 
+        """
         pass
 
     @staticmethod
     def all_running():
-        return not DataStream.all_exited.is_set()
+        """
+        Check if all exit events are False
+        :return: False when all streams have called self.exit
+          All streams have exited when:
+            - their run methods have completed
+            - when Robot catches a KeyboardInterrupt or an asyncio.CancelledError
+            - DataStream.exit_all() is called
+            - All streams have called self.exit themselves
+        """
+        return not all([result.is_set() for result in DataStream.exit_events])
 
-    def not_daemon(self):
-        if self.threaded:
-            self.thread.daemon = False
+    def running(self):
+        """
+        Check if stream is running. Use this in your while loops in your run methods
+        """
+        return not self.exited.is_set()
 
-    def stream_start(self):
+    def time_started(self):
+        """
+        Behavior for starting the timer.
+        :return: What the initial time should be
+        """
+        return time.time()
+
+    def _start(self):
+        """
+        Wrapper for starting the stream
+        :return: 
+        """
         if not self.enabled:
             return
         if not self.started.is_set():
             self.started.set()
-            self.start_time = time.time()
+            self.start_time = self.time_started()
             self.start()
+            self.logger.info("started")
 
-            if self.threaded:
-                self.thread.start()
+    def _run(self):
+        """
+        Wrapper for running stream. Doesn't use self.enabled since Robot handles disabled streams
+        """
+        pass
 
     def run(self):
+        """
+        Main behavior of the stream. Put 'while self.running():' in this method
+        """
         pass
 
     def update(self):
+        """
+        Optional method to be called inside run's while loop
+        """
         pass
 
-    def debug_print(self, *values, ignore_flag=False):
-        string = "[%s] %s" % (self.name, " ".join([str(x) for x in values]))
-
-        self.stream_debug_print(string)
-
-        if self.debug or ignore_flag:
-            print(string)
-
-    def stream_debug_print(self, string):
-        pass
-
-    def close(self):
-        pass
-
-    def stream_close(self):
+    def _close(self):
+        """
+        Wrapper for closing the stream. Assumes that exit has been set
+        """
         if not self.enabled:
             return
         if not self.closed.is_set():
             self.closed.set()
             self.close()
+            self.logger.info("closed")
+
+    def close(self):
+        """
+        Close behavior of the stream
+        """
+        pass
 
     def exit(self):
-        if not self.exited.is_set():
-            self.exited.set()
-            DataStream.all_exited.set()
-            self.coroutine.cancel()
+        """
+        Signal for this stream to exit
+        """
+        self.exited.set()
+        self.logger.info("exit")
+
+    @staticmethod
+    def exit_all():
+        """
+        Signal for all streams to exit
+        """
+        for event in DataStream.exit_events:
+            event.set()
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return "<%s, enabled=%s>" % (self.__class__.__name__, self.enabled)
+
+
+class ThreadedStream(DataStream):
+    def __init__(self, enabled, name=None, log_level=None):
+        """
+        Initialization for threaded stream
+        """
+        super(ThreadedStream, self).__init__(enabled, name, log_level)
+
+        self.thread = Thread(target=self.run)
+        self.thread.daemon = False
+
+    def set_to_daemon(self):
+        """
+        Set this thread to exit when the main thread exits instead of relying on the exit events
+        """
+        self.thread.daemon = True
+        self.logger.info("thread is now daemon")
+
+    def _run(self):
+        self.run()
+        self.logger.info("run finished")
+        self.exit()
+
+    def _start(self):
+        """
+        Start the thread
+        """
+        if not self.enabled:
+            return
+        if not self.started.is_set():
+            self.started.set()
+            self.start_time = self.time_started()
+            self.start()
+            self.thread.start()
+            self.logger.info("started")
+
+    def __repr__(self):
+        return "<%s, enabled=%s, threaded>" % (self.__class__.__name__, self.enabled)
+
+
+class AsyncStream(DataStream):
+    def __init__(self, enabled, name=None, log_level=None):
+        """
+        Initialization for asynchronous stream
+        """
+        super(AsyncStream, self).__init__(enabled, name, log_level)
+
+        self.asyncio_loop = None
+        self.task = None
+        self.coroutine = None
+
+    async def _run(self):
+        """
+        Added async tag since this method will be asynchronous
+        """
+        await self.run()
+        self.logger.info("run finished")
+        self.exit()
+
+    async def run(self):
+        """
+        Added async tag since this method will be asynchronous
+        """
+        pass
+
+    def __repr__(self):
+        return "<%s, enabled=%s, asynchronous>" % (self.__class__.__name__, self.enabled)

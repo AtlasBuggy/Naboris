@@ -1,10 +1,9 @@
+from atlasbuggy.cameras.camera_viewer import CameraViewer
 from atlasbuggy.cameras.videoplayer import VideoPlayer
-from atlasbuggy.ui.camera_viewer import CameraViewer
-
 from atlasbuggy.robot import Robot
 from naboris import Naboris
-from naboris.serial_simulator import NaborisSimulator
 from naboris.pipeline import NaborisPipeline
+from naboris.serial_simulator import NaborisSimulator
 
 
 class CameraSimulator(VideoPlayer):

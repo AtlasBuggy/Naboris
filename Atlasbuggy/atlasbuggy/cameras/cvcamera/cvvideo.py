@@ -1,16 +1,12 @@
+import os
 import cv2
 from atlasbuggy import get_platform
 from atlasbuggy.cameras import VideoStream
-from atlasbuggy.files import default_video_name, default_log_dir_name
 
 
 class CvVideoRecorder(VideoStream):
-    def __init__(self, file_name=None, directory=None, enabled=True, debug=False):
-        file_name, directory = self.format_path_as_time(
-            file_name, directory, default_video_name, default_log_dir_name
-        )
-
-        super(CvVideoRecorder, self).__init__(file_name, directory, ['mp4', 'avi'], enabled, debug)
+    def __init__(self, file_name=None, directory=None, enabled=True, log_level=None):
+        super(CvVideoRecorder, self).__init__(file_name, directory, enabled, log_level)
         self.width = None
         self.height = None
         self.video_writer = None
@@ -18,12 +14,12 @@ class CvVideoRecorder(VideoStream):
         self.frame_buffer = []
         self.opened = False
 
-    def start_recording(self, capture):
+    def start_recording(self):
         if self.enabled:
-            self.make_dir()
-            self.capture = capture
-            self.width = capture.width
-            self.height = capture.height
+            self.make_dirs()
+
+            self.width = self.capture.width
+            self.height = self.capture.height
 
             if self.file_name.endswith('avi'):
                 codec = 'MJPG'
@@ -35,7 +31,7 @@ class CvVideoRecorder(VideoStream):
                     # codec = 'DIVX'
                     codec = 'MJPG'
                     self.file_name = self.file_name[:-3] + "avi"
-                    self.full_path = self.full_path[:-3] + "avi"
+                    self.full_path = os.path.join(self.file_name, self.directory)
             else:
                 raise ValueError("Invalid file format")
             self.fourcc = cv2.VideoWriter_fourcc(*codec)
@@ -49,8 +45,11 @@ class CvVideoRecorder(VideoStream):
                 self._write(frame)
             else:
                 if len(self.frame_buffer) >= 50:
-                    self.debug_print("Writing video to: '%s'. FPS: %0.2f" % (self.full_path, self.capture.fps_avg), ignore_flag=True)
-                    self.video_writer.open(self.full_path, self.fourcc, self.capture.fps_avg, (self.width, self.height), True)
+                    self.logger.info("Writing video to: '%s'. FPS: %0.2f" % (self.full_path, self.capture.fps_avg),
+                                     ignore_flag=True)
+                    self.video_writer.open(
+                        self.full_path, self.fourcc, self.capture.fps_avg, (self.width, self.height), True
+                    )
                     while len(self.frame_buffer) > 0:
                         self._write(self.frame_buffer.pop(0))
                     self.opened = True

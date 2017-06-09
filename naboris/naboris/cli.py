@@ -1,12 +1,17 @@
-from atlasbuggy.ui.cmdline import CommandLine
+from atlasbuggy.cmdline import CommandLine
 
 
 class NaborisCLI(CommandLine):
-    def __init__(self, naboris, enabled=True):
+    def __init__(self, enabled=True):
         super(NaborisCLI, self).__init__(False, enabled)
-        self.naboris = naboris
-        self.actuators = naboris.actuators
-        self.sounds = naboris.sounds
+        self.naboris = None
+        self.actuators = None
+        self.sounds = None
+
+    def take(self):
+        self.naboris = self.streams["naboris"]
+        self.actuators = self.naboris.actuators
+        self.sounds = self.naboris.sounds
 
     def spin_left(self, params):
         value = int(params) if len(params) > 0 else 75

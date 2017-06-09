@@ -1,5 +1,4 @@
 import cv2
-import time
 from atlasbuggy import get_platform
 from atlasbuggy.cameras import CameraStream
 from atlasbuggy.cameras.cvcamera.cvvideo import CvVideoRecorder
@@ -12,8 +11,8 @@ class CvCamera(CameraStream):
     max_cap_num = None
 
     def __init__(self, width=None, height=None, capture_number=None,
-                 enabled=True, debug=False, name=None, skip_count=0, logger=None, video_recorder=None):
-        super(CvCamera, self).__init__(enabled, debug, True, False, name, logger, video_recorder)
+                 enabled=True, log_level=None, name=None, skip_count=0):
+        super(CvCamera, self).__init__(enabled, name, log_level)
 
         self.capture_number = capture_number
 
@@ -111,7 +110,7 @@ class CvCamera(CameraStream):
                 current_num -= 1
                 if current_num < CvCamera.min_cap_num:
                     current_num = CvCamera.min_cap_num
-                    self.debug_print("Camera failed to load! Camera number lower limit:", current_num)
+                    self.logger.warning("Camera failed to load! Camera number lower limit:", current_num)
                     continue
                 while current_num in CvCamera.used_captures:
                     current_num -= 1
@@ -121,7 +120,7 @@ class CvCamera(CameraStream):
             elif key == "right":
                 current_num += 1
                 if CvCamera.max_cap_num is not None and current_num > CvCamera.max_cap_num:
-                    self.debug_print("Camera failed to load! Camera number upper limit:", current_num)
+                    self.logger.warning("Camera failed to load! Camera number upper limit:", current_num)
                     current_num = CvCamera.max_cap_num
                     continue
 
@@ -133,7 +132,7 @@ class CvCamera(CameraStream):
                     success, frame = current_capture.read()
                     cv2.imshow(selector_window_name, frame)
                 except cv2.error:
-                    self.debug_print("Camera failed to load! Camera number upper limit:", current_num)
+                    self.logger.warning("Camera failed to load! Camera number upper limit:", current_num)
                     if current_num in CvCamera.captures:
                         current_capture.release()
                         del CvCamera.captures[current_num]
@@ -144,7 +143,7 @@ class CvCamera(CameraStream):
             elif key == "\n" or key == "\r":
                 selected_capture = current_capture
                 CvCamera.used_captures.add(current_num)
-                self.debug_print("Using capture #%s for %s" % (current_num, self.name))
+                self.logger.info("Using capture #%s for %s" % (current_num, self.name))
 
             elif key == 'q':
                 selected_capture = None
@@ -158,7 +157,7 @@ class CvCamera(CameraStream):
 
     def load_capture(self, arg):
         if arg not in CvCamera.captures:
-            self.debug_print("Loading capture '%s'" % arg)
+            self.logger.info("Loading capture '%s'" % arg)
             CvCamera.captures[arg] = cv2.VideoCapture(arg)
         return CvCamera.captures[arg]
 
@@ -172,16 +171,14 @@ class CvCamera(CameraStream):
             elif 0 <= key < 0x100:
                 self.key = chr(key)
             else:
-                self.debug_print("Unrecognized key: " + str(key))
+                self.logger.warning("Unrecognized key: " + str(key))
         else:
             self.key = key
 
         return self.key
 
     def run(self):
-        self.running = True
-
-        while self.all_running():
+        while self.running():
             with self.frame_lock:
                 success, self.frame = self.capture.read()
 

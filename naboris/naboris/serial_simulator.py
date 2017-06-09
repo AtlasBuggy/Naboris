@@ -1,19 +1,19 @@
-import math
 import asyncio
-from atlasbuggy.serial.file import SerialFile
-from atlasbuggy.ui.plotters.plot import RobotPlot
-from atlasbuggy.ui.plotters.collection import RobotPlotCollection
-from atlasbuggy.ui.plotters.staticplotter import StaticPlotter
+import math
+
 from atlasbuggy.ui.plotters.liveplotter import LivePlotter
+from atlasbuggy.ui.plotters.plot import RobotPlot
+from atlasbuggy.ui.plotters.staticplotter import StaticPlotter
+
+from atlasbuggy.plotters.collection import RobotPlotCollection
+from atlasbuggy.serial.file import SerialFile
 
 
 class NaborisSimulator(SerialFile):
-    def __init__(self, naboris, file_name, directory, plotter=None):
-        self.naboris = naboris
-        super(NaborisSimulator, self).__init__(naboris, file_name, directory)
+    def __init__(self, file_name, directory):
+        super(NaborisSimulator, self).__init__(file_name, directory)
 
         self.current_frame = 0
-        self.plotter = plotter
         self.led_plot = RobotPlotCollection("led plot")
         if self.plotter is not None:
             self.plotter.add_plots(self.led_plot)

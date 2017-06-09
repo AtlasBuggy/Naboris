@@ -5,20 +5,24 @@ import traceback
 
 import serial.tools.list_ports
 
-from atlasbuggy.datastream import DataStream
+from atlasbuggy.datastream import AsyncStream
 from atlasbuggy.serial.clock import Clock, CommandPause, RecurringEvent
 from atlasbuggy.serial.errors import *
 from atlasbuggy.serial.object import SerialObject
 from atlasbuggy.serial.port import SerialPort
 
+packet_types = {
+    "object"       : "<",  # from a robot object
+    "user"         : "|",  # user logged
+    "command"      : ">",  # command sent
+    "pause command": "-",  # pause command
+}
 
-class SerialStream(DataStream):
-    def __init__(self, *serial_objects, enabled=True, logger=None, debug=False, name=None):
-        super(SerialStream, self).__init__(enabled, debug, False, True, name)
-        self.logger = logger
-        self.log = self.logger is not None and self.logger.enabled
-        if self.log:
-            self.debug_print("Writing log to:", self.logger.full_path, ignore_flag=True)
+
+class SerialStream(AsyncStream):
+    def __init__(self, *serial_objects, enabled=True, log_level=None, name=None):
+        super(SerialStream, self).__init__(enabled, name, log_level)
+        self.logger.info("Writing log to:", self.logger.full_path, ignore_flag=True)
 
         self.objects = {}
         self.ports = {}
@@ -50,12 +54,6 @@ class SerialStream(DataStream):
     def link_recurring(self, repeat_time, callback_fn, *args, include_event_in_params=False):
         self.recurring.append(RecurringEvent(repeat_time, time.time(), callback_fn, args, include_event_in_params))
 
-    def dt(self):
-        if self.start_time is None:
-            return 0.0
-        else:
-            return time.time() - self.start_time
-
     def init_objects(self, serial_objects):
         for serial_object in serial_objects:
             serial_object.is_live = True
@@ -68,13 +66,13 @@ class SerialStream(DataStream):
     def init_ports(self):
         discovered_ports = []
         for port_address in self.list_ports():
-            discovered_ports.append(SerialPort(port_address, self.debug))
-        self.debug_print("Discovered ports:", discovered_ports)
+            discovered_ports.append(SerialPort(port_address))
+        self.logger.info("Discovered ports:", discovered_ports)
 
         threads = []
         error_messages = []
-        for port in discovered_ports:
-            config_thread = threading.Thread(target=self.configure_port, args=(port, error_messages))
+        for serial_port in discovered_ports:
+            config_thread = threading.Thread(target=self.configure_port, args=(serial_port, error_messages))
             threads.append(config_thread)
             config_thread.start()
 
@@ -97,46 +95,42 @@ class SerialStream(DataStream):
 
         self.validate_ports()
 
-        if self.debug:
-            for whoiam in self.ports.keys():
-                self.debug_print("[%s] has ID '%s'" % (self.ports[whoiam].address, whoiam))
+        for whoiam in self.ports.keys():
+            self.logger.debug("[%s] has ID '%s'" % (self.ports[whoiam].address, whoiam))
 
-    def configure_port(self, port, errors):
+    def configure_port(self, serial_port, errors_list):
         """
         Initialize a serial port recognized by pyserial.
         Only devices that are plugged in should be recognized
-
-        :param port_info: an instance of serial.tools.list_ports_common.ListPortInfo
-        :param updates_per_second: how often the port should update
         """
         # initialize SerialPort
-        port.initialize()
+        serial_port.initialize()
 
-        self.debug_print("whoiam", port.whoiam)
+        self.logger.debug("whoiam", serial_port.whoiam)
 
         # check for duplicate IDs
-        if port.whoiam in self.ports.keys():
-            errors.append((0, "whoiam ID already being used by another port! It's possible "
-                              "the same code was uploaded for two boards.\n"
-                              "Port address: %s, ID: %s" % (port.address, port.whoiam)))
+        if serial_port.whoiam in self.ports.keys():
+            errors_list.append((0, "whoiam ID already being used by another port! It's possible "
+                                   "the same code was uploaded for two boards.\n"
+                                   "Port address: %s, ID: %s" % (serial_port.address, serial_port.whoiam)))
 
         # check if port abides protocol. Warn the user and stop the port if not (ignore it essentially)
-        elif port.configured and (not port.abides_protocols or port.whoiam is None):
-            self.debug_print("Warning! Port '%s' does not abide by protocol!" % port.address)
-            port.stop()
+        elif serial_port.configured and (not serial_port.abides_protocols or serial_port.whoiam is None):
+            self.logger.debug("Warning! Port '%s' does not abide by protocol!" % serial_port.address)
+            serial_port.stop()
 
         # check if port is configured correctly
-        elif not port.configured:
-            errors.append((1, "Port not configured! '%s'" % port.address))
+        elif not serial_port.configured:
+            errors_list.append((1, "Port not configured! '%s'" % serial_port.address))
 
         # disable ports if the corresponding object if disabled
-        elif not self.objects[port.whoiam].enabled:
-            port.stop()
-            self.debug_print("Ignoring port with ID: %s (Disabled by user)" % port.whoiam)
+        elif not self.objects[serial_port.whoiam].enabled:
+            serial_port.stop()
+            self.logger.debug("Ignoring port with ID: %s (Disabled by user)" % serial_port.whoiam)
 
         # add the port if configured and abides protocol
         else:
-            self.ports[port.whoiam] = port
+            self.ports[serial_port.whoiam] = serial_port
 
     def validate_ports(self):
         """
@@ -146,8 +140,8 @@ class SerialStream(DataStream):
         used_ports = {}
         for whoiam in self.ports.keys():
             if whoiam not in self.objects.keys():
-                self.debug_print("Warning! Port ['%s', %s] is unused!" %
-                                 (self.ports[whoiam].address, whoiam), ignore_flag=True)
+                self.logger.debug("Warning! Port ['%s', %s] is unused!" %
+                                  (self.ports[whoiam].address, whoiam), ignore_flag=True)
             else:
                 # only append port if its used. Ignore it otherwise
                 used_ports[whoiam] = self.ports[whoiam]
@@ -180,21 +174,25 @@ class SerialStream(DataStream):
 
                 # record first packets
                 self.record(None, whoiam, first_packet, "object")
-        self.debug_print("First packets sent")
+        self.logger.debug("First packets sent")
 
     def deliver_first_packet(self, whoiam, first_packet):
+        error = None
         try:
             if self.objects[whoiam].receive_first(first_packet) is not None:
-                self.debug_print("Closing all from first_packets()")
+                self.logger.warning("Closing all from first_packets()")
                 self.close()
                 self.exit()
-        except BaseException as error:
+        except BaseException as _error:
             self.close()
             self.exit()
+            error = _error
+
+        if error is not None:
             raise self.handle_error(
                 RobotObjectReceiveError(whoiam, first_packet),
                 traceback.format_stack()
-            )
+            ) from error
 
     def start(self):
         self.clock.start(self.start_time)
@@ -215,20 +213,24 @@ class SerialStream(DataStream):
         for robot_port in self.ports.values():
             robot_port.start()
 
-        self.debug_print("SerialStream is starting")
+        self.logger.debug("SerialStream is starting")
+        error = None
         try:
             self.serial_start()
-        except BaseException as error:
+        except BaseException as _error:
             self.close()
             self.exit()
-            raise self.handle_error(error, traceback.format_stack())
+            error = _error
+
+        if error is not None:
+            raise error
 
     def serial_start(self):
         pass
 
     async def run(self):
-        self.debug_print("SerialStream is running")
-        while True:
+        self.logger.debug("SerialStream is running")
+        while self.running():
             for port in self.ports.values():
                 self.check_port_packets(port)
 
@@ -271,9 +273,9 @@ class SerialStream(DataStream):
 
         status = port.is_running()
         if status < 1:
-            self.debug_print("Closing all from check_port_status")
+            self.logger.warning("Closing all from check_port_status")
             self.close()
-            self.debug_print("status:", status)
+            self.logger.debug("status:", status)
             if status == 0:
                 raise self.handle_error(
                     RobotSerialPortNotConfiguredError(
@@ -290,36 +292,45 @@ class SerialStream(DataStream):
                 )
 
     def received(self, whoiam):
+        error = None
         try:
             if whoiam in self.callbacks:
                 if self.callbacks[whoiam](self.timestamp, self.packet) is not None:
-                    self.debug_print(
+                    self.logger.warning(
                         "callback with whoiam ID: '%s' signalled to exit. Packet: %s" % (
                             whoiam, repr(self.packet)))
                     self.close()
-        except BaseException as error:
-            self.debug_print("Closing all from received")
+        except BaseException as _error:
+            self.logger.warning("Closing all from received")
             self.close()
+            self.exit()
+            error = _error
+
+        if error is not None:
             raise self.handle_error(
                 PacketReceivedError(error),
                 traceback.format_stack()
-            )
+            ) from error
 
     def deliver(self, whoiam):
+        error = None
         try:
             if self.objects[whoiam].receive(self.timestamp, self.packet) is not None:
-                self.debug_print(
+                self.logger.warning(
                     "receive for object signalled to exit. whoiam ID: '%s', packet: %s" % (
                         whoiam, repr(self.packet)))
                 self.close()
-
-        except BaseException as error:
-            self.debug_print("Closing from deliver")
+        except BaseException as _error:
+            self.logger.warning("Closing from deliver")
             self.close()
+            self.exit()
+            error = _error
+
+        if error is not None:
             raise self.handle_error(
                 RobotObjectReceiveError(whoiam, self.packet),
                 traceback.format_stack()
-            )
+            ) from error
 
     def send_commands(self):
         """
@@ -346,32 +357,31 @@ class SerialStream(DataStream):
 
                     # if write packet fails, throw an error
                     if not self.ports[whoiam].write_packet(command):
-                        self.debug_print("Closing all from _send_commands")
+                        self.logger.warning("Closing all from _send_commands")
                         self.close()
+                        self.exit()
                         raise self.handle_error(
                             RobotSerialPortWritePacketError(
                                 "Failed to send command %s to '%s'" % (command, whoiam), self.timestamp, self.packet,
                                 self.ports[whoiam]),
                             traceback.format_stack())
 
-    def handle_error(self, error, traceback):
-        if self.log:
-            error_message = "".join(traceback[:-1])
-            error_message += "%s: %s" % (error.__class__.__name__, error.args[0])
-            error_message += "\n".join(error.args[1:])
-            self.record(time.time(), error.__class__.__name__, error_message, "error")
+    def record(self, timestamp, whoiam, packet, packet_type):
+        self.logger.info("<%s, %s, %s, %s, [%s]>" % (timestamp, whoiam, len(packet), packet, packet_type))
 
-        self.close_log()
+    def handle_error(self, error, traceback):
+        error_message = "".join(traceback[:-1])
+        error_message += "%s: %s" % (error.__class__.__name__, error.args[0])
+        error_message += "\n".join(error.args[1:])
+        self.logger.error(error_message)
+
+        self.grab_all_port_prints()
         return error
 
-    def close_log(self):
+    def grab_all_port_prints(self):
         for port in self.ports.values():
             self.record_debug_prints(self.timestamp, port)
-        self.debug_print("Port debug prints recorded")
-        self.logger.close()
-
-    def stream_debug_print(self, string):
-        self.record(time.time(), self.name, string, "debug")
+        self.logger.info("Port debug prints recorded")
 
     def record_debug_prints(self, timestamp, port):
         """
@@ -381,38 +391,34 @@ class SerialStream(DataStream):
         """
         with port.print_out_lock:
             while not port.debug_print_outs.empty():
-                self.record(timestamp, port.whoiam, port.debug_print_outs.get(), "debug")
-
-    def record(self, timestamp, whoiam, packet, packet_type="user"):
-        if self.log:
-            self.logger.record(timestamp, whoiam, packet, packet_type)
+                self.logger.debug(timestamp, port.whoiam, port.debug_print_outs.get())
 
     def stop_all_ports(self):
         """
         Close all robot port processes
         """
-        self.debug_print("Closing all ports")
+        self.logger.debug("Closing all ports")
 
         # stop port processes
         for robot_port in self.ports.values():
-            self.debug_print("closing", robot_port.whoiam)
+            self.logger.debug("closing", robot_port.whoiam)
             robot_port.stop()
 
         for robot_port in self.ports.values():
-            self.debug_print("[%s] Port previous packets: read: %s, write %s" % (
+            self.logger.debug("[%s] Port previous packets: read: %s, write %s" % (
                 robot_port.whoiam,
                 repr(robot_port.prev_read_packets), repr(robot_port.prev_write_packet)))
         time.sleep(0.01)
         # check if the port exited properly
         for port in self.ports.values():
             has_exited = port.has_exited()
-            self.debug_print("%s, '%s' has %s" % (port.address, port.whoiam,
-                                                  "exited" if has_exited else "not exited!!"))
+            self.logger.debug("%s, '%s' has %s" % (port.address, port.whoiam,
+                                                   "exited" if has_exited else "not exited!!"))
             if not has_exited:
                 raise self.handle_error(RobotSerialPortFailedToStopError(
                     "Port signalled error while stopping", self.timestamp, self.packet,
                     port), traceback.format_stack())
-        self.debug_print("All ports exited")
+        self.logger.debug("All ports exited")
 
     def close(self):
         """
@@ -425,10 +431,10 @@ class SerialStream(DataStream):
             self.handle_error(error, traceback.format_stack())
 
         self.send_commands()
-        self.debug_print("Sent last commands")
+        self.logger.debug("Sent last commands")
         self.stop_all_ports()
-        self.debug_print("Closed ports successfully")
-        self.close_log()
+        self.logger.debug("Closed ports successfully")
+        self.grab_all_port_prints()
 
         if error is not None:
             self.exit()

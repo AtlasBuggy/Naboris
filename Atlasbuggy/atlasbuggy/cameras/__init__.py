@@ -1,13 +1,13 @@
-import time
+import os
 import cv2
+import time
 import numpy as np
-from atlasbuggy.datastream import DataStream
-from atlasbuggy.files import BaseFile
+from atlasbuggy.datastream import DataStream, ThreadedStream
 from threading import Lock
 
 
-class CameraStream(DataStream):
-    def __init__(self, enabled, debug, threaded, asynchronous, debug_name, logger, recorder):
+class CameraStream(ThreadedStream):
+    def __init__(self, enabled, name, log_level):
         self.capture = None
 
         self.width = None
@@ -23,22 +23,16 @@ class CameraStream(DataStream):
         self.num_frames = 0
         self.frame_lock = Lock()
 
-        self.logger = logger
-        self.recorder = recorder
-
-        self.log = logger is not None and logger.enabled
-        self.should_record = recorder is not None and recorder.enabled
-
         self.paused = False
-        self.running = False
+        self.recorder = None
 
-        super(CameraStream, self).__init__(enabled, debug, threaded, asynchronous, debug_name)
+        super(CameraStream, self).__init__(enabled, name, log_level)
 
-        self.not_daemon()
+    def take(self):
+        self.recorder = self.streams["recorder"]
 
     def log_frame(self):
-        if self.log and self.should_record and self.recorder.is_recording:
-            self.logger.record(time.time(), self.name, str(self.num_frames))
+        self.logger.info("frame #%s" % self.num_frames)
 
     def get_frame(self):
         with self.frame_lock:
@@ -68,16 +62,32 @@ class CameraStream(DataStream):
         return cv2.imencode(".jpg", frame)[1].tostring()
 
 
-class VideoStream(BaseFile):
-    def __init__(self, file_name, directory, file_format, enabled, debug):
+class VideoStream(DataStream):
+    def __init__(self, file_name, directory, enabled, log_level):
+        if file_name is None:
+            file_name = time.strftime("%H;%M;%S.avi")
+        if directory is None:
+            directory = time.strftime("videos/%Y_%b_%d")
+
+        self.file_name = file_name
+        self.directory = directory
+
+        self.full_path = os.path.join(self.file_name, self.directory)
         super(VideoStream, self).__init__(
-            file_name, directory, file_format, "videos", False, enabled, debug, False, False
+            enabled, file_name, log_level
         )
 
         self.capture = None
         self.is_recording = False
 
-    def start_recording(self, capture):
+    def make_dirs(self):
+        if not os.path.isdir(self.directory):
+            os.makedirs(self.directory)
+
+    def take(self):
+        self.capture = self.streams["capture"]
+
+    def start_recording(self):
         pass
 
     def record(self, frame):
