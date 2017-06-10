@@ -6,7 +6,7 @@ from atlasbuggy.datastream import DataStream, AsyncStream
 
 
 class Robot:
-    def __init__(self, *streams, setup_fn=None, loop_fn=None, close_fn=None):
+    def __init__(self, setup_fn=None, loop_fn=None, close_fn=None, **log_options):
         self.streams = []
 
         self.loop_fn = loop_fn
@@ -17,40 +17,32 @@ class Robot:
             file_name=time.strftime("%H;%M;%S.log"),
             directory=time.strftime("logs/%Y_%b_%d"),
             write=False,
-            level=logging.DEBUG,
+            level=logging.CRITICAL,
             format="[%(name)s @ %(filename)s:%(lineno)d][%(levelname)s] %(asctime)s: %(message)s",
-            print_handle=None,
             file_handle=None
         )
-
-        for stream in streams:
-            if stream.enabled:
-                self.streams.append(stream)
-                stream.log_info = self.log_info
+        self.log_info.update(log_options)
+        self.init_logger()
+        DataStream.log_info = self.log_info
 
         self.loop = asyncio.get_event_loop()
 
-    def init_logger(self, **kwargs):
-        self.log_info.update(kwargs)
-
+    def init_logger(self):
         if self.log_info["write"] and not os.path.isdir(self.log_info["directory"]):
             os.makedirs(self.log_info["directory"])
 
-        # create console handler and set level to info
-        self.log_info["print_handle"] = logging.StreamHandler()
-        self.log_info["print_handle"].setLevel(self.log_info["level"])
-        formatter = logging.Formatter(self.log_info["format"])
-        self.log_info["print_handle"].setFormatter(formatter)
-
         if self.log_info["write"]:
-            # create debug file handler and set level to debug
             self.log_info["file_handle"] = logging.FileHandler(
                 os.path.join(self.log_info["directory"], self.log_info["file_name"]), "w+")
-            self.log_info["file_handle"].setLevel(logging.INFO)
+            self.log_info["file_handle"].setLevel(logging.DEBUG)
             formatter = logging.Formatter(self.log_info["format"])
             self.log_info["file_handle"].setFormatter(formatter)
 
-    def run(self):
+    def run(self, *streams):
+        for stream in streams:
+            if stream.enabled:
+                self.streams.append(stream)
+
         coroutine = None
         try:
             if len(self.streams) > 0:
@@ -63,6 +55,9 @@ class Robot:
                     self.setup_fn(self)
 
                 self.loop.run_until_complete(coroutine)
+
+                while DataStream.all_running():
+                    time.sleep(0.1)
             else:
                 logging.warning("No streams to run!")
         except KeyboardInterrupt:

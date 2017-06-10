@@ -1,13 +1,15 @@
 import os
+import logging
 from flask import Flask, render_template
 from atlasbuggy.datastream import ThreadedStream
-
 
 class Website(ThreadedStream):
     def __init__(self, template_folder, static_folder, flask_params=None, app_params=None, enabled=True, log_level=None,
                  name=None, use_index=True, host='0.0.0.0', port=5000):
         if flask_params is None:
             flask_params = {}
+
+        self.flask_logger = logging.getLogger('werkzeug')
 
         template_folder = os.path.abspath(template_folder)
         static_folder = os.path.abspath(static_folder)
@@ -26,6 +28,9 @@ class Website(ThreadedStream):
             self.app_params = {}
 
         super(Website, self).__init__(enabled, name, log_level)
+
+        self.flask_logger.setLevel(self.log_level)
+        self.set_to_daemon()
 
     def index(self):
         """

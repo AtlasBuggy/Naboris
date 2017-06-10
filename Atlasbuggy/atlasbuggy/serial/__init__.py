@@ -16,13 +16,13 @@ packet_types = {
     "user"         : "|",  # user logged
     "command"      : ">",  # command sent
     "pause command": "-",  # pause command
+    "debug"        : "?",  # port debug message
 }
 
 
 class SerialStream(AsyncStream):
     def __init__(self, *serial_objects, enabled=True, log_level=None, name=None):
         super(SerialStream, self).__init__(enabled, name, log_level)
-        self.logger.info("Writing log to:", self.logger.full_path, ignore_flag=True)
 
         self.objects = {}
         self.ports = {}
@@ -67,7 +67,7 @@ class SerialStream(AsyncStream):
         discovered_ports = []
         for port_address in self.list_ports():
             discovered_ports.append(SerialPort(port_address))
-        self.logger.info("Discovered ports:", discovered_ports)
+        self.logger.debug("Discovered ports: " + str(discovered_ports))
 
         threads = []
         error_messages = []
@@ -106,8 +106,6 @@ class SerialStream(AsyncStream):
         # initialize SerialPort
         serial_port.initialize()
 
-        self.logger.debug("whoiam", serial_port.whoiam)
-
         # check for duplicate IDs
         if serial_port.whoiam in self.ports.keys():
             errors_list.append((0, "whoiam ID already being used by another port! It's possible "
@@ -140,8 +138,7 @@ class SerialStream(AsyncStream):
         used_ports = {}
         for whoiam in self.ports.keys():
             if whoiam not in self.objects.keys():
-                self.logger.debug("Warning! Port ['%s', %s] is unused!" %
-                                  (self.ports[whoiam].address, whoiam), ignore_flag=True)
+                self.logger.warning("Port ['%s', %s] is unused!" % (self.ports[whoiam].address, whoiam))
             else:
                 # only append port if its used. Ignore it otherwise
                 used_ports[whoiam] = self.ports[whoiam]
@@ -367,7 +364,7 @@ class SerialStream(AsyncStream):
                             traceback.format_stack())
 
     def record(self, timestamp, whoiam, packet, packet_type):
-        self.logger.info("<%s, %s, %s, %s, [%s]>" % (timestamp, whoiam, len(packet), packet, packet_type))
+        self.logger.debug("<%s, %s, %s, %s, %s>" % (timestamp, whoiam, len(packet), packet, packet_type))
 
     def handle_error(self, error, traceback):
         error_message = "".join(traceback[:-1])
@@ -381,7 +378,7 @@ class SerialStream(AsyncStream):
     def grab_all_port_prints(self):
         for port in self.ports.values():
             self.record_debug_prints(self.timestamp, port)
-        self.logger.info("Port debug prints recorded")
+        self.logger.debug("Port debug prints recorded")
 
     def record_debug_prints(self, timestamp, port):
         """
@@ -391,7 +388,7 @@ class SerialStream(AsyncStream):
         """
         with port.print_out_lock:
             while not port.debug_print_outs.empty():
-                self.logger.debug(timestamp, port.whoiam, port.debug_print_outs.get())
+                self.record(timestamp, port.whoiam, port.debug_print_outs.get(), "debug")
 
     def stop_all_ports(self):
         """
@@ -401,7 +398,7 @@ class SerialStream(AsyncStream):
 
         # stop port processes
         for robot_port in self.ports.values():
-            self.logger.debug("closing", robot_port.whoiam)
+            self.logger.debug("closing '%s'" % robot_port.whoiam)
             robot_port.stop()
 
         for robot_port in self.ports.values():

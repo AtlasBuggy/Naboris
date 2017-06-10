@@ -32,7 +32,7 @@ class CameraStream(ThreadedStream):
         self.recorder = self.streams["recorder"]
 
     def log_frame(self):
-        self.logger.info("frame #%s" % self.num_frames)
+        self.logger.debug("frame #%s" % self.num_frames)
 
     def get_frame(self):
         with self.frame_lock:
@@ -72,7 +72,7 @@ class VideoStream(DataStream):
         self.file_name = file_name
         self.directory = directory
 
-        self.full_path = os.path.join(self.file_name, self.directory)
+        self.full_path = os.path.join(self.directory, self.file_name)
         super(VideoStream, self).__init__(
             enabled, file_name, log_level
         )

@@ -8,13 +8,18 @@ class PiCamera(CameraStream):
     def __init__(self, enabled=True, name=None, log_level=None):
         super(PiCamera, self).__init__(enabled, name, log_level)
 
-        self.capture = picamera.PiCamera()
-        self.init_cam(self.capture)
+        if self.enabled:
+            self.capture = picamera.PiCamera()
+            self.init_cam(self.capture)
 
-        # update values based on init_cam
-        self.width = self.capture.resolution[0]
-        self.height = self.capture.resolution[1]
-        self.fps = self.capture.framerate
+            # update values based on init_cam
+            self.width = self.capture.resolution[0]
+            self.height = self.capture.resolution[1]
+            self.fps = self.capture.framerate
+        else:
+            self.width = 0
+            self.height = 0
+            self.fps = 32
 
     def init_cam(self, camera):
         pass
@@ -25,7 +30,7 @@ class PiCamera(CameraStream):
             self.capture.start_preview()
             time.sleep(2)
 
-            self.recorder.start_recording(self.capture)
+            self.recorder.start_recording()
 
             raw_capture = PiRGBArray(self.capture, size=self.capture.resolution)
             for frame in self.capture.capture_continuous(raw_capture, format="bgr", use_video_port=True):

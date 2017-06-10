@@ -45,8 +45,7 @@ class CvVideoRecorder(VideoStream):
                 self._write(frame)
             else:
                 if len(self.frame_buffer) >= 50:
-                    self.logger.info("Writing video to: '%s'. FPS: %0.2f" % (self.full_path, self.capture.fps_avg),
-                                     ignore_flag=True)
+                    self.logger.info("Writing video to: '%s'. FPS: %0.2f" % (self.full_path, self.capture.fps_avg))
                     self.video_writer.open(
                         self.full_path, self.fourcc, self.capture.fps_avg, (self.width, self.height), True
                     )

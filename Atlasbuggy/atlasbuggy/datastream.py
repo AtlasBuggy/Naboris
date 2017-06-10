@@ -5,6 +5,7 @@ from threading import Thread, Event
 
 class DataStream:
     exit_events = []
+    log_info = {}
 
     def __init__(self, enabled, name=None, log_level=None):
         """
@@ -15,7 +16,8 @@ class DataStream:
         if name is None:
             name = self.__class__.__name__
         if log_level is None:
-            log_level = logging.DEBUG
+            log_level = logging.INFO
+
         self.name = name
         self.enabled = enabled
 
@@ -29,15 +31,28 @@ class DataStream:
 
         self.streams = {}
 
-        self.log_info = {}
         self.logger = logging.getLogger(self.name)
-        self.logger.setLevel(log_level)
+        if DataStream.log_info["level"] < log_level:
+            self.log_level = DataStream.log_info["level"]
+        else:
+            self.log_level = log_level
+        self.logger.setLevel(logging.DEBUG)  # catch all logs
+
+        self.print_handle = logging.StreamHandler()
+        self.print_handle.setLevel(self.log_level)  # only print what user specifies
+        formatter = logging.Formatter(self.log_info["format"])
+        self.print_handle.setFormatter(formatter)
+        self.logger.addHandler(self.print_handle)
+
+        if DataStream.log_info["file_handle"] is not None:
+            self.logger.addHandler(DataStream.log_info["file_handle"])
+
 
     def dt(self, current_time=None, use_current_time=True):
         """
         Time since stream_start was called. Supply your own timestamp or use the current system time
         Overwrite time_started to change the initial time
-        :return: 
+        :return:
         """
         if current_time is None and use_current_time:
             current_time = time.time()
@@ -52,23 +67,23 @@ class DataStream:
         """
         Share an instance of another stream. Should be called before start
         :param streams: keyword arguments of all streams being shared
-        :return: 
+        :return:
         """
         self.streams = streams
         self.take()
-        self.logger.info("receiving streams:", [str(stream) for stream in streams.values()])
+        self.logger.debug("receiving streams:" + str([str(stream) for stream in streams.values()]))
 
     def take(self):
         """
-        Callback for give. Called before start 
-        :return: 
+        Callback for give. Called before start
+        :return:
         """
         pass
 
     def start(self):
         """
         Callback for stream_start. Time has started, run has not been called.
-        :return: 
+        :return:
         """
         pass
 
@@ -119,16 +134,14 @@ class DataStream:
     def _start(self):
         """
         Wrapper for starting the stream
-        :return: 
+        :return:
         """
-        if not self.enabled:
-            return
         if not self.started.is_set():
-            if self.log_info["print_handle"] is not None:
-                self.logger.addHandler(self.log_info["print_handle"])
-            if self.log_info["file_handle"] is not None:
-                self.logger.addHandler(self.log_info["file_handle"])
+            if not self.enabled:
+                self.logger.debug("stream not enabled")
+                return
 
+            self.logger.debug("starting")
             self.started.set()
             self.start_time = self.time_started()
             self.start()
@@ -161,10 +174,10 @@ class DataStream:
         if not self.closed.is_set():
             self.closed.set()
             self.close()
-            self.logger.info("closed")
-            if self.log_info["write"]:
-                self.logger.removeHandler(self.log_info["file_handle"])
-            self.logger.removeHandler(self.log_info["print_handle"])
+            self.logger.debug("closed")
+            # if DataStream.log_info["write"]:
+            #     self.logger.removeHandler(DataStream.log_info["file_handle"])
+            # self.logger.removeHandler(self.print_handle)
 
     def close(self):
         """
@@ -208,11 +221,11 @@ class ThreadedStream(DataStream):
         Set this thread to exit when the main thread exits instead of relying on the exit events
         """
         self.thread.daemon = True
-        self.logger.info("thread is now daemon")
+        self.logger.debug("thread is now daemon")
 
     def _run(self):
         self.run()
-        self.logger.info("run finished")
+        self.logger.debug("run finished")
         self.exit()
 
     def _init(self):
@@ -241,7 +254,7 @@ class AsyncStream(DataStream):
         Added async tag since this method will be asynchronous
         """
         await self.run()
-        self.logger.info("run finished")
+        self.logger.debug("run finished")
         self.exit()
 
     async def run(self):

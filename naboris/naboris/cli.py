@@ -3,7 +3,7 @@ from atlasbuggy.cmdline import CommandLine
 
 class NaborisCLI(CommandLine):
     def __init__(self, enabled=True):
-        super(NaborisCLI, self).__init__(False, enabled)
+        super(NaborisCLI, self).__init__(enabled)
         self.naboris = None
         self.actuators = None
         self.sounds = None
@@ -98,7 +98,7 @@ class NaborisCLI(CommandLine):
         self.actuators.ask_battery()
 
     def my_exit(self, params):
-        self.exit()
+        self.exit_all()
 
     def my_stop(self, params):
         self.actuators.stop()

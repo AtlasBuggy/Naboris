@@ -1,8 +1,8 @@
 import random
 
-from atlasbuggy.files.soundfiles import SoundStream
 from atlasbuggy.serial import SerialStream
 
+from naboris.soundfiles import SoundStream
 from naboris.actuators import Actuators
 
 
@@ -53,4 +53,3 @@ class Naboris(SerialStream):
     def serial_close(self):
         self.actuators.stop()
         self.actuators.release()
-

@@ -38,12 +38,18 @@ class PiVideoRecorder(VideoStream):
         super(PiVideoRecorder, self).__init__(file_name, directory, enabled, log_level)
         self.options = recorder_options
 
+        self.default_file_type = ".h264"
+        self.default_length = len(self.default_file_type)
+        if self.file_name.endswith(".mp4"):
+            self.file_name += self.default_file_type
+        self.full_path = os.path.join(self.directory, self.file_name)
+
     def start_recording(self):
         if self.enabled:
             self.make_dirs()
             if not self.is_recording:
-                self.logger.info("Recording video on '%s'" % self.full_path, ignore_flag=True)
-                self.capture.start_recording(self.full_path, **self.options)
+                self.logger.debug("Recording video on '%s'" % self.full_path)
+                self.capture.capture.start_recording(self.full_path, **self.options)
                 self.is_recording = True
 
     def stop_recording(self):
@@ -51,10 +57,16 @@ class PiVideoRecorder(VideoStream):
             # self.capture.stop_recording()
             self.is_recording = False
 
-            converter = H264toMP4converter(self.full_path)
-            converter.start()
-            while converter.is_running():
-                pass
+            if self.file_name.endswith(self.default_file_type):
+                self.file_name = self.file_name[:-self.default_length]
 
-            self.logger.info("Conversion complete! Removing temp file: '%s'" % self.full_path)
-            os.remove(self.full_path)
+            if self.file_name.endswith(".mp4"):
+                converter = H264toMP4converter(self.full_path)
+                converter.start()
+                while converter.is_running():
+                    pass
+
+                self.logger.debug("Conversion complete! Removing temp file: '%s'" % self.full_path)
+                os.remove(self.full_path)
+            else:
+                self.logger.debug("Skipping conversion to mp4")

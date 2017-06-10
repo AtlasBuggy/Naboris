@@ -18,6 +18,8 @@ args = parser.parse_args()
 
 log = args.log
 
+robot = Robot(write=log)
+
 camera = NaborisCam()
 naboris = Naboris()
 pipeline = NaborisPipeline(args.pipeline)
@@ -25,22 +27,19 @@ cmdline = NaborisCLI()
 website = NaborisWebsite("templates", "static")
 socket = NaborisSocketServer()
 
-robot = Robot(camera, naboris, pipeline, cmdline, website, socket)
-robot.init_logger(write=log)
-
-video_file_name = robot.log_info["file_name"].replace(";", "_") + ".mp4"
-video_directory = "naboris/" + robot.log_info["directory"].split("/")[-1]
+video_file_name = robot.log_info["file_name"].replace(";", "_")[:-3] + "mp4"
+video_directory = "videos/naboris/" + robot.log_info["directory"].split("/")[-1]
 recorder = Recorder(
     video_file_name,
     video_directory,
     enabled=log,
-    debug=True
 )
 
 camera.give(recorder=recorder)
-pipeline.give(actuators=naboris.actuators, camera=camera)
+recorder.give(capture=camera)
+pipeline.give(actuators=naboris.actuators, capture=camera)
 cmdline.give(naboris=naboris)
-website.give(naboris=naboris, camera=camera, pipeline=pipeline, cmdline=cmdline)
+website.give(actuators=naboris.actuators, camera=camera, pipeline=pipeline, cmdline=cmdline)
 socket.give(cmdline=cmdline)
 
-robot.run()
+robot.run(camera, naboris, pipeline, cmdline, website, socket)

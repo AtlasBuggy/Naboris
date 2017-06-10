@@ -5,7 +5,6 @@ from skimage.segmentation import mark_boundaries
 import numpy as np
 
 from atlasbuggy.cameras.cvpipeline import CvPipeline
-from atlasbuggy.files import BaseFile
 
 
 class NaborisPipeline(CvPipeline):
@@ -19,10 +18,10 @@ class NaborisPipeline(CvPipeline):
         self.kernel = np.ones((5, 5), np.uint8)
         self.generate_database = generate_database
 
-        directory = BaseFile.format_path_as_time("", None, "", "%Y_%b_%d %H;%M;%S", )[1]
-        self.database_dir = BaseFile("", directory, "", "", False, self.generate_bytes, False, False, False)
-        if self.generate_database:
-            self.database_dir.make_dir()
+        # directory = BaseFile.format_path_as_time("", None, "", "%Y_%b_%d %H;%M;%S", )[1]
+        # self.database_dir = BaseFile("", directory, "", "", False, self.generate_bytes, False, False, False)
+        # if self.generate_database:
+        #     self.database_dir.make_dir()
 
     def take(self):
         self.capture = self.streams["capture"]
