@@ -2,6 +2,7 @@ import os
 import time
 import logging
 import asyncio
+import lzma as xz
 from atlasbuggy.datastream import DataStream, AsyncStream
 
 
@@ -72,6 +73,13 @@ class Robot:
             for stream in self.streams:
                 stream._close()
             self.loop.close()
+            self.compress_log()
+
+    def compress_log(self):
+        full_path = os.path.join(self.log_info["directory"], self.log_info["file_name"])
+        with open(full_path, "r") as log, open(full_path + ".xz", "wb") as out:
+            out.write(xz.compress(log.read().encode()))
+        os.remove(full_path)
 
     def get_coroutine(self):
         tasks = []
