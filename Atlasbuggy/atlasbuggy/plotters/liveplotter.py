@@ -6,8 +6,8 @@ according to properties defined in RobotPlot.
 import asyncio
 import traceback
 
-from atlasbuggy.ui.plotters.baseplotter import BasePlotter
-from atlasbuggy.ui.plotters.plot import RobotPlot
+from atlasbuggy.plotters.baseplotter import BasePlotter
+from atlasbuggy.plotters.plot import RobotPlot
 
 from atlasbuggy.datastream import AsyncStream
 from atlasbuggy.plotters.collection import RobotPlotCollection
@@ -36,7 +36,7 @@ class LivePlotter(BasePlotter, AsyncStream):
         LivePlotter.initialized = True
 
         BasePlotter.__init__(
-            self, num_columns, legend_args, draw_legend, matplotlib_events, enabled, False, True, *robot_plots
+            self, num_columns, legend_args, draw_legend, matplotlib_events, enabled, *robot_plots
         )
         AsyncStream.__init__(self, enabled, name, log_level)
 

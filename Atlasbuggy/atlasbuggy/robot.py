@@ -18,7 +18,7 @@ class Robot:
             directory=time.strftime("logs/%Y_%b_%d"),
             write=False,
             level=logging.DEBUG,
-            format="[%(name)s @ %(filename)s:%(lineno)d][%(levelname)s] %(asctime)s: '%(message)s'",
+            format="[%(name)s @ %(filename)s:%(lineno)d][%(levelname)s] %(asctime)s: %(message)s",
             print_handle=None,
             file_handle=None
         )
@@ -27,6 +27,7 @@ class Robot:
             if stream.enabled:
                 self.streams.append(stream)
                 stream.log_info = self.log_info
+
         self.loop = asyncio.get_event_loop()
 
     def init_logger(self, **kwargs):
@@ -52,15 +53,18 @@ class Robot:
     def run(self):
         coroutine = None
         try:
-            for stream in self.streams:
-                stream._start()
+            if len(self.streams) > 0:
+                coroutine = self.get_coroutine()
 
-            if self.setup_fn is not None:
-                self.setup_fn(self)
+                for stream in self.streams:
+                    stream._start()
 
-            coroutine = self.get_coroutine()
-            self.loop.run_until_complete(coroutine)
+                if self.setup_fn is not None:
+                    self.setup_fn(self)
 
+                self.loop.run_until_complete(coroutine)
+            else:
+                logging.warning("No streams to run!")
         except KeyboardInterrupt:
             if coroutine is not None:
                 coroutine.cancel()

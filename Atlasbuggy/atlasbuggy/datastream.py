@@ -30,12 +30,8 @@ class DataStream:
         self.streams = {}
 
         self.log_info = {}
-        self.logger = logging.getLogger(name)
+        self.logger = logging.getLogger(self.name)
         self.logger.setLevel(log_level)
-        if self.log_info["print_handle"] is not None:
-            self.logger.addHandler(self.log_info["print_handle"])
-        if self.log_info["file_handle"] is not None:
-            self.logger.addHandler(self.log_info["file_handle"])
 
     def dt(self, current_time=None, use_current_time=True):
         """
@@ -89,6 +85,19 @@ class DataStream:
         """
         return not all([result.is_set() for result in DataStream.exit_events])
 
+    @staticmethod
+    def any_stopped():
+        """
+        Check if all exit events are False
+        :return: False when all streams have called self.exit
+          All streams have exited when:
+            - their run methods have completed
+            - when Robot catches a KeyboardInterrupt or an asyncio.CancelledError
+            - DataStream.exit_all() is called
+            - All streams have called self.exit themselves
+        """
+        return any([result.is_set() for result in DataStream.exit_events])
+
     def running(self):
         """
         Check if stream is running. Use this in your while loops in your run methods
@@ -102,6 +111,11 @@ class DataStream:
         """
         return time.time()
 
+    def _init(self):
+        """
+        Extra startup behavior
+        """
+
     def _start(self):
         """
         Wrapper for starting the stream
@@ -110,10 +124,15 @@ class DataStream:
         if not self.enabled:
             return
         if not self.started.is_set():
+            if self.log_info["print_handle"] is not None:
+                self.logger.addHandler(self.log_info["print_handle"])
+            if self.log_info["file_handle"] is not None:
+                self.logger.addHandler(self.log_info["file_handle"])
+
             self.started.set()
             self.start_time = self.time_started()
             self.start()
-            self.logger.info("started")
+            self._init()
 
     def _run(self):
         """
@@ -143,6 +162,9 @@ class DataStream:
             self.closed.set()
             self.close()
             self.logger.info("closed")
+            if self.log_info["write"]:
+                self.logger.removeHandler(self.log_info["file_handle"])
+            self.logger.removeHandler(self.log_info["print_handle"])
 
     def close(self):
         """
@@ -155,7 +177,6 @@ class DataStream:
         Signal for this stream to exit
         """
         self.exited.set()
-        self.logger.info("exit")
 
     @staticmethod
     def exit_all():
@@ -194,18 +215,11 @@ class ThreadedStream(DataStream):
         self.logger.info("run finished")
         self.exit()
 
-    def _start(self):
+    def _init(self):
         """
         Start the thread
         """
-        if not self.enabled:
-            return
-        if not self.started.is_set():
-            self.started.set()
-            self.start_time = self.time_started()
-            self.start()
-            self.thread.start()
-            self.logger.info("started")
+        self.thread.start()
 
     def __repr__(self):
         return "<%s, enabled=%s, threaded>" % (self.__class__.__name__, self.enabled)

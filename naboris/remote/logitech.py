@@ -1,10 +1,10 @@
 import math
 
-from atlasbuggy.pygamestream import BuggyJoystick
+from atlasbuggy.pygamestream.pygame_joystick import BuggyJoystick
 
 
 class Logitech(BuggyJoystick):
-    def __init__(self, socket):
+    def __init__(self):
         super(Logitech, self).__init__(
             ['left x', 'left y', 'right x', 'right y'],
             [0.2, 0.2, 0.2, -0.2],
@@ -12,8 +12,11 @@ class Logitech(BuggyJoystick):
              'left stick', 'right stick'],
         )
         self.light_toggle = False
-        self.socket = socket
+        self.socket = None
         self.max_speed = 255
+
+    def take(self):
+        self.socket = self.streams["socket"]
 
     def update(self):
         # if value != 0:

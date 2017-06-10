@@ -25,7 +25,7 @@ cmdline = NaborisCLI()
 website = NaborisWebsite("templates", "static")
 socket = NaborisSocketServer()
 
-robot = Robot(socket, pipeline, naboris, cmdline, website, camera)
+robot = Robot(camera, naboris, pipeline, cmdline, website, socket)
 robot.init_logger(write=log)
 
 video_file_name = robot.log_info["file_name"].replace(";", "_") + ".mp4"

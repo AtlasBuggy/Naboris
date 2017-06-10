@@ -3,12 +3,12 @@ import time
 import numpy as np
 from threading import Lock
 from serial.serialutil import SerialException
-from atlasbuggy.datastream import DataStream
+from atlasbuggy.datastream import ThreadedStream
 
 
-class LMS200(DataStream):
-    def __init__(self, port, enabled=True, debug=False, baud=9600, is_live=True, logger=None):
-        super(LMS200, self).__init__(enabled, debug, True, False)
+class LMS200(ThreadedStream):
+    def __init__(self, port, enabled=True, log_level=None, baud=9600, is_live=True):
+        super(LMS200, self).__init__(enabled, log_level=log_level)
 
         self.port_address = port
         self.baud_rate = baud
@@ -29,8 +29,8 @@ class LMS200(DataStream):
         self.simulated_index = 0
 
         self.is_live = is_live
-        self.logger = logger
-        self.should_log = self.logger is not None and self.logger.enabled and self.is_live
+
+        self.valid_bauds = 9600, 19200, 38400
 
     def open_port(self):
         if self.is_live:
@@ -41,6 +41,7 @@ class LMS200(DataStream):
                     baudrate=self.baud_rate,
                     timeout=self.serial_ref_timeout
                 )
+                self.logger.info("opened serial")
             except SerialException as _error:
                 self.exit()
                 error = _error
@@ -81,26 +82,28 @@ class LMS200(DataStream):
     def parse_16bit(lower_byte, upper_byte):
         return (upper_byte << 8) + lower_byte
 
-    def write_telegram(self, address, packet, skip_check=False):
+    def write_telegram(self, address, packet, skip_check=True):
         telegram = self.generate_telegram(address, packet)
         if self.is_live and self.serial_ref is not None:
             self.serial_ref.flush()
+            self.logger.info("Writing %s" % telegram)
             self.serial_ref.write(telegram)
 
             if not skip_check:
                 while True:
                     with self.serial_lock:
                         ack = self.serial_ref.read(1)
+                    self.logger.info(ack)
                     if len(ack) > 0:
                         if ack == b'\x06':
                             return True
                         elif ack == b'\x15':
                             return False
                         else:
-                            self.debug_print("Invalid value received (neither ACK, nor NACK)", repr(ack))
+                            self.logger.warning("Invalid value received (neither ACK, nor NACK): " + repr(ack))
                             return None
         else:
-            self.debug_print("writing:", telegram)
+            self.logger.info("writing:", telegram)
 
     def set_simulated_data(self, contents):
         self.simulated_index = 0
@@ -108,13 +111,36 @@ class LMS200(DataStream):
         self.check_serial()
 
     def write_reset(self):
-        self.write_telegram(0, b'\x10', skip_check=True)
+        self.write_telegram(0, b'\x10')
 
     def write_start_measuring(self):
-        self.write_telegram(0, b'\x20\x20')
+        self.write_telegram(0, b'\x20\x20', skip_check=False)
+        self.logger.info("Wrote start")
 
     def write_installation_mode(self):
         self.write_telegram(0, b'\x20\x00SICK_LMS')
+
+    def change_baud(self, new_baud):
+        if self.serial_ref is not None and self.serial_ref.isOpen():
+            if new_baud not in self.valid_bauds:
+                raise ValueError("Invalid input baud rate: %s. Valid rates are: %s" % (new_baud, self.valid_bauds))
+
+            baud_command = None
+            if new_baud == self.valid_bauds[0]:
+                baud_command = b'\x42'
+            elif new_baud == self.valid_bauds[1]:
+                baud_command = b'\x41'
+            elif new_baud == self.valid_bauds[2]:
+                baud_command = b'\x40'
+
+            if baud_command is not None:
+                self.write_telegram(0, b'\x20' + baud_command)
+                self.logger.info("Changing baud to: %s" % new_baud)
+                with self.serial_lock:
+                    self.serial_ref.baudrate = new_baud
+
+    def request_status(self):
+        self.write_telegram(0, b'\x31')
 
     # TODO: understand all important commands and write them
     # standby mode
@@ -125,19 +151,22 @@ class LMS200(DataStream):
 
     def start(self):
         self.open_port()
-        self.write_start_measuring()
+        # self.write_start_measuring()
+        # self.change_baud(38400)
+        # time.sleep(0.05)
+        # self.request_status()
+        # self.write_reset()
 
     def run(self):
-        print("Reading serial port '%s'..." % self.port_address)
+        self.logger.info("Reading serial port '%s'..." % self.port_address)
 
-        while self.all_running():
+        while self.running():
             self.check_serial()
-        self.exit()
 
     def check_serial(self):
         self.buffer = b''
-        if self.should_log:
-            self.recording_buffer = ""
+        # if self.should_log:
+        #     self.recording_buffer = ""
         if self.read(1) == b'\x02':
             if self.read(1) == b'\x80':
                 length = self.parse_16bit(ord(self.read(1)), ord(self.read(1)))
@@ -147,20 +176,20 @@ class LMS200(DataStream):
                 checksum = self.parse_16bit(ord(self.read(1)), ord(self.read(1)))
                 calc_checksum = self.lms200_crc(self.buffer[:-2])
                 if calc_checksum != checksum:
-                    self.debug_print("!!invalid checksum!! found: %s != calculated: %s, %s" % (
+                    self.logger.warning("!!invalid checksum!! found: %s != calculated: %s, %s" % (
                         checksum, calc_checksum, repr(self.buffer)), ignore_flag=True)
                     return
 
                 if response == 0xA0:
-                    print("mode switched")
+                    self.logger.info("mode switched")
                 elif response == 0x90:
-                    print("powered on", data)
+                    self.logger.info("powered on", data)
                 elif response == 0xB0:
+                    # self.logger.info("got measurement")
                     self.parse_measurements(data)
-                # TODO: add more responses
-
-                if self.should_log:
-                    self.logger.record(time.time(), self.name, self.recording_buffer, "user")
+                else:
+                    self.logger.info("%s, %s" % (response, data))
+                    # TODO: add more responses
 
     def parse_measurements(self, data):
         sample_info = self.parse_16bit(data[0], data[1])
@@ -212,17 +241,16 @@ class LMS200(DataStream):
             result = self.simulated_contents[self.simulated_index: self.simulated_index + n]
             self.simulated_index += n
         self.buffer += result
-        if self.should_log:
-            self.recording_buffer += ("%02x " * len(result)) % tuple([b for b in result])
+
+        # if self.should_log:
+        #     self.recording_buffer += ("%02x " * len(result)) % tuple([b for b in result])
         return result
 
     def close(self):
         # TODO: find better closing behavior (don't just write reset every time)
         if self.is_live:
-            # self.write_reset()
             if self.serial_ref is not None:
-                self.serial_ref.close()
-            if self.should_log:
-                self.logger.close()
-        else:
-            self.write_reset()
+                # self.write_reset()
+                with self.serial_lock:
+                    self.serial_ref.close()
+                    self.logger.info("serial closed")
