@@ -394,7 +394,6 @@ class SerialStream(AsyncStream):
         """
         with port.print_out_lock:
             while not port.debug_print_outs.empty():
-                print("recording port debug")
                 self.record(timestamp, port.whoiam, port.debug_print_outs.get(), "debug")
 
     def stop_all_ports(self):
