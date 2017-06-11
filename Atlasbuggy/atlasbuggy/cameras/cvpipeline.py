@@ -21,7 +21,7 @@ class CvPipeline(ThreadedStream):
 
     def run(self):
         if self.capture is not None:
-            while self.all_running():
+            while self.running():
                 if self.capture.frame is not None:
                     self.update_pipeline(self.capture.get_frame())
                 else:

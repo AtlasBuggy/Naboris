@@ -41,7 +41,8 @@ class CameraViewer(AsyncStream):
 
     def take(self):
         self.capture = self.streams["capture"]
-        self.pipeline = self.streams["pipeline"]
+        if "pipeline" in self.streams:
+            self.pipeline = self.streams["pipeline"]
 
         self.slider_ticks = int(self.capture.capture.get(cv2.CAP_PROP_FRAME_WIDTH) // 3)
         if self.slider_ticks > self.capture.num_frames:

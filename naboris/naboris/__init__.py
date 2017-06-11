@@ -61,7 +61,7 @@ class Naboris(SerialStream):
             if self.plotter is not None:
                 num_leds = self.actuators.num_leds
                 for index in range(num_leds):
-                    led = RobotPlot("LED #%s" % index, marker='.', markersize=10,
+                    led = RobotPlot("LED #%s" % index, marker='.', markersize=10, markeredgecolor='black',
                                     x_range=(-2, 2), y_range=(-2, 2), color='black')
                     self.led_plot.add_plot(led)
 

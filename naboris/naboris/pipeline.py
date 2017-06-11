@@ -25,7 +25,7 @@ class NaborisPipeline(CvPipeline):
 
     def take(self):
         self.capture = self.streams["capture"]
-        self.actuators = self.streams["actuators"]
+        # self.actuators = self.streams["actuators"]
 
     def pipeline(self, frame):
         # over segment
@@ -93,8 +93,8 @@ class NaborisPipeline(CvPipeline):
         # blur = cv2.putText(blur, str(self.capture.current_frame), (30, 30), cv2.FONT_HERSHEY_PLAIN, 1, (255, 128, 0))
         # safety_percentage, line_angle = self.draw_lines(input_frame, lines)
 
-        if lines is not None and self.autonomous_mode:
-            self.actuators.set_all_leds(len(lines) * 10, 0, 0)
+        # if lines is not None and self.autonomous_mode:
+        #     self.actuators.set_all_leds(len(lines) * 10, 0, 0)
 
         # output_frame = cv2.add(cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR), input_frame)
         # output_frame = np.concatenate((output_frame, cv2.cvtColor(blur, cv2.COLOR_GRAY2BGR)), axis=1)

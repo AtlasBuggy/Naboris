@@ -17,7 +17,7 @@ class VideoPlayer(CameraStream):
         self.file_name = file_name
         self.directory = directory
 
-        self.full_path = os.path.join(self.file_name, self.directory)
+        self.full_path = os.path.join(self.directory, self.file_name)
 
         super(VideoPlayer, self).__init__(enabled, file_name, log_level)
 
