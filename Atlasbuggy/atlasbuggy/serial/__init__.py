@@ -1,3 +1,4 @@
+import re
 import asyncio
 import threading
 import time
@@ -35,6 +36,10 @@ class SerialStream(AsyncStream):
         self.object_list = serial_objects
 
         self.init_objects(self.object_list)
+
+        self.port_pattern = re.compile(
+            r"<(?P<timestamp>[.0-9a-zA-Z]*), (?P<whoiam>.*), \[(?P<portname>.*)\] (?P<message>.*), debug>"
+        )
 
     def link_callback(self, arg, callback_fn):
         """
@@ -235,9 +240,10 @@ class SerialStream(AsyncStream):
             self.send_commands()
 
             # if no packets have been received for a while, update the timestamp with the current clock time
-            current_real_time = time.time() - self.start_time
-            if self.timestamp is None or current_real_time - self.timestamp > 0.01 or len(self.ports) == 0:
-                self.timestamp = current_real_time
+            # current_real_time = time.time() - self.start_time
+            # if self.timestamp is None or current_real_time - self.timestamp > 0.01 or len(self.ports) == 0:
+            #     self.timestamp = current_real_time
+
             await asyncio.sleep(self.loop_delay)
             # self.clock.update()  # maintain a constant loop speed
 
@@ -364,7 +370,7 @@ class SerialStream(AsyncStream):
                             traceback.format_stack())
 
     def record(self, timestamp, whoiam, packet, packet_type):
-        self.logger.debug("<%s, %s, %s, %s, %s>" % (timestamp, whoiam, len(packet), packet, packet_type))
+        self.logger.debug("<%s, %s, %s, %s>" % (timestamp, whoiam, packet, packet_type))
 
     def handle_error(self, error, traceback):
         error_message = "".join(traceback[:-1])
@@ -388,6 +394,7 @@ class SerialStream(AsyncStream):
         """
         with port.print_out_lock:
             while not port.debug_print_outs.empty():
+                print("recording port debug")
                 self.record(timestamp, port.whoiam, port.debug_print_outs.get(), "debug")
 
     def stop_all_ports(self):
@@ -439,3 +446,24 @@ class SerialStream(AsyncStream):
 
     def serial_close(self):
         pass
+
+    def receive_log(self, message, line_info):
+        if not self.match_port_debug(message):
+            pass
+
+    def match_port_debug(self, message):
+        matches = re.finditer(self.port_pattern, message)
+
+        matched = False
+        for match_num, match in enumerate(matches):
+            matched = True
+
+            matchdict = match.groupdict()
+            timestamp = float(matchdict["timestamp"])
+            whoiam = matchdict["whoiam"]
+            port_whoiam = matchdict["portname"]
+            message = matchdict["message"]
+
+            assigned_message = "assigned" if port_whoiam == whoiam else "unassigned"
+            self.logger.debug("[%s, %s, %s]: %s" % (timestamp, whoiam, assigned_message, message))
+        return matched

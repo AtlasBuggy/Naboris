@@ -4,8 +4,8 @@ from threading import Thread, Event
 
 
 class DataStream:
-    exit_events = []
-    log_info = {}
+    _exit_events = []
+    _log_info = {}
 
     def __init__(self, enabled, name=None, log_level=None):
         """
@@ -27,27 +27,27 @@ class DataStream:
         self.started = Event()
         self.closed = Event()
         self.exited = Event()
-        DataStream.exit_events.append(self.exited)
+        DataStream._exit_events.append(self.exited)
 
         self.streams = {}
 
         self.logger = logging.getLogger(self.name)
-        if len(DataStream.log_info) == 0:
+        if len(DataStream._log_info) == 0:
             raise ValueError("Declare Robot before initializing any streams.")
-        if DataStream.log_info["log_level"] < log_level:
-            self.log_level = DataStream.log_info["log_level"]
+        if DataStream._log_info["log_level"] < log_level:
+            self.log_level = DataStream._log_info["log_level"]
         else:
             self.log_level = log_level
         self.logger.setLevel(logging.DEBUG)  # catch all logs
 
         self.print_handle = logging.StreamHandler()
         self.print_handle.setLevel(self.log_level)  # only print what user specifies
-        formatter = logging.Formatter(self.log_info["format"])
+        formatter = logging.Formatter(self._log_info["format"])
         self.print_handle.setFormatter(formatter)
         self.logger.addHandler(self.print_handle)
 
-        if DataStream.log_info["file_handle"] is not None:
-            self.logger.addHandler(DataStream.log_info["file_handle"])
+        if DataStream._log_info["file_handle"] is not None:
+            self.logger.addHandler(DataStream._log_info["file_handle"])
 
     def dt(self, current_time=None, use_current_time=True):
         """
@@ -74,6 +74,9 @@ class DataStream:
         self.take()
         self.logger.debug("receiving streams:" + str([str(stream) for stream in streams.values()]))
 
+    def receive_log(self, message, line_info):
+        pass
+
     def take(self):
         """
         Callback for give. Called before start
@@ -99,7 +102,7 @@ class DataStream:
             - DataStream.exit_all() is called
             - All streams have called self.exit themselves
         """
-        return not all([result.is_set() for result in DataStream.exit_events])
+        return not all([result.is_set() for result in DataStream._exit_events])
 
     @staticmethod
     def any_stopped():
@@ -112,7 +115,7 @@ class DataStream:
             - DataStream.exit_all() is called
             - All streams have called self.exit themselves
         """
-        return any([result.is_set() for result in DataStream.exit_events])
+        return any([result.is_set() for result in DataStream._exit_events])
 
     def running(self):
         """
@@ -197,7 +200,7 @@ class DataStream:
         """
         Signal for all streams to exit
         """
-        for event in DataStream.exit_events:
+        for event in DataStream._exit_events:
             event.set()
 
     def __str__(self):

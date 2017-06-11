@@ -26,7 +26,7 @@ class Robot:
         )
         self.log_info.update(log_options)
         self.init_logger()
-        DataStream.log_info = self.log_info
+        DataStream._log_info = self.log_info
 
         self.loop = asyncio.get_event_loop()
 

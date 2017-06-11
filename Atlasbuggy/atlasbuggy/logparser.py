@@ -20,7 +20,7 @@ class LogParser(AsyncStream):
             r"(?P<hour>[0-9]*):"
             r"(?P<minute>[0-9]*):"
             r"(?P<second>[0-9]*),"
-            r"(?P<millisecond>[0-9]*):"
+            r"(?P<millisecond>[0-9]*): "
             r"(?P<message>.*)"
         )
         self.lines = []
@@ -52,6 +52,11 @@ class LogParser(AsyncStream):
 
     async def run(self):
         matches = re.finditer(self.pattern, self.content)
+
+        stream_names = {}
+        for stream in self.streams:
+            stream_names[stream.name] = stream
+
         for match_num, match in enumerate(matches):
             self.line = match.group()
             self.current_line = match_num
@@ -70,6 +75,10 @@ class LogParser(AsyncStream):
                 self.line_info["minute"],
                 self.line_info["second"],
                 self.line_info["millisecond"]).timetuple())
+
+            if self.line_info["name"] in stream_names:
+                stream = stream_names[self.line_info["name"]]
+                stream.receive_log(self.line_info["message"], self.line_info)
 
             await self.update()
 

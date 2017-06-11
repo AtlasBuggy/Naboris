@@ -1,41 +1,20 @@
 from atlasbuggy.cameras.camera_viewer import CameraViewer
 from atlasbuggy.cameras.videoplayer import VideoPlayer
+from atlasbuggy.logparser import LogParser
 from atlasbuggy.robot import Robot
 from naboris import Naboris
 from naboris.pipeline import NaborisPipeline
-from naboris.serial_simulator import NaborisSimulator
 
 
-class CameraSimulator(VideoPlayer):
-    def __init__(self, video_name, video_directory, serial_simulator):
-        super(CameraSimulator, self).__init__(video_name, video_directory)
-        self.serial_simulator = serial_simulator
+class Simulator(LogParser):
+    def __init__(self, file_name, directory, enabled=True, log_level=None):
+        super(Simulator, self).__init__(file_name, directory, enabled, log_level=log_level)
+        self.naboris = None
+
+    def take(self):
+        self.naboris = self.streams["naboris"]
 
     def update(self):
-        while self.serial_simulator.current_frame < self.current_frame:
-            if not self.serial_simulator.next():
-                self.exit()
-
-data_sets = {
-    "my room": (
-        ("20;50", "2017_May_28"),
-    ),
-    "hallway": (
-        ("16;23", "2017_May_28"),
-    )
-}
+        pass
 
 
-serial_file_name, serial_directory = data_sets["hallway"][0]
-
-video_name = serial_file_name.replace(";", "_")
-video_directory = "naboris/" + serial_directory
-
-naboris = Naboris()
-serial_file = NaborisSimulator(serial_file_name, serial_directory)
-capture = CameraSimulator(video_name, video_directory, serial_file)
-pipeline = NaborisPipeline(naboris, enabled=True, capture=capture)
-viewer = CameraViewer(capture, pipeline, enabled=True, enable_slider=True)
-capture.link_viewer(viewer)
-
-Robot.run(capture, viewer, pipeline)

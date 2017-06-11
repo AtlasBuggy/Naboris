@@ -1,10 +1,9 @@
-from atlasbuggy.files.parser import Parser
+from atlasbuggy.logparser import LogParser
 
 
-class SerialFile(Parser):
-    def __init__(self, serial_stream, file_name, directory=None, debug=False, start_index=0, end_index=-1):
-        super(SerialFile, self).__init__(file_name, directory, debug, start_index, end_index)
-        self.serial_stream = serial_stream
+class SerialFile(LogParser):
+    def __init__(self, file_name, directory=None, enabled=True, log_level=None, ):
+        super(SerialFile, self).__init__(file_name, directory, enabled, log_level)
 
     def start(self):
         self.start_time = None
