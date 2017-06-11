@@ -7,18 +7,20 @@ from atlasbuggy.datastream import DataStream, AsyncStream
 
 
 class Robot:
-    def __init__(self, setup_fn=None, loop_fn=None, close_fn=None, **log_options):
+    def __init__(self, wait_for_all=True, setup_fn=None, loop_fn=None, close_fn=None, **log_options):
         self.streams = []
+
+        self.wait_for_all = wait_for_all
 
         self.loop_fn = loop_fn
         self.setup_fn = setup_fn
         self.close_fn = close_fn
 
         self.log_info = dict(
-            file_name=time.strftime("%H;%M;%S.log"),
-            directory=time.strftime("logs/%Y_%b_%d"),
+            file_name=None,
+            directory=None,
             write=False,
-            level=logging.CRITICAL,
+            log_level=logging.CRITICAL,
             format="[%(name)s @ %(filename)s:%(lineno)d][%(levelname)s] %(asctime)s: %(message)s",
             file_handle=None
         )
@@ -29,7 +31,15 @@ class Robot:
         self.loop = asyncio.get_event_loop()
 
     def init_logger(self):
-        if self.log_info["write"] and not os.path.isdir(self.log_info["directory"]):
+        if self.log_info["file_name"] is None:
+            self.log_info["file_name"] = time.strftime("%H;%M;%S.log")
+            if self.log_info["directory"] is None:
+                # only use default if both directory and file_name are None.
+                # Assume file_name has the full path if directory is None
+                self.log_info["directory"] = time.strftime("logs/%Y_%b_%d")
+
+        # make directory if writing a log, if directory is not None or empty, and if the directory doesn't exist
+        if self.log_info["write"] and self.log_info["directory"] and not os.path.isdir(self.log_info["directory"]):
             os.makedirs(self.log_info["directory"])
 
         if self.log_info["write"]:
@@ -57,8 +67,13 @@ class Robot:
 
                 self.loop.run_until_complete(coroutine)
 
-                while DataStream.all_running():
-                    time.sleep(0.1)
+                if self.wait_for_all:
+                    while DataStream.all_running():
+                        time.sleep(0.1)
+                else:
+
+                    while not DataStream.any_stopped():
+                        time.sleep(0.1)
             else:
                 logging.warning("No streams to run!")
         except KeyboardInterrupt:
@@ -76,10 +91,11 @@ class Robot:
             self.compress_log()
 
     def compress_log(self):
-        full_path = os.path.join(self.log_info["directory"], self.log_info["file_name"])
-        with open(full_path, "r") as log, open(full_path + ".xz", "wb") as out:
-            out.write(xz.compress(log.read().encode()))
-        os.remove(full_path)
+        if self.log_info["write"]:
+            full_path = os.path.join(self.log_info["directory"], self.log_info["file_name"])
+            with open(full_path, "r") as log, open(full_path + ".xz", "wb") as out:
+                out.write(xz.compress(log.read().encode()))
+            os.remove(full_path)
 
     def get_coroutine(self):
         tasks = []
@@ -88,7 +104,7 @@ class Robot:
                 raise RuntimeError("Found an object that isn't a stream!", repr(stream))
             if isinstance(stream, AsyncStream):
                 stream.asyncio_loop = self.loop
-                task = stream.run()
+                task = stream._run()
                 tasks.append(task)
                 stream.task = task
 

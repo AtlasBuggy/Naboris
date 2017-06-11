@@ -66,8 +66,10 @@ class VideoStream(DataStream):
     def __init__(self, file_name, directory, enabled, log_level):
         if file_name is None:
             file_name = time.strftime("%H;%M;%S.avi")
-        if directory is None:
-            directory = time.strftime("videos/%Y_%b_%d")
+            if directory is None:
+                # only use default if both directory and file_name are None.
+                # Assume file_name has the full path if directory is None
+                directory = time.strftime("videos/%Y_%b_%d")
 
         self.file_name = file_name
         self.directory = directory

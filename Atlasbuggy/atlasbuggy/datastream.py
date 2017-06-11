@@ -32,8 +32,10 @@ class DataStream:
         self.streams = {}
 
         self.logger = logging.getLogger(self.name)
-        if DataStream.log_info["level"] < log_level:
-            self.log_level = DataStream.log_info["level"]
+        if len(DataStream.log_info) == 0:
+            raise ValueError("Declare Robot before initializing any streams.")
+        if DataStream.log_info["log_level"] < log_level:
+            self.log_level = DataStream.log_info["log_level"]
         else:
             self.log_level = log_level
         self.logger.setLevel(logging.DEBUG)  # catch all logs
@@ -46,7 +48,6 @@ class DataStream:
 
         if DataStream.log_info["file_handle"] is not None:
             self.logger.addHandler(DataStream.log_info["file_handle"])
-
 
     def dt(self, current_time=None, use_current_time=True):
         """
