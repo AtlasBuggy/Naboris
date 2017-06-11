@@ -1,9 +1,11 @@
-from atlasbuggy.cameras.camera_viewer import CameraViewer
-from atlasbuggy.cameras.videoplayer import VideoPlayer
+import asyncio
+# from atlasbuggy.cameras.camera_viewer import CameraViewer
+# from atlasbuggy.cameras.videoplayer import VideoPlayer
 from atlasbuggy.logparser import LogParser
 from atlasbuggy.robot import Robot
+from atlasbuggy.plotters.liveplotter import LivePlotter
 from naboris import Naboris
-from naboris.pipeline import NaborisPipeline
+# from naboris.pipeline import NaborisPipeline
 
 
 class Simulator(LogParser):
@@ -14,7 +16,16 @@ class Simulator(LogParser):
     def take(self):
         self.naboris = self.streams["naboris"]
 
-    def update(self):
-        pass
+    async def update(self):
+        await asyncio.sleep(0.001)
 
+robot = Robot()
 
+simulator = Simulator("21;25;23.log.xz", "logs/2017_Jun_10")
+naboris = Naboris(plot=True)
+plotter = LivePlotter(1, enabled=naboris.should_plot, exit_all=True)
+
+simulator.give(naboris=naboris)
+naboris.give(plotter=plotter)
+
+robot.run(simulator, plotter)

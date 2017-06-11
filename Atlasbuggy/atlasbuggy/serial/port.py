@@ -347,12 +347,6 @@ class SerialPort(Process):
                             self.counter.value += len(packets)
 
                 clock.update()  # maintain a constant loop speed
-        # except BaseException as error:
-        #     if isinstance(error, KeyboardInterrupt):
-        #         self.debug_print("KeyboardInterrupt in port loop")
-        #     else:
-        #         self.handle_error(error, traceback.format_stack())
-        #         self.debug_print("Error thrown in port loop")
         except KeyboardInterrupt:
             self.debug_print("KeyboardInterrupt in port loop")
 

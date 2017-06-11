@@ -54,10 +54,12 @@ class LogParser(AsyncStream):
         matches = re.finditer(self.pattern, self.content)
 
         stream_names = {}
-        for stream in self.streams:
+        for stream in self.streams.values():
             stream_names[stream.name] = stream
 
         for match_num, match in enumerate(matches):
+            if not self.running():
+                break
             self.line = match.group()
             self.current_line = match_num
             self.match = match
@@ -86,12 +88,16 @@ class LogParser(AsyncStream):
         print(self.line_info)
         await asyncio.sleep(self.delay)
 
+
 if __name__ == "__main__":
     import sys
     from atlasbuggy.robot import Robot
+
+
     def parse_file(file_name, directory):
         robot = Robot(wait_for_all=True, log_level=10)
         parser = LogParser(file_name, directory)
         robot.run(parser)
+
 
     parse_file(os.path.basename(sys.argv[1]), os.path.dirname(sys.argv[1]))

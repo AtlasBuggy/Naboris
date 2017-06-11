@@ -12,14 +12,6 @@ from atlasbuggy.serial.errors import *
 from atlasbuggy.serial.object import SerialObject
 from atlasbuggy.serial.port import SerialPort
 
-packet_types = {
-    "object"       : "<",  # from a robot object
-    "user"         : "|",  # user logged
-    "command"      : ">",  # command sent
-    "pause command": "-",  # pause command
-    "debug"        : "?",  # port debug message
-}
-
 
 class SerialStream(AsyncStream):
     def __init__(self, *serial_objects, enabled=True, log_level=None, name=None):
@@ -29,6 +21,8 @@ class SerialStream(AsyncStream):
         self.ports = {}
         self.callbacks = {}
         self.recurring = []
+
+        self.packet = ""
 
         self.loops_per_second = 200
         self.loop_delay = 1 / self.loops_per_second
@@ -40,6 +34,12 @@ class SerialStream(AsyncStream):
         self.port_pattern = re.compile(
             r"<(?P<timestamp>[.0-9a-zA-Z]*), (?P<whoiam>.*), \[(?P<portname>.*)\] (?P<message>.*), debug>"
         )
+        self.packet_pattern = re.compile(
+            r"<(?P<timestamp>[.0-9a-zA-Z]*), (?P<whoiam>.*), (?P<message>.*), (?P<packettype>.*)>"
+        )
+
+    def time_started(self):
+        return None
 
     def link_callback(self, arg, callback_fn):
         """
@@ -102,6 +102,18 @@ class SerialStream(AsyncStream):
 
         for whoiam in self.ports.keys():
             self.logger.debug("[%s] has ID '%s'" % (self.ports[whoiam].address, whoiam))
+
+    def dt(self, current_time=None, use_current_time=False):
+        if use_current_time:
+            if current_time is None:
+                self.timestamp = time.time()
+            else:
+                self.timestamp = current_time
+
+        if self.start_time is None or self.timestamp is None:
+            return 0.0
+        else:
+            return self.timestamp - self.start_time
 
     def configure_port(self, serial_port, errors_list):
         """
@@ -196,7 +208,10 @@ class SerialStream(AsyncStream):
                 traceback.format_stack()
             ) from error
 
+        self.received(whoiam)
+
     def start(self):
+        self.start_time = time.time()
         self.clock.start(self.start_time)
         self.init_ports()
 
@@ -370,6 +385,13 @@ class SerialStream(AsyncStream):
                             traceback.format_stack())
 
     def record(self, timestamp, whoiam, packet, packet_type):
+        """
+        object        : from a robot object
+        user          : user logged
+        command       : command sent
+        pause command : pause command
+        debug         : port debug message
+        """
         self.logger.debug("<%s, %s, %s, %s>" % (timestamp, whoiam, packet, packet_type))
 
     def handle_error(self, error, traceback):
@@ -448,21 +470,44 @@ class SerialStream(AsyncStream):
 
     def receive_log(self, message, line_info):
         if not self.match_port_debug(message):
-            pass
+            self.match_log(message, line_info)
 
     def match_port_debug(self, message):
         matches = re.finditer(self.port_pattern, message)
-
         matched = False
         for match_num, match in enumerate(matches):
             matched = True
-
             matchdict = match.groupdict()
-            timestamp = float(matchdict["timestamp"])
-            whoiam = matchdict["whoiam"]
-            port_whoiam = matchdict["portname"]
-            message = matchdict["message"]
-
-            assigned_message = "assigned" if port_whoiam == whoiam else "unassigned"
-            self.logger.debug("[%s, %s, %s]: %s" % (timestamp, whoiam, assigned_message, message))
+            self.logger.debug("[%(timestamp)s, %(whoiam)s, %(portname)s]: %(message)s" % matchdict)
         return matched
+
+    def match_log(self, packet, line_info):
+        matches = re.finditer(self.packet_pattern, packet)
+
+        for match_num, match in enumerate(matches):
+            matchdict = match.groupdict()
+            timestamp = matchdict["timestamp"]
+            whoiam = matchdict["whoiam"]
+            packet = matchdict["message"]
+            packet_type = matchdict["packettype"]
+
+            if timestamp == "None":
+                self.timestamp = None
+            else:
+                self.timestamp = float(timestamp)
+                if self.start_time is None:
+                    self.start_time = self.timestamp
+
+            if packet_type == "object":
+                if self.timestamp is None:
+                    self.deliver_first_packet(whoiam, packet)
+                else:
+                    self.packet = packet
+
+                    self.deliver(whoiam)
+                    self.received(whoiam)
+
+            self.received_log(self.timestamp, whoiam, packet, packet_type)
+
+    def received_log(self, timestamp, whoiam, packet, packet_type):
+        pass

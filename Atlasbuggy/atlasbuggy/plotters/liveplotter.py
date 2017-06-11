@@ -17,7 +17,8 @@ class LivePlotter(BasePlotter, AsyncStream):
     initialized = False
 
     def __init__(self, num_columns, *robot_plots, enabled=True, name=None, log_level=None, draw_legend=True,
-                 legend_args=None, lag_cap=0.005, skip_count=0, matplotlib_events=None, active_window_resizing=True):
+                 legend_args=None, lag_cap=0.005, skip_count=0, matplotlib_events=None, active_window_resizing=True,
+                 exit_all=False):
         """
         Only one LivePlotter instance can run at one time. Multiple interactive matplotlib
         windows don't behave well. This also conserves CPU usage.
@@ -45,6 +46,7 @@ class LivePlotter(BasePlotter, AsyncStream):
         self.skip_counter = 0
         self.is_closed = False
         self.is_paused = False
+        self.should_exit_all = exit_all
         self.active_window_resizing = active_window_resizing
 
         if self.enabled:
@@ -174,3 +176,7 @@ class LivePlotter(BasePlotter, AsyncStream):
             self.plt.ioff()
             self.plt.gcf()
             self.plt.close('all')
+
+            if self.should_exit_all:
+                self.exit_all()
+
