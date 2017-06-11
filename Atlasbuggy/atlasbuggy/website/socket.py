@@ -2,7 +2,7 @@ import asyncio
 from atlasbuggy.datastream import DataStream
 
 
-class SocketClient(DataStream):
+class SocketClient(AsyncStream):
     def __init__(self, name, host, port=5001, enabled=True, log_level=None, timeout=None):
         super(SocketClient, self).__init__(enabled, name, log_level)
         self.host = host
@@ -47,7 +47,7 @@ class SocketClient(DataStream):
         pass
 
 
-class SocketServer(DataStream):
+class SocketServer(AsyncStream):
     def __init__(self, enabled=True, log_level=None, name=None, host='0.0.0.0', port=5001, timeout=None):
         super(SocketServer, self).__init__(enabled, name, log_level)
 
@@ -62,11 +62,10 @@ class SocketServer(DataStream):
     async def run(self):
         self.logger.info("Starting server on %s:%s" % (self.host, self.port), ignore_flag=True)
         await asyncio.start_server(self.accept_client, host=self.host, port=self.port)
-        while self.all_running():
+        while self.running():
             await asyncio.sleep(0.5)
 
     def accept_client(self, client_reader, client_writer):
-
         task = asyncio.Task(self.handle_client(client_reader, client_writer, len(self.clients)))
         self.clients.append((client_reader, client_writer))
         self.client_tasks[task] = client_writer
