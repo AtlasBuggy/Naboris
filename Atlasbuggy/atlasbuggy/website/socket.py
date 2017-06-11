@@ -1,5 +1,5 @@
 import asyncio
-from atlasbuggy.datastream import DataStream
+from atlasbuggy.datastream import AsyncStream
 
 
 class SocketClient(AsyncStream):
@@ -60,7 +60,7 @@ class SocketServer(AsyncStream):
         self.client_writers = {}
 
     async def run(self):
-        self.logger.info("Starting server on %s:%s" % (self.host, self.port), ignore_flag=True)
+        self.logger.info("Starting server on %s:%s" % (self.host, self.port))
         await asyncio.start_server(self.accept_client, host=self.host, port=self.port)
         while self.running():
             await asyncio.sleep(0.5)
@@ -83,7 +83,7 @@ class SocketServer(AsyncStream):
         client_name = client_name.decode().rstrip()
 
         self.client_writers[client_name] = client_writer
-        self.logger.info("'%s' has connected" % client_name, ignore_flag=True)
+        self.logger.info("'%s' has connected" % client_name)
 
         while True:
             if self.timeout is None:
