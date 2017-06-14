@@ -7,14 +7,20 @@ class NaborisSocketClient(SocketClient):
         super(NaborisSocketClient, self).__init__("naboris cli", "naboris", enabled=enabled)
 
     def received(self, data):
-        print(data)
+        self.logger.debug(data)
+
+    def close(self):
+        self.exit_all()
 
 
 class CLI(CommandLine):
-    def __init__(self, socket_client):
-        super(CLI, self).__init__(False, True)
+    def __init__(self):
+        super(CLI, self).__init__(True)
 
-        self.socket_client = socket_client
+        self.socket_client = None
+
+    def take(self):
+        self.socket_client = self.streams["socket"]
 
     def handle_input(self, line):
         if line == "q":

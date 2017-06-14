@@ -169,23 +169,24 @@ class DataStream:
         """
         pass
 
-    def _close(self):
+    def _stop(self):
         """
-        Wrapper for closing the stream. Assumes that exit has been set
+        Wrapper for stopping the stream. Assumes that exit has been set
         """
         if not self.enabled:
             return
         if not self.closed.is_set():
             self.closed.set()
-            self.close()
+            self.logger.debug("stopping")
+            self.stop()
             self.logger.debug("closed")
             # if DataStream.log_info["write"]:
             #     self.logger.removeHandler(DataStream.log_info["file_handle"])
             # self.logger.removeHandler(self.print_handle)
 
-    def close(self):
+    def stop(self):
         """
-        Close behavior of the stream
+        Stop behavior of the stream
         """
         pass
 
@@ -193,6 +194,7 @@ class DataStream:
         """
         Signal for this stream to exit
         """
+        self.logger.debug("exiting")
         self.exited.set()
 
     @staticmethod
@@ -258,7 +260,7 @@ class AsyncStream(DataStream):
         Added async tag since this method will be asynchronous
         """
         await self.run()
-        self.logger.debug("run finished")
+        self.logger.debug("run finished, exiting")
         self.exit()
 
     async def run(self):

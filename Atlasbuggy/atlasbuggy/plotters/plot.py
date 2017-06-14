@@ -177,6 +177,7 @@ class RobotPlot:
         self.data[axis_num].append(datum)
         self._update_range(datum, axis_num)
 
+        # if a max length is defined, pop the first item if the data is beyond the max length
         if self.max_length is not None and len(self.data[axis_num]) > self.max_length:
             self.data[axis_num].pop(0)
             if not self.ranges_contrained[axis_num]:

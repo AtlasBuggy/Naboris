@@ -72,7 +72,7 @@ class SocketServer(AsyncStream):
 
         def client_done(end_task):
             del self.client_tasks[end_task]
-            client_writer.close()
+            client_writer.stop()
             self.logger.info("ending connection")
 
         task.add_done_callback(client_done)
