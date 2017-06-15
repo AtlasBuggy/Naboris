@@ -8,7 +8,7 @@ from atlasbuggy.datastream import AsyncStream
 
 
 class LogParser(AsyncStream):
-    def __init__(self, file_name, directory, enabled=True, name=None, log_level=None, fps=None):
+    def __init__(self, file_name, directory="", enabled=True, name=None, log_level=None, fps=None):
         self.pattern = re.compile(
             r"\[(?P<name>[a-zA-Z0-9]*) "
             r"@ (?P<filename>.*.py):"
@@ -85,7 +85,6 @@ class LogParser(AsyncStream):
             await self.update()
 
     async def update(self):
-        print(self.line_info)
         await asyncio.sleep(self.delay)
 
 

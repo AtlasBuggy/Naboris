@@ -42,6 +42,8 @@ class RobotPlot:
 
         self.properties["label"] = self.name
 
+        self.image_artist = None
+
         if x_range is not None:
             x_range = list(x_range)
             assert len(x_range) == 2
