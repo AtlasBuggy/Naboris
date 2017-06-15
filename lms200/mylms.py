@@ -7,7 +7,7 @@ from atlasbuggy.plotters.plot import RobotPlot
 from atlasbuggy.plotters.liveplotter import LivePlotter
 from sicklms.lms import SickLMS
 from slam import SLAM
-import cv2
+
 
 class MyLMS(SickLMS):
     def __init__(self, enabled=True, is_live=True):
@@ -44,7 +44,7 @@ class MyLMS(SickLMS):
                          self.scan_resolution)
 
     def start_up_commands(self):
-        self.set_range(8)
+        self.set_range(16)
 
     def point_cloud_received(self, point_cloud):
         self.scan_plot.update(point_cloud[:, 0], point_cloud[:, 1])

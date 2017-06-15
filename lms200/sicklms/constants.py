@@ -128,6 +128,7 @@ sick_lms_measuring_units = {
     SICK_MEASURING_UNITS_MM     : "SICK_MEASURING_UNITS_MM",
     SICK_MEASURING_UNITS_UNKNOWN: "SICK_MEASURING_UNITS_UNKNOWN",
 }
+make_reversible(sick_lms_measuring_units)
 
 SICK_SENSITIVITY_STANDARD = 0x00  # Standard sensitivity: 30m @ 10% reflectivity
 SICK_SENSITIVITY_MEDIUM = 0x01  # Medium sensitivity:   25m @ 10% reflectivity

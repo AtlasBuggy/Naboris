@@ -310,10 +310,7 @@ class SickLMS(ThreadedStream):
 
     def set_measuring_units(self, units: int = SICK_MEASURING_UNITS_MM):
         if is_valid_measuring_units(units) and units != self.config.measuring_units:
-            self.logger.debug(
-                "Setting units: %s -> %s" % (
-                    sick_lms_measuring_units[self.config.measuring_units], sick_lms_measuring_units[units])
-            )
+            self.logger.debug("Setting units: %s" % sick_lms_measuring_units[units])
             self.config.measuring_units = units
             self.config_has_updated = True
 
@@ -669,12 +666,6 @@ class SickLMS(ThreadedStream):
                     return True
                 elif ack == b'\x15' and attempts > DEFAULT_SICK_LMS_NUM_TRIES:
                     return False
-                # elif ack == b'\x02':
-                #     if self._read_8() == 0x80:
-                #         length = self._read_16()
-                #         payload = self._read(length)
-                #         checksum = self._read_16()
-                #         print(length, payload, checksum)
 
                 if time.time() - t0 > self._timeout:
                     attempts += 1

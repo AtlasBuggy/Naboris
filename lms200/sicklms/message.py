@@ -80,6 +80,6 @@ class Message:
         return crc16
 
     def __str__(self):
-        return "%s(payload=%s, checksum=%s)" % (
-            self.__class__.__name__, self.payload, self.checksum
+        return "%s(buffer=%s)" % (
+            self.__class__.__name__, self.buffer
         )
