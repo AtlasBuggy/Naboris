@@ -1,5 +1,6 @@
 import time
 import serial
+import serial.tools.list_ports
 import math
 import numpy as np
 from threading import Lock
@@ -12,7 +13,7 @@ from sicklms.data_structures import *
 
 
 class SickLMS(ThreadedStream):
-    def __init__(self, port_address, baud=38400, enabled=True, name=None, log_level=None, dude_bro_mode=True,
+    def __init__(self, port_address=None, baud=38400, enabled=True, name=None, log_level=None, dude_bro_mode=True,
                  mode=SICK_OP_MODE_MONITOR_STREAM_VALUES, mode_params=None):
         super(SickLMS, self).__init__(enabled, name, log_level)
 
@@ -48,6 +49,7 @@ class SickLMS(ThreadedStream):
 
         self.serial_lock = Lock()
         self.serial_ref = None
+        self._timeout = DEFAULT_SICK_LMS_SICK_MESSAGE_TIMEOUT
 
         self.dude_bro_mode = dude_bro_mode
 
@@ -55,32 +57,77 @@ class SickLMS(ThreadedStream):
         self.recv_message = Message()
         self.send_message = Message()
 
+        self.config_has_updated = False
+
+        self.update_rate = 0
+
         if self.dude_bro_mode:
             self.logger.debug("SIIIIICK duuude... Welcome to the S I C K brooo")
 
     def start_up_commands(self):
         pass
 
+    def run(self):
+        # note to self: never have threads trying to access the same serial reference.
+        # Keep all serial activities inside or outside the thread. Not both
+        self._startup_lms()
+        self.start_up_commands()
+        self.logger.info(self.status_string())
+
+        while self.running():
+            t0 = time.time()
+            if self.operating_status.operating_mode == SICK_OP_MODE_MONITOR_STREAM_VALUES:
+                self.get_scan()
+                self._parse_point_cloud()
+                self.update_rate = 1 / (time.time() - t0)
+
+                self.point_cloud_received(self.point_cloud)
+            else:
+                time.sleep(0.05)
+        self.logger.debug("Loop exited")
+        self._threaded_shutdown()
+
+    def _threaded_shutdown(self):
+        try:
+            self._teardown()
+        except SickIOException:
+            self.logger.error("Encountered error while shutting down")
+
+    # ----- point cloud creators -----
+
+    def point_cloud_received(self, point_cloud):
+        pass
+
+    def _parse_point_cloud(self):
+        self.point_cloud = np.vstack(
+            [self.distances * np.cos(self.angles), self.distances * np.sin(self.angles)]).T
+
+    # ----- internal start up methods -----
+
     def _startup_lms(self):
+        self._timeout = DEFAULT_SICK_LMS_SICK_MESSAGE_TIMEOUT
         self._setup_connection()
 
         session_baud_set = False
         try:
             self._set_session_baud(self.session_baud)
+            self.logger.debug("Baud successfully set")
             session_baud_set = True
         except (SickTimeoutException, SickIOException):
             if self.dude_bro_mode:
                 self.logger.debug("Mah man looks to be we couldn't get that sweet baud you requested... "
                                   "We'll try one more time just for you bro")
             else:
-                self.logger.debug("Failed to set requested baud rate. "
-                                  "Attempting to detect LMS baud rate...")
+                self.logger.debug("Failed to set requested baud rate (%s). "
+                                  "Attempting to detect LMS baud rate..." % self.session_baud)
 
         if not session_baud_set:
             discovered_baud = None
             for test_baud in sick_lms_baud_codes.keys():
                 if self.dude_bro_mode:
                     self.logger.debug("Yooo we're tryin' this baud out dude: %s" % test_baud)
+                else:
+                    self.logger.debug("Trying baud: %s" % test_baud)
 
                 if self._test_baud(test_baud):
                     discovered_baud = test_baud
@@ -104,32 +151,6 @@ class SickLMS(ThreadedStream):
 
         self._switch_opmode(self.session_mode, self.session_mode_params)
 
-    def run(self):
-        # note to self: never have threads trying to access the same serial reference.
-        # Keep all serial activities inside or outside the thread. Not both
-        try:
-            self._startup_lms()
-            self.start_up_commands()
-            self.logger.debug(self.status_string())
-
-            while self.running():
-                if self.operating_status.operating_mode == SICK_OP_MODE_MONITOR_STREAM_VALUES:
-                    self.get_scan()
-                    self._parse_point_cloud()
-                    self.point_cloud_received(self.point_cloud)
-                else:
-                    time.sleep(0.05)
-        except BaseException:
-            self._teardown()
-            raise
-        try:
-            self._teardown()
-        except SickIOException:
-            self.logger.debug("Encountered error while shutting down")
-
-    def point_cloud_received(self, point_cloud):
-        pass
-
     def _teardown(self):
         if self._is_open():
             try:
@@ -141,11 +162,38 @@ class SickLMS(ThreadedStream):
             self._teardown_connection()
 
     def _setup_connection(self):
-        self.serial_ref = serial.Serial(
-            port=self.device_path,
-            baudrate=DEFAULT_SICK_LMS_SICK_BAUD,
-            timeout=DEFAULT_SICK_LMS_SICK_MESSAGE_TIMEOUT
-        )
+        if self.device_path is None:
+            self._auto_find_port()
+        try:
+            self.serial_ref = serial.Serial(
+                port=self.device_path,
+                baudrate=DEFAULT_SICK_LMS_SICK_BAUD,
+                timeout=DEFAULT_SICK_LMS_SICK_MESSAGE_TIMEOUT
+            )
+        except serial.SerialException as error:
+            status = self._auto_find_port()
+            if status:
+                raise status from error
+
+    def _auto_find_port(self):
+        ports = []
+        for port_no, description, address in serial.tools.list_ports.comports():
+            self.logger.debug("Discovered port: %s: '%s', '%s'" % (port_no, description, address))
+            if 'USB' in address:
+                ports.append((port_no, description, address))
+
+        if len(ports) == 0:
+            return SickIOException("No USB ports available...")
+
+        print("Select a discovered port:")
+        for index, (port_no, description, address) in enumerate(ports):
+            print("[%s] %s: '%s', '%s'" % (index, port_no, description, address))
+        selected_index = None
+        while selected_index is None:
+            try:
+                selected_index = int(input(">> "))
+            except ValueError:
+                print("Input is not an integer!")
 
     def _teardown_connection(self):
         if self._is_open():
@@ -163,6 +211,7 @@ class SickLMS(ThreadedStream):
         payload += Message.int_to_byte(sick_lms_baud_codes[baud], 1)
         self.send_message.payload = payload
 
+        self.logger.debug("Changing baud to: %s" % baud)
         self._send_message_and_get_reply(self.send_message.make_buffer())
         self._set_terminal_baud(baud)
         time.sleep(0.25)
@@ -174,63 +223,32 @@ class SickLMS(ThreadedStream):
         try:
             error_type_buffer, error_num_buffer = self._get_errors()
             if len(error_num_buffer) > 0 or len(error_num_buffer) > 0:
-                self.logger.debug("Encountered errors: %s, %s" % (error_type_buffer, error_num_buffer))
-        except (SickConfigException, SickTimeoutException, SickIOException):
-            self.logger.debug("Encountered errors when testing baud")
+                self.logger.error("Encountered errors: %s, %s" % (error_type_buffer, error_num_buffer))
+        except (SickConfigException, SickTimeoutException, SickIOException) as error:
+            self.logger.error("Encountered errors when testing baud: %s" % error)
             return False
 
         return True
 
-    def _get_errors(self):
-        payload = b'\x32'
-        self.send_message.payload = payload
+    # ----- user exposed setters -----
 
-        response = self._send_message_and_get_reply(self.send_message.make_buffer())
+    def set_range(self, depth):
+        self.logger.debug("Setting measuring parameters: %s" % depth)
+        if depth <= 8:
+            self.set_measuring_units(SICK_MEASURING_UNITS_MM)
+            self.set_measuring_mode(SICK_MS_MODE_8_OR_80_FA_FB_DAZZLE)
+        elif 8 < depth <= 16:
+            self.set_measuring_units(SICK_MEASURING_UNITS_MM)
+            self.set_measuring_mode(SICK_MS_MODE_16_FA_FB)
+        elif 16 < depth:
+            self.set_measuring_units(SICK_MEASURING_UNITS_CM)
+            self.set_measuring_mode(SICK_MS_MODE_32_FA)
+        else:
+            return
 
-        num_errors = int((len(response.payload) - 2) / 2)
+        self.update_config()
 
-        k = 1
-        error_type_buffer = []
-        error_num_buffer = []
-        for index in range(num_errors):
-            error_type_buffer.append(response.payload[k])
-            k += 1
-
-            error_num_buffer.append(response.payload[k])
-            k += 1
-
-        return error_type_buffer, error_num_buffer
-
-    def set_measuring_units(self, units: int = SICK_MEASURING_UNITS_MM):
-        if is_valid_measuring_units(units) and units != self.config.measuring_units:
-            self.config.measuring_units = units
-
-    def set_sensitivity(self, sensitivity=SICK_SENSITIVITY_STANDARD):
-        if not is_valid_sensitivity(sensitivity):
-            raise SickConfigException("Invalid sensitivity input: %s" % repr(sensitivity))
-
-        if sensitivity != self.config.peak_threshold:
-            self.config.peak_threshold = sensitivity
-
-    def set_measuring_mode(self, measuring_mode=SICK_MS_MODE_8_OR_80_FA_FB_DAZZLE):
-        if not is_valid_measuring_mode(measuring_mode):
-            raise SickConfigException("Undefined measuring mode: '%s'" % repr(measuring_mode))
-
-        if measuring_mode != self.config.measuring_mode:
-            self.config.measuring_mode = measuring_mode
-
-    def set_availability(self, availability_flag=SICK_FLAG_AVAILABILITY_DEFAULT):
-        if availability_flag > 7:
-            raise SickConfigException("Invalid availability: %s" % repr(availability_flag))
-
-        if availability_flag != self.config.availability_level:
-            # Maintain the higher level bits
-            self.config.availability_level &= 0xf8
-
-            # Set the new availability flags
-            self.config.availability_level |= availability_flag
-
-    def set_variant(self, scan_angle, scan_resolution):
+    def set_resolution(self, scan_angle, scan_resolution):
         if self.sick_type == SICK_LMS_TYPE_211_S14 or \
                         self.sick_type == SICK_LMS_TYPE_221_S14 or \
                         self.sick_type == SICK_LMS_TYPE_291_S14:
@@ -243,6 +261,7 @@ class SickLMS(ThreadedStream):
             raise SickConfigException("Undefined scan resolution: %s" % repr(scan_resolution))
 
         if self.operating_status.scan_angle != scan_angle or self.operating_status.scan_resolution != scan_resolution:
+            self.logger.debug("Setting variant. Angle: %s, resolution: %s" % (scan_angle, scan_resolution))
             payload = b'\x3b'
             payload += sick_lms_scan_angles[scan_angle]
             payload += sick_lms_scan_resolutions[scan_resolution]
@@ -262,6 +281,46 @@ class SickLMS(ThreadedStream):
             self.angles = np.arange(0, self.operating_status.scan_angle, self.operating_status.scan_resolution)
 
             self._switch_opmode(self.session_mode, self.session_mode_params)
+
+    def set_measuring_units(self, units: int = SICK_MEASURING_UNITS_MM):
+        if is_valid_measuring_units(units) and units != self.config.measuring_units:
+            self.logger.debug("Setting units: %s -> %s" % (self.config.measuring_units, units))
+            self.config.measuring_units = units
+            self.config_has_updated = True
+
+    def set_sensitivity(self, sensitivity=SICK_SENSITIVITY_STANDARD):
+        if not is_valid_sensitivity(sensitivity):
+            raise SickConfigException("Invalid sensitivity input: %s" % repr(sensitivity))
+
+        if sensitivity != self.config.peak_threshold:
+            self.logger.debug("Setting sensitivity: %s -> %s" % (self.config.peak_threshold, sensitivity))
+            self.config.peak_threshold = sensitivity
+            self.config_has_updated = True
+
+    def set_measuring_mode(self, measuring_mode=SICK_MS_MODE_8_OR_80_FA_FB_DAZZLE):
+        if not is_valid_measuring_mode(measuring_mode):
+            raise SickConfigException("Undefined measuring mode: '%s'" % repr(measuring_mode))
+
+        if measuring_mode != self.config.measuring_mode:
+            self.logger.debug("Setting measuring mode: %s -> %s" % (self.config.measuring_mode, measuring_mode))
+            self.config.measuring_mode = measuring_mode
+            self.config_has_updated = True
+
+    def set_availability(self, availability_flag=SICK_FLAG_AVAILABILITY_DEFAULT):
+        if availability_flag > 7:
+            raise SickConfigException("Invalid availability: %s" % repr(availability_flag))
+
+        if availability_flag != self.config.availability_level:
+            self.logger.debug("Setting availability: %s -> %s" % (self.config.availability_level, availability_flag))
+            # Maintain the higher level bits
+            self.config.availability_level &= 0xf8
+
+            # Set the new availability flags
+            self.config.availability_level |= availability_flag
+
+            self.config_has_updated = True
+
+    # ----- data getters -----
 
     def get_scan(self, reflect_values=False):
         self._set_opmode_monitor_stream()
@@ -323,8 +382,124 @@ class SickLMS(ThreadedStream):
 
         self.distances = np.array(self.current_scan.measurements[:self.current_scan.num_measurements])
 
+    # ----- internal getters -----
+    def _get_errors(self):
+        payload = b'\x32'
+        self.send_message.payload = payload
+
+        self.logger.debug("Getting errors")
+        response = self._send_message_and_get_reply(self.send_message.make_buffer())
+
+        num_errors = int((len(response.payload) - 2) / 2)
+
+        k = 1
+        error_type_buffer = b''
+        error_num_buffer = b''
+        for index in range(num_errors):
+            error_type_buffer += response.payload[k:k + 1]
+            k += 1
+
+            error_num_buffer += response.payload[k:k + 1]
+            k += 1
+
+        return error_type_buffer, error_num_buffer
+
+    def _get_status(self):
+        self.send_message.payload = b'\x31'
+        self.logger.debug("Getting status")
+
+        response = self._send_message_and_get_reply(self.send_message.make_buffer())
+
+        self.operating_status.parse_status(response)
+
+        self.logger.debug(
+            "Scan angle: %s, resolution: %s" % (
+                self.operating_status.scan_angle, self.operating_status.scan_resolution)
+        )
+
+        scan_angle_radians = math.radians(self.operating_status.scan_angle)
+        resolution_radians = math.radians(self.operating_status.scan_resolution * 0.01)
+
+        self.angles = np.arange(0, scan_angle_radians + resolution_radians, resolution_radians)
+
+    def _get_config(self):
+        self.send_message.payload = b'\x74'
+        self.logger.debug("Getting configuration")
+        response = self._send_message_and_get_reply(self.send_message.make_buffer())
+        self.config.parse_config_profile(response)
+
+    def _get_type(self):
+        self.send_message.payload = b'\x3a'
+        response = self._send_message_and_get_reply(self.send_message.make_buffer())
+
+        model_string = response.parse_string(1).split(";")
+
+        status = 0
+        for key, value in supported_models.items():
+            if type(key) == str:
+                model = key.split(";")
+                if model_string[0] == model[0] and model_string[1] == model[1]:
+                    self.sick_type = value
+                    status = 0
+                    break
+                elif model_string[0] == model[0] and model_string[1] != model[1]:
+                    status = 1
+                else:
+                    status = 2
+
+                self.sick_type = SICK_LMS_TYPE_UNKNOWN
+
+        if status == 1:
+            self.logger.debug("Device types match but software version is not supported")
+        elif status == 2:
+            self.logger.warning("LMS is of an unknown type: %s" % model_string)
+        else:
+            self.logger.debug("LMS is of type: %s" % model_string)
+
+    # ----- user exposed lms functionality -----
+    def update_config(self):
+        if self.config_has_updated:
+            self._set_opmode_installation()
+
+            telegram = self.config.build_message()
+            self.logger.debug("Setting new configuration")
+            response = self._send_message_and_get_reply(telegram.make_buffer())
+            if response.payload[1] != 0x01:
+                raise SickConfigException("Configuration failed!")
+            time.sleep(0.25)
+            self.logger.debug("Configuration set! Switching back to mode: %s" %
+                              sick_lms_operating_modes[self.session_mode])
+            self._get_status()
+
+            self._switch_opmode(self.session_mode, self.session_mode_params)
+
+            self.config_has_updated = False
+        else:
+            self.logger.debug("Current configuration unchanged!")
+
+    def reset(self):
+        self.send_message.payload = b'\x10'
+        self._timeout = 60
+        self.logger.debug("Resetting...")
+        self._send_message_and_get_reply(self.send_message.make_buffer(), reply_code=0x91)
+        self._set_terminal_baud(DEFAULT_SICK_LMS_SICK_BAUD)
+
+        self.logger.debug("Back online!")
+
+        self._timeout = 30
+        response = self._recv_message()
+
+        if response.code != 0x90:
+            self.logger.warning("Unexpected reply! (assuming device has been reset)")
+
+        self.logger.debug("Starting back up")
+
+        self._startup_lms()
+
+    # ----- internal setters -----
     def _set_opmode_installation(self):
         self._switch_opmode(SICK_OP_MODE_INSTALLATION, DEFAULT_SICK_LMS_SICK_PASSWORD)
+        self._timeout = DEFAULT_SICK_LMS_SICK_CONFIG_MESSAGE_TIMEOUT
         self.logger.debug("Successfully entered installation mode")
 
     def _set_opmode_diagnostic(self):
@@ -349,7 +524,9 @@ class SickLMS(ThreadedStream):
             self.mean_sample_size = sample_size
 
             mode_params = Message.int_to_byte(sample_size, 1)
+
             self._switch_opmode(SICK_OP_MODE_MONITOR_STREAM_VALUES_FROM_PARTIAL_SCAN, mode_params)
+            self._timeout = DEFAULT_SICK_LMS_SICK_MEAN_VALUES_MESSAGE_TIMEOUT
 
     def _set_opmode_monitor_stream_subrange(self, start_index, stop_index):
         if self.subrange_start_index != start_index or self.subrange_stop_index != stop_index:
@@ -385,10 +562,13 @@ class SickLMS(ThreadedStream):
             mode_params += Message.int_to_byte(stop_index, 2)
 
             self._switch_opmode(SICK_OP_MODE_MONITOR_STREAM_MEAN_VALUES_SUBRANGE, mode_params)
+            self._timeout = DEFAULT_SICK_LMS_SICK_MEAN_VALUES_MESSAGE_TIMEOUT
 
     def _switch_opmode(self, mode: int, mode_params=None):
         if self.operating_status.operating_mode == mode:
             return
+
+        self._timeout = DEFAULT_SICK_LMS_SICK_SWITCH_MODE_TIMEOUT
 
         payload_buffer = b'\x20'
         payload_buffer += Message.int_to_byte(mode, 1)
@@ -397,79 +577,36 @@ class SickLMS(ThreadedStream):
             payload_buffer += mode_params
         message = Message(payload_buffer)
 
+        self.logger.debug("Swiching to operating mode: %s" % sick_lms_operating_modes[mode])
         response = self._send_message_and_get_reply(message.make_buffer())
         if len(response.payload) < 2 or response.payload[1] != 0x00:
             raise SickConfigException("configuration request failed! Here's the response: %s" % response)
 
         self.operating_status.operating_mode = mode
 
-    def _get_status(self):
-        self.send_message.payload = b'\x31'
-        response = self._send_message_and_get_reply(self.send_message.make_buffer())
-        self.operating_status.parse_status(response)
-
-        scan_angle_radians = math.radians(self.operating_status.scan_angle)
-        resolution_radians = math.radians(self.operating_status.scan_resolution * 0.01)
-
-        self.angles = np.arange(0, scan_angle_radians + resolution_radians, resolution_radians)
-
-    def _get_config(self):
-        self.send_message.payload = b'\x74'
-        response = self._send_message_and_get_reply(self.send_message.make_buffer())
-        self.config.parse_config_profile(response)
-
-    def update_config(self):
-        self._set_opmode_installation()
-
-        telegram = self.config.build_message()
-        self.logger.debug("Setting new configuration")
-        response = self._send_message_and_get_reply(telegram.make_buffer())
-        if response.payload[1] != 0x01:
-            raise SickConfigException("Configuration failed!")
-
-        self._get_status()
-
-        self._switch_opmode(self.session_mode, self.session_mode_params)
-
-    def _get_type(self):
-        self.send_message.payload = b'\x3a'
-        response = self._send_message_and_get_reply(self.send_message.make_buffer())
-
-        model_string = response.parse_string(1)
-
-        if model_string in supported_models:
-            self.sick_type = supported_models[model_string]
-        else:
-            self.logger.debug("LMS is of an unknown type: %s" % model_string)
-            self.sick_type = SICK_LMS_TYPE_UNKNOWN
-
-    def reset(self):
-        self.send_message.payload = b'\x10'
-        self._send_message_and_get_reply(self.send_message.make_buffer(), 60, reply_code=0x91)
-        self._set_terminal_baud(DEFAULT_SICK_LMS_SICK_BAUD)
-
-        response = self._recv_message(timeout=30)
-
-        if response.code != 0x90:
-            self.logger.warning("Unexpected reply! (assuming device has been reset)")
-
-        self.start()
+        self._timeout = DEFAULT_SICK_LMS_SICK_MESSAGE_TIMEOUT
 
     def _set_terminal_baud(self, baud):
         self.serial_ref.baudrate = baud
 
-    def _send_message_and_get_reply(self, message: bytes, timeout=DEFAULT_SICK_LMS_SICK_MESSAGE_TIMEOUT,
+    # ----- telegram transfer and protocol methods -----
+
+    def _send_message_and_get_reply(self, message: bytes,
                                     num_tries=DEFAULT_SICK_LMS_NUM_TRIES, reply_code=None) -> Message:
         self.logger.debug("writing: %s" % message)
         self.serial_ref.write(message)
 
+        # try:
+        #     self._check_for_ack()
+        # except SickIOException as error:
+        #     raise SickConfigException("Command not received correctly!") from error
         if not self._check_for_ack():
             raise SickConfigException("Command not received correctly!")
 
         response = None
         for _ in range(num_tries):
             try:
-                response = self._recv_message(timeout)
+                response = self._recv_message()
                 break
             except SickTimeoutException:
                 pass
@@ -482,10 +619,7 @@ class SickLMS(ThreadedStream):
 
         return response
 
-    def _recv_message(self, timeout=DEFAULT_SICK_LMS_SICK_MESSAGE_TIMEOUT) -> Message:
-        if timeout != self.serial_ref.timeout:
-            self.serial_ref.timeout = timeout
-
+    def _recv_message(self) -> Message:
         self.recv_message.reset()
         self.recording_buffer = ""
 
@@ -496,14 +630,28 @@ class SickLMS(ThreadedStream):
                 checksum = self._read_16()
 
                 self.recv_message.make_message(payload, checksum)
-                # self.logger.debug("[buffer] <%s>" % self.recording_buffer)
-
-        if timeout != DEFAULT_SICK_LMS_SICK_MESSAGE_TIMEOUT:
-            self.serial_ref.timeout = DEFAULT_SICK_LMS_SICK_MESSAGE_TIMEOUT
+                self.logger.debug("[buffer] <%s>" % self.recording_buffer)
 
         return self.recv_message
 
     def _check_for_ack(self):
+        # temp_buffer = b''
+        # ack_set = False
+        # while True:
+        #     ack = self._read_with_timeout(1)
+        #
+        #     if len(ack) > 0:
+        #         if ack == b'\x06':
+        #             if len(temp_buffer) > 0:
+        #                 self.logger.debug("Invalid values received (neither ACK, nor NACK): %s" % temp_buffer)
+        #             return True
+        #
+        #         elif ack == b'\x15':
+        #             raise SickIOException("Invalid values received (neither ACK, nor NACK): %s" % temp_buffer)
+        #         else:
+        #             temp_buffer += ack
+        #             if len(temp_buffer) > 0xff:
+        #                 raise SickIOException("Many invalid values received (neither ACK, nor NACK): %s" % temp_buffer)
         ack = b'\x00'
         while ack == b'\x00':
             ack = self.serial_ref.read(1)
@@ -515,11 +663,26 @@ class SickLMS(ThreadedStream):
 
         raise SickIOException("Invalid value received (neither ACK, nor NACK): " + repr(ack))
 
+    # ----- pyserial interfaces -----
+
+    def _read_with_timeout(self, n):
+        t0 = time.time()
+        response = b''
+        while time.time() - t0 < self._timeout:
+            response += self.serial_ref.read(n)
+            if len(response) == n:
+                break
+        if time.time() - t0 > self._timeout:
+            self.logger.error("Serial read timed out!")
+        # self.logger.debug("read(%s): %s" % (n, response))
+
+        return response
+
     def _read(self, num_bytes) -> bytes:
         with self.serial_lock:
             result = b''
             if self._is_open():
-                result = self.serial_ref.read(num_bytes)
+                result = self._read_with_timeout(num_bytes)
             else:
                 raise SickIOException("Serial not open for reading!")
 
@@ -539,6 +702,8 @@ class SickLMS(ThreadedStream):
 
         return (upper_byte << 8) + lower_byte
 
+    # ----- device type checks -----
+
     def _is_lms200(self):
         return supported_models[self.sick_type][3:6] == "200"
 
@@ -557,9 +722,7 @@ class SickLMS(ThreadedStream):
     def _is_unknown(self):
         return self.sick_type == SICK_LMS_TYPE_UNKNOWN
 
-    def _parse_point_cloud(self):
-        self.point_cloud = np.vstack(
-            [self.distances * np.cos(self.angles), self.distances * np.sin(self.angles)]).T
+    # ----- status string methods -----
 
     def status_string(self):
         return "'%s' status:\n" \

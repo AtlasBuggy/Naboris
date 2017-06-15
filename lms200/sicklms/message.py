@@ -4,8 +4,8 @@ from sicklms.constants import *
 class Message:
     def __init__(self, payload=b'', checksum=0, buffer=b''):
         self.payload = payload
-        self.checksum: int = checksum
-        self.buffer: bytes = buffer
+        self.checksum = checksum
+        self.buffer = buffer
 
     def append_byte(self, input_byte):
         self.buffer += input_byte

@@ -2,7 +2,7 @@ import logging
 from mylms import MyLMS
 from atlasbuggy.robot import Robot
 
-robot = Robot(write=True, log_level=logging.DEBUG)
+robot = Robot(write=True, log_level=logging.INFO)
 
 lms200 = MyLMS(True)
 

@@ -253,56 +253,64 @@ class LmsConfig:
         self.dazzling_multiple_evaluation = response.parse_int(32, 2)
 
     def build_message(self) -> Message:
-        payload = b'\x77'
-        payload += Message.int_to_byte(self.blanking, 2)
-        if self.stop_threshold not in sick_lms_peak_thresholds:
-            raise SickConfigException("Invalid peak threshold: %s" % self.stop_threshold)
-        payload += Message.int_to_byte(self.stop_threshold, 1)
+        payload = b'\x77\x00\x00\x70\x00\x00\x00\x01\x00\x00\x02\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' \
+                  b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00'
 
-        payload += Message.int_to_byte(self.peak_threshold, 1)
+        payload = payload[0:6] + \
+                  Message.int_to_byte(self.measuring_mode, 1) + \
+                  Message.int_to_byte(self.measuring_units, 1) + \
+                  payload[8:]
 
-        if self.availability_level not in sick_lms_flag_availabilities:
-            raise SickConfigException("Invalid availability: %s" % self.availability_level)
-        payload += Message.int_to_byte(self.availability_level, 1)
-
-        if self.measuring_mode not in sick_lms_measuring_modes:
-            raise SickConfigException("Invalid measuring mode: %s" % self.measuring_mode)
-        payload += Message.int_to_byte(self.measuring_mode, 1)
-
-        if self.measuring_units not in sick_lms_measuring_units:
-            raise SickConfigException("Invalid measuring mode: %s" % self.measuring_units)
-        payload += Message.int_to_byte(self.measuring_units, 1)
-
-        payload += Message.int_to_byte(self.temporary_field, 1)
-        payload += Message.int_to_byte(self.subtractive_fields, 1)
-
-        payload += Message.int_to_byte(self.multiple_evaluation, 1)
-        payload += Message.int_to_byte(self.sick_restart, 1)
-        payload += Message.int_to_byte(self.restart_time, 1)
-        payload += Message.int_to_byte(self.multiple_evaluation_suppressed_objects, 1)
-
-        payload += Message.int_to_byte(self.contour_a_reference, 1)
-        payload += Message.int_to_byte(self.contour_a_positive_tolerance_band, 1)
-        payload += Message.int_to_byte(self.contour_a_negative_tolerance_band, 1)
-        payload += Message.int_to_byte(self.contour_a_start_angle, 1)
-        payload += Message.int_to_byte(self.contour_a_stop_angle, 1)
-
-        payload += Message.int_to_byte(self.contour_b_reference, 1)
-        payload += Message.int_to_byte(self.contour_b_positive_tolerance_band, 1)
-        payload += Message.int_to_byte(self.contour_b_negative_tolerance_band, 1)
-        payload += Message.int_to_byte(self.contour_b_start_angle, 1)
-        payload += Message.int_to_byte(self.contour_b_stop_angle, 1)
-
-        payload += Message.int_to_byte(self.contour_c_reference, 1)
-        payload += Message.int_to_byte(self.contour_c_positive_tolerance_band, 1)
-        payload += Message.int_to_byte(self.contour_c_negative_tolerance_band, 1)
-        payload += Message.int_to_byte(self.contour_c_start_angle, 1)
-        payload += Message.int_to_byte(self.contour_c_stop_angle, 1)
-
-        payload += Message.int_to_byte(self.pixel_oriented_evaluation, 1)
-        payload += Message.int_to_byte(self.single_measured_value_evaluation_mode, 1)
-        payload += Message.int_to_byte(self.fields_b_c_restart_times, 2)
-        payload += Message.int_to_byte(self.dazzling_multiple_evaluation, 2)
+        # payload = b'\x77'
+        # payload += Message.int_to_byte(self.blanking, 2)
+        # if self.stop_threshold not in sick_lms_peak_thresholds:
+        #     raise SickConfigException("Invalid peak threshold: %s" % self.stop_threshold)
+        # payload += Message.int_to_byte(self.stop_threshold, 1)
+        #
+        # payload += Message.int_to_byte(self.peak_threshold, 1)
+        #
+        # if self.availability_level not in sick_lms_flag_availabilities:
+        #     raise SickConfigException("Invalid availability: %s" % self.availability_level)
+        # payload += Message.int_to_byte(self.availability_level, 1)
+        #
+        # if self.measuring_mode not in sick_lms_measuring_modes:
+        #     raise SickConfigException("Invalid measuring mode: %s" % self.measuring_mode)
+        # payload += Message.int_to_byte(self.measuring_mode, 1)
+        #
+        # if self.measuring_units not in sick_lms_measuring_units:
+        #     raise SickConfigException("Invalid measuring mode: %s" % self.measuring_units)
+        # payload += Message.int_to_byte(self.measuring_units, 1)
+        #
+        # payload += Message.int_to_byte(self.temporary_field, 1)
+        # payload += Message.int_to_byte(self.subtractive_fields, 1)
+        #
+        # payload += Message.int_to_byte(self.multiple_evaluation, 1)
+        # payload += Message.int_to_byte(self.sick_restart, 1)
+        # payload += Message.int_to_byte(self.restart_time, 1)
+        # payload += Message.int_to_byte(self.multiple_evaluation_suppressed_objects, 1)
+        #
+        # payload += Message.int_to_byte(self.contour_a_reference, 1)
+        # payload += Message.int_to_byte(self.contour_a_positive_tolerance_band, 1)
+        # payload += Message.int_to_byte(self.contour_a_negative_tolerance_band, 1)
+        # payload += Message.int_to_byte(self.contour_a_start_angle, 1)
+        # payload += Message.int_to_byte(self.contour_a_stop_angle, 1)
+        #
+        # payload += Message.int_to_byte(self.contour_b_reference, 1)
+        # payload += Message.int_to_byte(self.contour_b_positive_tolerance_band, 1)
+        # payload += Message.int_to_byte(self.contour_b_negative_tolerance_band, 1)
+        # payload += Message.int_to_byte(self.contour_b_start_angle, 1)
+        # payload += Message.int_to_byte(self.contour_b_stop_angle, 1)
+        #
+        # payload += Message.int_to_byte(self.contour_c_reference, 1)
+        # payload += Message.int_to_byte(self.contour_c_positive_tolerance_band, 1)
+        # payload += Message.int_to_byte(self.contour_c_negative_tolerance_band, 1)
+        # payload += Message.int_to_byte(self.contour_c_start_angle, 1)
+        # payload += Message.int_to_byte(self.contour_c_stop_angle, 1)
+        #
+        # payload += Message.int_to_byte(self.pixel_oriented_evaluation, 1)
+        # payload += Message.int_to_byte(self.single_measured_value_evaluation_mode, 1)
+        # payload += Message.int_to_byte(self.fields_b_c_restart_times, 2)
+        # payload += Message.int_to_byte(self.dazzling_multiple_evaluation, 2)
 
         return Message(payload)
 
@@ -395,7 +403,7 @@ class ScanProfileB0(ScanProfile):
     def parse_scan_profile(self, payload: bytes, measuring_mode):
         self.num_measurements = payload[0] + 256 * (payload[1] & 0x03)
         self.partial_scan_index = (payload[1] & 0x18) >> 3
-        
+
         self._extract_measurement_values(payload[2:], measuring_mode)
         data_offset = 2 + 2 * self.num_measurements
 

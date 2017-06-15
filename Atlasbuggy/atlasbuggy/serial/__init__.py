@@ -167,12 +167,10 @@ class SerialStream(AsyncStream):
         self.ports = used_ports
 
     def list_ports(self):
-        ports = list(serial.tools.list_ports.comports())
-
         port_addresses = []
 
         # return the port if 'USB' is in the description
-        for port_no, description, address in ports:
+        for port_no, description, address in serial.tools.list_ports.comports():
             if 'USB' in address:
                 port_addresses.append(port_no)
         return port_addresses

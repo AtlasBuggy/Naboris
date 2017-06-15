@@ -230,9 +230,19 @@ class ThreadedStream(DataStream):
         self.logger.debug("thread is now daemon")
 
     def _run(self):
-        self.run()
+        try:
+            self.run()
+        except BaseException:
+            self._threaded_shutdown()
+            self.logger.debug("catching exception in threaded loop")
+            self.exit()
+            raise
+
         self.logger.debug("run finished")
         self.exit()
+
+    def _threaded_shutdown(self):
+        pass
 
     def _init(self):
         """
