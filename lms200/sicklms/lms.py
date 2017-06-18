@@ -97,7 +97,7 @@ class SickLMS(ThreadedStream):
     def initialized(self):
         pass
 
-    def _threaded_shutdown(self):
+    def threaded_stop(self):
         # TODO: Decide what to do about this method for other DataStreams
         try:
             self._teardown()
@@ -624,12 +624,12 @@ class SickLMS(ThreadedStream):
             raise SickConfigException("Command not received correctly!")
 
         response = None
-        for _ in range(num_tries):
+        for attempt in range(num_tries):
             try:
                 response = self._recv_message()
                 break
             except SickTimeoutException:
-                pass
+                self.logger.debug("Recevied timed out. Attempt %s of %s" % (attempt + 1, num_tries))
         if response is None:
             raise SickTimeoutException("Failed to get reply after %s attempts" % num_tries)
 
