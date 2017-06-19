@@ -21,8 +21,8 @@ class Simulator(LogParser):
 
 robot = Robot()
 
-lms200 = MyLMS()
-simulator = Simulator("logs/2017_Jun_14/23;15;34.log.xz")
+lms200 = MyLMS(make_image=False)
+simulator = Simulator("logs/2017_Jun_15/11;00;13.log.xz")
 
 simulator.give(lms_parser=lms200)
 

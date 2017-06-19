@@ -1,16 +1,18 @@
-import time
-import math
-import numpy as np
-import matplotlib.cm as colormap
 import logging
-from atlasbuggy.plotters.plot import RobotPlot
+import math
+import time
+
+import matplotlib.cm as colormap
+import numpy as np
+
 from atlasbuggy.plotters.liveplotter import LivePlotter
+from atlasbuggy.plotters.plot import RobotPlot
 from sicklms.lms import SickLMS
 from slam import SLAM
 
 
 class MyLMS(SickLMS):
-    def __init__(self, enabled=True, is_live=True):
+    def __init__(self, enabled=True, is_live=True, make_image=True):
         self.map_size_pixels = 1600
         self.map_size_meters = 50
 
@@ -36,15 +38,16 @@ class MyLMS(SickLMS):
             self.angles = np.arange(0, math.radians(self.detection_angle_degrees + self.scan_resolution),
                                     math.radians(self.scan_resolution))
         self.slam = None
+        self.make_image = make_image
 
         self.prev_t = 0.0
+
+    def start_up_commands(self):
+        self.set_range(16)
 
     def initialized(self):
         self.slam = SLAM(self.map_size_pixels, self.map_size_meters, self.scan_size, 5, self.detection_angle_degrees,
                          self.scan_resolution)
-
-    def start_up_commands(self):
-        self.set_range(16)
 
     def point_cloud_received(self, point_cloud):
         self.scan_plot.update(point_cloud[:, 0], point_cloud[:, 1])
@@ -65,7 +68,7 @@ class MyLMS(SickLMS):
         else:
             return None
 
-    def receive_log(self, message, line_info):
+    def receive_log(self, log_level, message, line_info):
         if self.start_time is None:
             self.start_time = line_info["timestamp"]
         else:
@@ -78,5 +81,5 @@ class MyLMS(SickLMS):
             self.point_cloud_received(self.point_cloud)
 
     def stop(self):
-        if self.slam is not None:
+        if self.slam is not None and self.make_image:
             self.slam.make_image(self._log_info["file_name"] + " map")

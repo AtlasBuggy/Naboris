@@ -70,15 +70,18 @@ class SickLMS(ThreadedStream):
     def start_up_commands(self):
         pass
 
+    def initialized(self):
+        pass
+
     def run(self):
         # note to self: never have threads trying to access the same serial reference.
         # Keep all serial activities inside or outside the thread. Not both
         self._startup_lms()
         self.start_up_commands()
+        self.initialized()
+
         print(self.status_string())
         self.logger.debug(self.status_string(one_line=True))
-
-        self.initialized()
 
         while self.running():
             t0 = time.time()
@@ -92,12 +95,8 @@ class SickLMS(ThreadedStream):
             else:
                 time.sleep(0.05)
         self.logger.debug("Loop exited")
-        self._threaded_shutdown()
 
-    def initialized(self):
-        pass
-
-    def threaded_stop(self):
+    def stop(self):
         # TODO: Decide what to do about this method for other DataStreams
         try:
             self._teardown()
