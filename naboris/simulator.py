@@ -23,7 +23,7 @@ robot = Robot()
 
 simulator = Simulator("21;25;23.log.xz", "logs/2017_Jun_10")
 naboris = Naboris(plot=True)
-plotter = LivePlotter(1, enabled=naboris.should_plot, exit_all=True)
+plotter = LivePlotter(1, enabled=naboris.should_plot)
 capture = VideoPlayer("21_25_23.mp4", "videos/naboris/2017_Jun_10")
 viewer = CameraViewer()
 pipeline = NaborisPipeline()

@@ -68,7 +68,7 @@ class Naboris(SerialStream):
                     led.append(math.cos(-index / num_leds * 2 * math.pi), math.sin(-index / num_leds * 2 * math.pi))
                 self.plotter.update_collection(self.led_plot)
 
-    def received_log(self, timestamp, whoiam, packet, packet_type):
+    def received_log_message(self, timestamp, whoiam, packet, packet_type):
         if whoiam == self.actuators.whoiam:
             if packet == "h":
                 print("%0.4fs:" % self.dt(), "stop")

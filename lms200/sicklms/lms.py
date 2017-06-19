@@ -97,7 +97,6 @@ class SickLMS(ThreadedStream):
         self.logger.debug("Loop exited")
 
     def stop(self):
-        # TODO: Decide what to do about this method for other DataStreams
         try:
             self._teardown()
         except SickIOException:

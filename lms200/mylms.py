@@ -19,7 +19,7 @@ class MyLMS(SickLMS):
         self.scan_plot = RobotPlot("lms200", marker='.', linestyle='')
         self.slam_plot = RobotPlot("slam")
 
-        self.plotter = LivePlotter(2, self.scan_plot, self.slam_plot, enabled=True, exit_all=True,
+        self.plotter = LivePlotter(2, self.scan_plot, self.slam_plot, enabled=True,
                                    default_resize_behavior=False)
 
         self.plotter.get_axis(self.slam_plot).set_aspect("auto")
@@ -80,6 +80,6 @@ class MyLMS(SickLMS):
                 [self.distances * np.cos(self.angles), self.distances * np.sin(self.angles)]).T
             self.point_cloud_received(self.point_cloud)
 
-    def stop(self):
+    def stopped(self):
         if self.slam is not None and self.make_image:
             self.slam.make_image(self._log_info["file_name"] + " map")

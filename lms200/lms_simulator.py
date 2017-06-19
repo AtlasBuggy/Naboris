@@ -19,9 +19,12 @@ class Simulator(LogParser):
     def stop(self):
         self.lms_parser.stop()
 
+    def stopped(self):
+        self.lms_parser.stopped()
+
 robot = Robot()
 
-lms200 = MyLMS(make_image=False)
+lms200 = MyLMS(make_image=True)
 simulator = Simulator("logs/2017_Jun_15/11;00;13.log.xz")
 
 simulator.give(lms_parser=lms200)
