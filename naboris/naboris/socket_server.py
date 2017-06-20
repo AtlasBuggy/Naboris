@@ -18,5 +18,6 @@ class NaborisSocketServer(SocketServer):
 
     async def update(self):
         for client in self.client_writers.values():
-            self.write(client, self.camera.bytes_frame)
-            await asyncio.sleep(1 / self.camera.fps)
+            if self.camera.bytes_frame is not None:
+                self.write(client, self.camera.get_bytes_frame())
+        await asyncio.sleep(1 / self.camera.fps)
