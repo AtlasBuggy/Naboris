@@ -40,6 +40,6 @@ recorder.give(capture=camera)
 pipeline.give(actuators=naboris.actuators, capture=camera)
 cmdline.give(naboris=naboris)
 website.give(actuators=naboris.actuators, camera=camera, pipeline=pipeline, cmdline=cmdline)
-socket.give(cmdline=cmdline)
+socket.give(cmdline=cmdline, camera=camera)
 
 robot.run(camera, naboris, pipeline, cmdline, website, socket)

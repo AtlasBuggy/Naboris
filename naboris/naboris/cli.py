@@ -98,7 +98,7 @@ class NaborisCLI(CommandLine):
         self.actuators.ask_battery()
 
     def my_exit(self, params):
-        self.exit_all()
+        self.exit()
 
     def my_stop(self, params):
         self.actuators.stop()
