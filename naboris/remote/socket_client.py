@@ -9,9 +9,6 @@ class NaborisSocketClient(SocketClient):
     def received(self, data):
         self.logger.debug(data)
 
-    def close(self):
-        self.exit_all()
-
 
 class CLI(CommandLine):
     def __init__(self):

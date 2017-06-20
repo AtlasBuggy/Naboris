@@ -2,7 +2,7 @@ from remote.socket_client import NaborisSocketClient, CLI
 from remote.logitech import Logitech
 from atlasbuggy.robot import Robot
 
-robot = Robot()
+robot = Robot(log_level=10)
 
 socket = NaborisSocketClient()
 cli = CLI()

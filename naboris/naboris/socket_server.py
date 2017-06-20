@@ -13,7 +13,7 @@ class NaborisSocketServer(SocketServer):
         self.cmdline = self.streams["cmdline"]
         self.camera = self.streams["camera"]
 
-    def received(self, writer, data):
+    def received(self, writer, name, data):
         self.cmdline.handle_input(data)
 
     async def update(self):
