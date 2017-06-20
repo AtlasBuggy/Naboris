@@ -6,6 +6,9 @@ class NaborisSocketClient(SocketClient):
     def __init__(self, enabled=True):
         super(NaborisSocketClient, self).__init__("naboris cli", "naboris", enabled=enabled)
 
+    async def read(self):
+        await self.reader.read(960 * 540)
+
     def received(self, data):
         self.logger.debug(data)
 
