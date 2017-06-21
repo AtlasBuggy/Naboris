@@ -52,7 +52,7 @@ pipeline = NaborisPipeline()
 
 simulator.give(naboris=naboris)
 naboris.give(plotter=plotter)
-viewer.give(video=capture, pipeline=pipeline)
+viewer.give(video_player=capture, pipeline=pipeline)
 pipeline.give(capture=capture)
 
 robot.run(simulator, plotter, viewer, capture, pipeline)

@@ -17,10 +17,12 @@ class NaborisSocketServer(SocketServer):
         self.cmdline.handle_input(data)
 
     async def update(self):
-        for client in self.client_writers.values():
+        if len(self.client_writers) > 0:
             if self.camera.frame is not None:
                 bytes_frame = self.camera.get_bytes_frame()
-                length = len(bytes_frame).to_bytes(4, byteorder='big')
-                self.write(client, b"\x54" + length, append_newline=False)
-                self.write(client, bytes_frame, append_newline=False)
+                length = len(bytes_frame).to_bytes(4, 'big')
+                preamble = b'\x54'
+                message = preamble + length + bytes_frame
+                self.write_all(message, append_newline=False)
+                self.logger.debug(length)
         await asyncio.sleep(1 / self.camera.fps)
