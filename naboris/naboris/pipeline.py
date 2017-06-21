@@ -44,7 +44,6 @@ class NaborisPipeline(CvPipeline):
         # -- room as a box --
         # use line segments to reconstruct room
         #
-
         return self.over_segment(frame)
         # return frame
 
@@ -53,7 +52,7 @@ class NaborisPipeline(CvPipeline):
         segments = slic(erosion, n_segments=self.num_segments, sigma=5)
 
         if self.generate_database:
-            file_name = "%s-x.png" % self.capture.current_frame
+            file_name = "%s-x.png" % self.capture.current_pos()
             full_path = os.path.join(self.database_dir.directory, file_name)
             cv2.imwrite(full_path, frame)
 
