@@ -24,5 +24,4 @@ class NaborisSocketServer(SocketServer):
                 preamble = b'\x54'
                 message = preamble + length + bytes_frame
                 self.write_all(message, append_newline=False)
-                self.logger.debug(length)
         await asyncio.sleep(1 / self.camera.fps)
