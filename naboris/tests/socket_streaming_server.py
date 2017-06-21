@@ -1,9 +1,10 @@
-import os
 import asyncio
-from atlasbuggy.cameras.cvcamera.cvcameraviewer import CameraViewerWithTrackbar
+import os
+
 from atlasbuggy.cameras.videoplayer import VideoPlayer
-from atlasbuggy.website.socket import SocketServer
+from atlasbuggy.cameras.viewer.trackbar import CameraViewerWithTrackbar
 from atlasbuggy.robot import Robot
+from atlasbuggy.website.socket import SocketServer
 
 os.chdir("..")
 

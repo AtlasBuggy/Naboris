@@ -1,14 +1,14 @@
-from atlasbuggy.cameras.cameraviewer import CameraViewer
-from remote.socket_client import NaborisSocketClient, CLI
-from remote.logitech import Logitech
+from atlasbuggy.cameras.viewer import CameraViewer
 from atlasbuggy.robot import Robot
+from remote.logitech import Logitech
+from remote.socket_client import CLI, NaborisSocketClient
 
 
 class MyCameraViewer(CameraViewer):
     def __init__(self):
         super(MyCameraViewer, self).__init__()
         self.socket = None
-        self.delay = 0.05
+        self.delay = 0.03
 
     def take(self):
         self.socket = self.streams["socket"]
@@ -17,11 +17,11 @@ class MyCameraViewer(CameraViewer):
         return self.socket.frame
 
 
-robot = Robot(log_level=10)
+robot = Robot()
 
 socket = NaborisSocketClient()
 cli = CLI()
-logitech = Logitech()
+logitech = Logitech(enabled=True)
 viewer = MyCameraViewer()
 
 cli.give(socket=socket)

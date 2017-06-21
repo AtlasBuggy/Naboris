@@ -1,7 +1,7 @@
 import asyncio
 
-from atlasbuggy.cameras.cvcamera.cvcameraviewer import CameraViewerWithTrackbar
 from atlasbuggy.cameras.videoplayer import VideoPlayer
+from atlasbuggy.cameras.viewer.trackbar import CameraViewerWithTrackbar
 from atlasbuggy.logparser import LogParser
 from atlasbuggy.plotters.liveplotter import LivePlotter
 from atlasbuggy.robot import Robot

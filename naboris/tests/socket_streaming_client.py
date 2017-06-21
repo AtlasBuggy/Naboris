@@ -1,8 +1,9 @@
 import cv2
 import numpy as np
-from atlasbuggy.cameras.cameraviewer import CameraViewer
-from atlasbuggy.website.socket import SocketClient
+
+from atlasbuggy.cameras.viewer import CameraViewer
 from atlasbuggy.robot import Robot
+from atlasbuggy.website.socket import SocketClient
 
 
 class MyCameraViewer(CameraViewer):

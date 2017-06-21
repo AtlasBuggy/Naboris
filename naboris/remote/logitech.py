@@ -4,12 +4,12 @@ from atlasbuggy.pygamestream.pygame_joystick import BuggyJoystick
 
 
 class Logitech(BuggyJoystick):
-    def __init__(self):
+    def __init__(self, enabled=True, log_level=None):
         super(Logitech, self).__init__(
             ['left x', 'left y', 'right x', 'right y'],
             [0.2, 0.2, 0.2, -0.2],
             ['X', 'A', 'B', 'Y', 'LB', 'RB', 'LT', 'RT', 'back', 'left stick',
-             'left stick', 'right stick'],
+             'left stick', 'right stick'], enabled=enabled, log_level=log_level
         )
         self.light_toggle = False
         self.socket = None
