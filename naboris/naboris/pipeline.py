@@ -8,24 +8,12 @@ from atlasbuggy.cameras.cvpipeline import CvPipeline
 
 
 class NaborisPipeline(CvPipeline):
-    def __init__(self, enabled=True, log_level=None, generate_database=False):
-        super(NaborisPipeline, self).__init__(enabled, log_level, generate_bytes=True)
+    def __init__(self, enabled=True, log_level=None):
+        super(NaborisPipeline, self).__init__(enabled, log_level, post_bytes=True)
         self.actuators = None
         self.autonomous_mode = False
 
-        # self.orb = cv2.ORB_create()
-        self.num_segments = 50
-        self.kernel = np.ones((5, 5), np.uint8)
-        self.generate_database = generate_database
-
-        # directory = BaseFile.format_path_as_time("", None, "", "%Y_%b_%d %H;%M;%S", )[1]
-        # self.database_dir = BaseFile("", directory, "", "", False, self.generate_bytes, False, False, False)
-        # if self.generate_database:
-        #     self.database_dir.make_dir()
-
-    def take(self):
-        self.capture = self.streams["capture"]
-        # self.actuators = self.streams["actuators"]
+        self.orb = cv2.ORB_create()
 
     def pipeline(self, frame):
         # over segment
@@ -43,61 +31,38 @@ class NaborisPipeline(CvPipeline):
 
         # -- room as a box --
         # use line segments to reconstruct room
-        #
-        return self.over_segment(frame)
-        # return frame
 
-    def over_segment(self, frame):
-        erosion = cv2.erode(frame, self.kernel, iterations=2)
-        segments = slic(erosion, n_segments=self.num_segments, sigma=5)
+        # return self.compute_orb(frame)
 
-        if self.generate_database:
-            file_name = "%s-x.png" % self.capture.current_pos()
-            full_path = os.path.join(self.database_dir.directory, file_name)
-            cv2.imwrite(full_path, frame)
+        return self.hough_detector(frame)
 
-            for (i, seg_value) in enumerate(np.unique(segments)):
-                mask = np.zeros(frame.shape[:2], dtype=np.uint8)
-                mask[segments == seg_value] = 255
-
-                alpha_channel = np.ones(mask.shape, dtype=np.uint8)
-                alpha_channel = cv2.bitwise_and(alpha_channel, alpha_channel, mask=mask) * 255
-
-                b_channel, g_channel, r_channel = cv2.split(frame)
-                frame_rgba = cv2.merge((b_channel, g_channel, r_channel, alpha_channel))
-
-                file_name = "%s-%s.png" % (self.capture.current_frame, i)
-                full_path = os.path.join(self.database_dir.directory, file_name)
-                cv2.imwrite(full_path, frame_rgba)
-
-        return mark_boundaries(frame, segments)
-
-    def orb(self, frame):
+    def compute_orb(self, frame):
         kp = self.orb.detect(frame, None)
         kp, des = self.orb.compute(frame, kp)
         return cv2.drawKeypoints(frame, kp, None, color=(128, 255, 0), flags=0)
 
     def hough_detector(self, input_frame):
-        blur = cv2.cvtColor(input_frame, cv2.COLOR_BGR2GRAY)
-        blur = cv2.equalizeHist(blur)
-        blur = cv2.GaussianBlur(blur, (11, 11), 0)
+        blur = cv2.cvtColor(input_frame.copy(), cv2.COLOR_BGR2GRAY)
+        # blur = cv2.equalizeHist(blur)
+        # blur = cv2.GaussianBlur(blur, (11, 11), 0)
 
-        frame = cv2.Canny(blur, 1, 100)
+        blur = cv2.Canny(blur, 1, 100)
         lines = cv2.HoughLines(
-            frame, rho=1.2, theta=np.pi / 180,
+            blur, rho=1.2, theta=np.pi / 180,
             threshold=125,
             # min_theta=60 * np.pi / 180,
             # max_theta=120 * np.pi / 180
         )
         # blur = cv2.putText(blur, str(self.capture.current_frame), (30, 30), cv2.FONT_HERSHEY_PLAIN, 1, (255, 128, 0))
-        # safety_percentage, line_angle = self.draw_lines(input_frame, lines)
+        self.draw_lines(input_frame, lines)
 
         # if lines is not None and self.autonomous_mode:
         #     self.actuators.set_all_leds(len(lines) * 10, 0, 0)
 
-        # output_frame = cv2.add(cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR), input_frame)
-        # output_frame = np.concatenate((output_frame, cv2.cvtColor(blur, cv2.COLOR_GRAY2BGR)), axis=1)
-        return blur  # , lines, safety_percentage, line_angle
+        # output_frame = cv2.add(cv2.cvtColor(blur, cv2.COLOR_GRAY2BGR), input_frame)
+        output_frame = np.concatenate((input_frame, cv2.cvtColor(blur, cv2.COLOR_GRAY2BGR)), axis=1)
+        return output_frame  # , lines, safety_percentage, line_angle
+        # return blur
 
     def draw_lines(self, frame, lines, draw_threshold=30):
         height, width = frame.shape[0:2]

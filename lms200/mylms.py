@@ -20,7 +20,8 @@ class MyLMS(SickLMS):
         self.slam_plot = RobotPlot("slam")
 
         self.plotter = LivePlotter(2, self.scan_plot, self.slam_plot, enabled=True,
-                                   default_resize_behavior=False)
+                                   default_resize_behavior=False,
+                                   matplotlib_events=dict(key_press_event=self.key_press_fn))
 
         self.plotter.get_axis(self.slam_plot).set_aspect("auto")
         self.plotter.get_axis(self.slam_plot).set_autoscale_on(True)
@@ -29,7 +30,7 @@ class MyLMS(SickLMS):
 
         self.is_live = is_live
 
-        super(MyLMS, self).__init__("/dev/cu.usbserial", enabled=enabled, log_level=logging.INFO, dude_bro_mode=False)
+        super(MyLMS, self).__init__("/dev/cu.usbserial", enabled=enabled, log_level=logging.INFO)
 
         if self.is_live:
             self.scan_size = 361
@@ -61,6 +62,10 @@ class MyLMS(SickLMS):
 
             self.plotter.draw_image(self.slam_plot, map_img, cmap=colormap.gray)
             self.prev_t = self.dt()
+
+    def key_press_fn(self, event):
+        if event.key == "q":
+            self.plotter.exit()
 
     def time_started(self):
         if self.is_live:

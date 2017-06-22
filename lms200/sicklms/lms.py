@@ -13,7 +13,7 @@ from sicklms.constants import *
 
 
 class SickLMS(ThreadedStream):
-    def __init__(self, port_address=None, baud=38400, enabled=True, name=None, log_level=None, dude_bro_mode=True,
+    def __init__(self, port_address=None, baud=38400, enabled=True, name=None, log_level=None,
                  mode=SICK_OP_MODE_MONITOR_STREAM_VALUES, mode_params=None):
         super(SickLMS, self).__init__(enabled, name, log_level)
 
@@ -55,8 +55,6 @@ class SickLMS(ThreadedStream):
         self.serial_lock = Lock()
         self.serial_ref = None
         self._timeout = DEFAULT_SICK_LMS_SICK_MESSAGE_TIMEOUT
-
-        self.dude_bro_mode = dude_bro_mode
 
         self.recv_message = Message()
         self.send_message = Message()
@@ -168,15 +166,21 @@ class SickLMS(ThreadedStream):
         self._switch_opmode(self.session_mode, self.session_mode_params)
 
     def _teardown(self):
+        self.logger.debug("Tearing down connection")
         if self._is_open():
             try:
+                self.logger.debug("Switching to monitor request mode")
                 self._set_opmode_monitor_request()
+
+                self.logger.debug("Changing to default baud")
                 self._set_session_baud(DEFAULT_SICK_LMS_SICK_BAUD)
             except BaseException:
                 self.logger.exception("Error encountered while tearing down")
                 self._teardown_connection()
                 raise
             self._teardown_connection()
+        else:
+            self.logger.debug("Connection was not open!")
 
     def _setup_connection(self):
         if self.device_path is None:
@@ -435,7 +439,10 @@ class SickLMS(ThreadedStream):
 
         response = self._send_message_and_get_reply(self.send_message.make_buffer())
 
-        self.operating_status.parse_status(response)
+        try:
+            self.operating_status.parse_status(response)
+        except IndexError as error:
+            raise RuntimeError("Invalid response: %s" % response) from error
 
         self.logger.debug(
             "Scan angle: %s, resolution: %s" % (
@@ -760,4 +767,4 @@ class SickLMS(ThreadedStream):
         return string
 
     def __str__(self):
-        return self.status_string()
+        return self.status_string(one_line=True)
