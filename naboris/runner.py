@@ -37,9 +37,13 @@ recorder = Recorder(
 
 camera.give(recorder=recorder)
 recorder.give(capture=camera)
-pipeline.give(actuators=naboris.actuators, capture=camera)
+pipeline.give(capture=camera)
 cmdline.give(naboris=naboris)
 website.give(actuators=naboris.actuators, camera=camera, pipeline=pipeline, cmdline=cmdline)
 socket.give(cmdline=cmdline, camera=camera)
+
+pipeline.subscribe(capture=camera)
+website.subscribe(camera=camera, pipeline=pipeline)
+socket.subscribe(camera=camera)
 
 robot.run(camera, naboris, pipeline, cmdline, website, socket)

@@ -24,6 +24,7 @@ class Button:
             self.current_label = self.labels[index]
             return self.current_label
 
+
 class ButtonCollection:
     def __init__(self, *buttons):
         self.buttons = buttons
@@ -68,19 +69,37 @@ class NaborisWebsite(Website):
         self.cmdline = None
         self.pipeline = None
 
+        self.camera_feed = None
+        self.pipeline_feed = None
+
         self.show_orignal = True
         self.lights_are_on = False
 
         self.clock = None
         self.commands = None
 
+        self.camera_tag = self.require_stream("camera")
+        self.pipeline_tag = self.require_stream("pipeline")
+        self.cmd_tag = self.require_stream("cmdline")
+        self.actuators_tag = self.require_stream("actuators")
+
+        self.require_subscription(self.camera_tag)
+        self.require_subscription(self.pipeline_tag)
+
     def take(self):
-        self.actuators = self.streams["actuators"]
-        self.camera = self.streams["camera"]
-        self.cmdline = self.streams["cmdline"]
-        self.pipeline = self.streams["pipeline"]
+        self.actuators = self.streams[self.actuators_tag]
+        self.camera = self.streams[self.camera_tag]
+        self.cmdline = self.streams[self.cmd_tag]
+        self.pipeline = self.streams[self.pipeline_tag]
+
+        self.pipeline.post_bytes = True
+        self.camera.post_bytes = True
 
         self.show_orignal = not self.pipeline.enabled
+        if self.show_orignal:
+            self.disable_feed(self.pipeline)
+        else:
+            self.disable_feed(self.camera)
 
         self.clock = Clock(float(self.camera.fps))
 
@@ -110,6 +129,10 @@ class NaborisWebsite(Website):
     def start(self):
         self.clock.start()
 
+    def subscribe_callback(self):
+        self.camera_feed = self.get_feed(self.camera_tag)
+        self.pipeline_feed = self.get_feed(self.pipeline_tag)
+
     def index(self):
         return render_template('index.html', commands=self.commands)
 
@@ -122,6 +145,7 @@ class NaborisWebsite(Website):
             if command[0] == ":":
                 if command == ":toggle_camera":
                     self.camera.paused = not self.camera.paused
+                    self.pipeline.paused = not self.pipeline.paused
                     return self.commands[command].switch_label(int(self.camera.paused))
 
                 elif command == ":toggle_pipeline":
@@ -149,16 +173,24 @@ class NaborisWebsite(Website):
         """Video streaming generator function."""
         while True:
             if self.show_orignal:
-                frame = self.camera.get_bytes_frame()
+                feed = self.camera_feed
             else:
-                frame = self.pipeline.bytes_frame
-            if frame is not None:
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                feed = self.pipeline_feed
 
-                if self.camera.paused:
-                    time.sleep(0.25)
-                self.clock.update()
+            while not feed.empty():
+                output = feed.get()
+                if len(output) == 2:
+                    frame, bytes_frame = output
+                    if bytes_frame is not None:
+                        yield (b'--frame\r\n'
+                               b'Content-Type: image/jpeg\r\n\r\n' + bytes_frame + b'\r\n')
+
+                        if self.camera.paused:
+                            time.sleep(0.25)
+                        self.clock.update()
+                else:
+                    self.camera.post_bytes = True
+                    self.pipeline.post_bytes = True
 
     def video_feed(self):
         """Video streaming route. Put this in the src attribute of an img tag."""
