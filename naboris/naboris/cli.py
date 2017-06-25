@@ -8,8 +8,11 @@ class NaborisCLI(CommandLine):
         self.actuators = None
         self.sounds = None
 
-    def take(self):
-        self.naboris = self.streams["naboris"]
+        self.naboris_tag = "naboris"
+        self.require_subscription(self.naboris_tag)
+
+    def take(self, subscriptions):
+        self.naboris = subscriptions[self.naboris_tag].stream
         self.actuators = self.naboris.actuators
         self.sounds = self.naboris.sounds
 

@@ -4,6 +4,7 @@ from flask import Response, render_template, request
 
 from atlasbuggy.clock import Clock
 from atlasbuggy.website import Website
+from atlasbuggy.subscriptions import Subscription, Update
 
 
 class Button:
@@ -64,42 +65,45 @@ class NaborisWebsite(Website):
         self.app.add_url_rule("/cmd", view_func=self.command_response, methods=['POST'])
         self.app.add_url_rule("/video_feed", view_func=self.video_feed)
 
-        self.actuators = None
-        self.camera = None
-        self.cmdline = None
-        self.pipeline = None
-
-        self.camera_feed = None
-        self.pipeline_feed = None
-
         self.show_orignal = True
         self.lights_are_on = False
 
         self.clock = None
         self.commands = None
 
-        self.camera_tag = self.require_stream("camera")
-        self.pipeline_tag = self.require_stream("pipeline")
-        self.cmd_tag = self.require_stream("cmdline")
-        self.actuators_tag = self.require_stream("actuators")
+        self.camera_tag = "camera"
+        self.pipeline_tag = "pipeline"
+        self.cmd_tag = "cmdline"
 
-        self.require_subscription(self.camera_tag)
-        self.require_subscription(self.pipeline_tag)
+        self.require_subscription(self.camera_tag, Update)
+        self.require_subscription(self.pipeline_tag, Update)
+        self.require_subscription(self.cmd_tag, Subscription)
 
-    def take(self):
-        self.actuators = self.streams[self.actuators_tag]
-        self.camera = self.streams[self.camera_tag]
-        self.cmdline = self.streams[self.cmd_tag]
-        self.pipeline = self.streams[self.pipeline_tag]
+        self.camera = None
+        self.cmdline = None
+        self.pipeline = None
 
-        self.pipeline.post_bytes = True
-        self.camera.post_bytes = True
+        self.camera_subscription = None
+        self.pipeline_subscription = None
+
+        self.camera_feed = None
+        self.pipeline_feed = None
+
+        self.frame_feed = None
+
+    def take(self, subscriptions):
+        self.camera = subscriptions[self.camera_tag].stream
+        self.cmdline = subscriptions[self.cmd_tag].stream
+        self.pipeline = subscriptions[self.pipeline_tag].stream
+
+        self.camera_subscription = subscriptions[self.camera_tag]
+        self.pipeline_subscription = subscriptions[self.pipeline_tag]
+
+        self.camera_feed = subscriptions[self.camera_tag].queue
+        self.pipeline_feed = subscriptions[self.pipeline_tag].queue
 
         self.show_orignal = not self.pipeline.enabled
-        if self.show_orignal:
-            self.disable_feed(self.pipeline)
-        else:
-            self.disable_feed(self.camera)
+        self.update_frame_source()
 
         self.clock = Clock(float(self.camera.fps))
 
@@ -126,12 +130,16 @@ class NaborisWebsite(Website):
             Button("PANIC!!!", "alert", "alert button", "command_button speak"),
         )
 
+    def update_frame_source(self):
+        if self.show_orignal:
+            self.pipeline_subscription.enabled = False
+            self.frame_feed = self.camera_feed
+        else:
+            self.camera_subscription.enabled = False
+            self.frame_feed = self.pipeline_feed
+
     def start(self):
         self.clock.start()
-
-    def subscribe_callback(self):
-        self.camera_feed = self.get_feed(self.camera_tag)
-        self.pipeline_feed = self.get_feed(self.pipeline_tag)
 
     def index(self):
         return render_template('index.html', commands=self.commands)
@@ -150,7 +158,8 @@ class NaborisWebsite(Website):
 
                 elif command == ":toggle_pipeline":
                     self.show_orignal = not self.show_orignal
-                    self.pipeline.generate_bytes = not self.show_orignal
+                    self.update_frame_source()
+
                     return self.commands[command].switch_label(int(self.show_orignal))
 
                 elif command == ":toggle_lights":
@@ -171,26 +180,22 @@ class NaborisWebsite(Website):
 
     def video(self):
         """Video streaming generator function."""
+        if self.show_orignal:
+            self.camera_subscription.enabled = True
+        else:
+            self.pipeline_subscription.enabled = True
+
         while True:
-            if self.show_orignal:
-                feed = self.camera_feed
-            else:
-                feed = self.pipeline_feed
+            while not self.frame_feed.empty():
+                frame = self.frame_feed.get()
+                if frame is not None:
+                    bytes_frame = self.camera.numpy_to_bytes(frame)
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + bytes_frame + b'\r\n')
 
-            while not feed.empty():
-                output = feed.get()
-                if len(output) == 2:
-                    frame, bytes_frame = output
-                    if bytes_frame is not None:
-                        yield (b'--frame\r\n'
-                               b'Content-Type: image/jpeg\r\n\r\n' + bytes_frame + b'\r\n')
-
-                        if self.camera.paused:
-                            time.sleep(0.25)
-                        self.clock.update()
-                else:
-                    self.camera.post_bytes = True
-                    self.pipeline.post_bytes = True
+                    if self.camera.paused:
+                        time.sleep(0.25)
+                    self.clock.update()
 
     def video_feed(self):
         """Video streaming route. Put this in the src attribute of an img tag."""

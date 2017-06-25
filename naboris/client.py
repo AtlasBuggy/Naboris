@@ -10,8 +10,8 @@ class MyCameraViewer(CameraViewer):
         self.socket = None
         self.delay = 0.03
 
-    def take(self):
-        self.socket = self.streams["socket"]
+    def take(self, subscriptions):
+        self.socket = subscriptions["socket"].stream
 
     def get_frame(self):
         return self.socket.frame

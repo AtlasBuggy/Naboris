@@ -38,8 +38,8 @@ class CLI(CommandLine):
 
         self.socket_client = None
 
-    def take(self):
-        self.socket_client = self.streams["socket"]
+    def take(self, subscriptions):
+        self.socket_client = self.subscriptions["socket"].stream
 
     def handle_input(self, line):
         if line == "q":

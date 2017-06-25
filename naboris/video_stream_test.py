@@ -2,7 +2,7 @@ from atlasbuggy import Robot
 from atlasbuggy import ThreadedStream
 from atlasbuggy.subscriptions import *
 
-from atlasbuggy.cameras.videoplayer import VideoPlayer
+from naboris.camera import NaborisCam
 from atlasbuggy.cmdline import CommandLine
 
 
@@ -11,26 +11,26 @@ class VideoReceiver(ThreadedStream):
         super(VideoReceiver, self).__init__(True)
 
         self.capture_tag = "capture"
-        self.require_subscription(self.capture_tag, Feed, VideoPlayer)
-        self.capture = None
-        self.capture_feed = None
+        self.require_subscription(self.capture_tag, Update, NaborisCam)
+        self.capture_sub = None
+        self.frame_num = 0
 
-    def receive_subscriptions(self, subscriptions):
-        self.capture = subscriptions[self.capture_tag].stream
-        self.capture_feed = subscriptions[self.capture_tag].queue
+    def take(self, subscriptions):
+        self.capture_sub = subscriptions[self.capture_tag]
 
     def run(self):
         while self.running():
-            while not self.capture_feed.empty():
-                print(self.capture_feed.get().shape)
+            while not self.capture_sub.empty():
+                print(self.capture_sub.get().shape, self.frame_num)
+                self.frame_num += 1
 
 
 robot = Robot(log_level=10)
 
-cmdline = CommandLine()
-video = VideoPlayer(file_name="videos/naboris/2017_Jun_10/21_25_23.mp4")
+cmdline = CommandLine(enabled=False)
+capture = NaborisCam()
 receiver = VideoReceiver()
 
-receiver.subscribe(Feed(receiver.capture_tag, video))
+receiver.subscribe(Update(receiver.capture_tag, capture))
 
-robot.run(video, receiver, cmdline)
+robot.run(capture, receiver, cmdline)

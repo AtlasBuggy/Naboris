@@ -35,9 +35,9 @@ class Naboris(SerialStream):
         self.actuators.set_all_leds(5, 5, 5)
         self.actuators.set_battery(5050, 5180)
 
-    def take(self):
+    def take(self, subscriptions):
         if self.should_plot:
-            self.plotter = self.streams["plotter"]
+            self.plotter = self.subscriptions["plotter"].stream
             self.plotter.add_plots(self.led_plot)
 
     async def update(self):

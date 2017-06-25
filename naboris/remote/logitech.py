@@ -15,8 +15,8 @@ class Logitech(BuggyJoystick):
         self.socket = None
         self.max_speed = 255
 
-    def take(self):
-        self.socket = self.streams["socket"]
+    def take(self, subscriptions):
+        self.socket = subscriptions["socket"].stream
 
     def update(self):
         # if value != 0:

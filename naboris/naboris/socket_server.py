@@ -1,5 +1,6 @@
 import asyncio
 from atlasbuggy.website.socket import SocketServer
+from atlasbuggy.subscriptions import Feed
 
 
 class NaborisSocketServer(SocketServer):
@@ -11,16 +12,16 @@ class NaborisSocketServer(SocketServer):
 
         self.camera_feed = None
 
-        self.cmdline_tag = self.require_stream("cmdline")
-        self.camera_tag = self.require_stream("camera")
-        self.require_subscription(self.camera_tag)
+        self.cmdline_tag = "cmdline"
+        self.camera_tag = "camera"
+        self.require_subscription(self.cmdline_tag)
+        self.require_subscription(self.camera_tag, Feed)
 
-    def take(self):
-        self.cmdline = self.streams[self.cmdline_tag]
-        self.camera = self.streams[self.camera_tag]
+    def take(self, subscriptions):
+        self.cmdline = subscriptions[self.cmdline_tag].stream
+        self.camera = subscriptions[self.camera_tag].stream
 
-    def subscribe_callback(self):
-        self.camera_feed = self.get_feed(self.camera_tag)
+        self.camera_feed = subscriptions[self.camera_tag].queue
 
     def received(self, writer, name, data):
         self.cmdline.handle_input(data)
