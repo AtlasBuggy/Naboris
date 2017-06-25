@@ -1,8 +1,10 @@
 import time
-from flask import render_template, Response, request
 
+from flask import Response, render_template, request
+
+from atlasbuggy.clock import Clock
 from atlasbuggy.website import Website
-from atlasbuggy.serial.clock import Clock
+
 
 class Button:
     def __init__(self, labels, command, button_id, group, current_label=0):
@@ -70,8 +72,6 @@ class NaborisWebsite(Website):
         self.lights_are_on = False
 
         self.clock = None
-        self.prev_time = time.time()
-
         self.commands = None
 
     def take(self):
@@ -162,5 +162,4 @@ class NaborisWebsite(Website):
 
     def video_feed(self):
         """Video streaming route. Put this in the src attribute of an img tag."""
-        self.prev_time = time.time()
         return Response(self.video(), mimetype='multipart/x-mixed-replace; boundary=frame')
