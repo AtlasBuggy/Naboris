@@ -1,14 +1,15 @@
 import argparse
+
+# from atlasbuggy.cameras.cvcamera.cvvideo import CvVideoRecorder as Recorder
+from atlasbuggy import Robot
+from atlasbuggy.cameras.picamera.pivideo import PiVideoRecorder as Recorder
+from atlasbuggy.subscriptions import *
+from naboris import Naboris
 from naboris.camera import NaborisCam
 from naboris.cli import NaborisCLI
 from naboris.pipeline import NaborisPipeline
 from naboris.site import NaborisWebsite
 from naboris.socket_server import NaborisSocketServer
-from naboris import Naboris
-
-from atlasbuggy.cameras.picamera.pivideo import PiVideoRecorder as Recorder
-# from atlasbuggy.cameras.cvcamera.cvvideo import CvVideoRecorder as Recorder
-from atlasbuggy.robot import Robot
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-l", "--log", help="enable logging", action="store_true")
@@ -35,15 +36,16 @@ recorder = Recorder(
     enabled=log,
 )
 
-camera.give(recorder=recorder)
-recorder.give(capture=camera)
-pipeline.give(capture=camera)
-cmdline.give(naboris=naboris)
-website.give(actuators=naboris.actuators, camera=camera, pipeline=pipeline, cmdline=cmdline)
-socket.give(cmdline=cmdline, camera=camera)
+camera.subscribe(Subscription(camera.recorder_tag, recorder))
+recorder.subscribe(Subscription(recorder.capture_tag, camera))
 
-pipeline.subscribe(capture=camera)
-website.subscribe(camera=camera, pipeline=pipeline)
-socket.subscribe(camera=camera)
+pipeline.subscribe(Feed(pipeline.capture_tag, camera))
+
+website.subscribe(Subscription(website.actuators_tag, naboris.actuators))
+website.subscribe(Subscription(cmdline, cmdline))
+website.subscribe(Update(website.camera_tag, camera, enabled=False))
+website.subscribe(Update(website.pipeline_tag, pipeline, enabled=False))
+
+socket.subscribe(Update(socket.camera_tag, camera, enabled=False))
 
 robot.run(camera, naboris, pipeline, cmdline, website, socket)
