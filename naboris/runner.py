@@ -26,7 +26,7 @@ naboris = Naboris()
 pipeline = NaborisPipeline(args.pipeline)
 cmdline = NaborisCLI()
 website = NaborisWebsite("templates", "static")
-socket = NaborisSocketServer()
+socket = NaborisSocketServer(log_level=10)
 
 video_file_name = robot.log_info["file_name"].replace(";", "_")[:-3] + "mp4"
 video_directory = "videos/naboris/" + robot.log_info["directory"].split("/")[-1]
@@ -44,7 +44,7 @@ website.subscribe(Subscription(website.cmd_tag, cmdline))
 website.subscribe(Update(website.camera_tag, camera, enabled=False))
 website.subscribe(Update(website.pipeline_tag, pipeline, enabled=False))
 
-socket.subscribe(Feed(socket.camera_tag, camera, enabled=False))
+socket.subscribe(Update(socket.camera_tag, camera, enabled=False))
 socket.subscribe(Subscription(socket.cmdline_tag, cmdline))
 
 robot.run(camera, naboris, pipeline, cmdline, website, socket)

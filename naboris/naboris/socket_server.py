@@ -1,6 +1,6 @@
 import asyncio
 from atlasbuggy.website.socket import SocketServer
-from atlasbuggy.subscriptions import Feed
+from atlasbuggy.subscriptions import Update
 
 
 class NaborisSocketServer(SocketServer):
@@ -16,7 +16,7 @@ class NaborisSocketServer(SocketServer):
         self.cmdline_tag = "cmdline"
         self.camera_tag = "camera"
         self.require_subscription(self.cmdline_tag)
-        self.require_subscription(self.camera_tag, Feed)
+        self.require_subscription(self.camera_tag, Update)
 
     def take(self, subscriptions):
         self.camera_subscription = subscriptions[self.camera_tag]
@@ -32,21 +32,17 @@ class NaborisSocketServer(SocketServer):
     async def update(self):
         if len(self.client_writers) > 0:
             while not self.camera_feed.empty():
-                output = self.camera_feed.get()
-                if len(output) == 2:
-                    frame, bytes_frame = output
-                    length = len(bytes_frame).to_bytes(4, 'big')
-                    preamble = b'\x54'
-                    message = preamble + length + bytes_frame
-                    self.write_all(message, append_newline=False)
-                else:
-                    self.camera.post_bytes = True
+                frame = self.camera_feed.get()
+                bytes_frame = self.camera.numpy_to_bytes(frame)
+                length = len(bytes_frame).to_bytes(4, 'big')
+                preamble = b'\x54'
+                message = preamble + length + bytes_frame
+                self.write_all(message, append_newline=False)
         await asyncio.sleep(1 / self.camera.fps)
-
-    def client_connected(self, name):
-        self.camera_subscription.enabled = True
-
-    def client_disconnected(self):
-        if len(self.client_writers) == 0:
-            self.camera_subscription.enabled = False
-
+    
+    # def client_connected(self, name):
+    #     self.camera_subscription.enabled = True
+    #
+    # def client_disconnected(self):
+    #     if len(self.client_writers) == 0:
+    #         self.camera_subscription.enabled = False
