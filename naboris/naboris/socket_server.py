@@ -39,10 +39,13 @@ class NaborisSocketServer(SocketServer):
                 message = preamble + length + bytes_frame
                 self.write_all(message, append_newline=False)
         await asyncio.sleep(1 / self.camera.fps)
-    
-    # def client_connected(self, name):
-    #     self.camera_subscription.enabled = True
-    #
-    # def client_disconnected(self):
-    #     if len(self.client_writers) == 0:
-    #         self.camera_subscription.enabled = False
+
+    def client_connected(self, name):
+        self.camera_subscription.enabled = True
+        self.logger.debug("Connection named '%s' has opened" % name)
+
+    def client_disconnected(self):
+        self.logger.debug("Connection named '%s' has closed" % name)
+        if len(self.client_writers) == 0:
+            self.logger.debug("No more writers")
+            self.camera_subscription.enabled = False

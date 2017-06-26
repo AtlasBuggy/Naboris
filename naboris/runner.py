@@ -26,7 +26,7 @@ naboris = Naboris()
 pipeline = NaborisPipeline(args.pipeline)
 cmdline = NaborisCLI()
 website = NaborisWebsite("templates", "static")
-socket = NaborisSocketServer(log_level=10)
+socket = NaborisSocketServer(enabled=False)
 
 video_file_name = robot.log_info["file_name"].replace(";", "_")[:-3] + "mp4"
 video_directory = "videos/naboris/" + robot.log_info["directory"].split("/")[-1]
