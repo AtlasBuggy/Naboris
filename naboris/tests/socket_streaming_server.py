@@ -5,6 +5,7 @@ from atlasbuggy.cameras.videoplayer import VideoPlayer
 from atlasbuggy.cameras.viewer.trackbar import CameraViewerWithTrackbar
 from atlasbuggy.robot import Robot
 from atlasbuggy.website.socket import SocketServer
+from atlasbuggy.subscriptions import *
 
 os.chdir("..")
 
@@ -13,14 +14,19 @@ class MyServer(SocketServer):
     def __init__(self):
         super(MyServer, self).__init__()
         self.video = None
+        self.video_feed = None
+        self.video_tag = "video"
+        self.require_subscription(self.video_tag, Feed)
 
-    def take(self):
-        self.video = self.streams["video"]
+    def take(self, subscriptions):
+        self.video = self.subscriptions[self.video_tag].stream
+        self.video_feed = self.subscriptions[self.video_tag].queue
 
     async def update(self):
         if len(self.client_writers) > 0:
-            if self.video.frame is not None:
-                bytes_frame = self.video.get_bytes_frame()
+            while not self.video_feed.empty():
+                frame = self.video_feed.get()
+                bytes_frame = self.video.numpy_to_bytes(frame)
                 length = len(bytes_frame).to_bytes(4, 'big')
                 preamble = b'\x54'
                 message = preamble + length + bytes_frame
@@ -31,11 +37,11 @@ class MyServer(SocketServer):
 
 robot = Robot(log_level=10)
 
-capture = VideoPlayer("21_25_23.mp4", "videos/naboris/2017_Jun_10", loop_video=True)
+capture = VideoPlayer(file_name="21_25_23.mp4", directory="videos/naboris/2017_Jun_10", loop_video=True)
 socket = MyServer()
 viewer = CameraViewerWithTrackbar()
 
-socket.give(video=capture)
-viewer.give(video_player=capture)
+socket.subscribe(Feed(socket.video_tag, capture))
+viewer.subscribe(Update(viewer.capture_tag, capture))
 
 robot.run(viewer, capture, socket)
