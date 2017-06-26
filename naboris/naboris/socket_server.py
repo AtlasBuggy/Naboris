@@ -11,6 +11,7 @@ class NaborisSocketServer(SocketServer):
         self.camera = None
 
         self.camera_feed = None
+        self.camera_subscription = None
 
         self.cmdline_tag = "cmdline"
         self.camera_tag = "camera"
@@ -18,6 +19,8 @@ class NaborisSocketServer(SocketServer):
         self.require_subscription(self.camera_tag, Feed)
 
     def take(self, subscriptions):
+        self.camera_subscription = subscriptions[self.camera_tag]
+
         self.cmdline = subscriptions[self.cmdline_tag].stream
         self.camera = subscriptions[self.camera_tag].stream
 
@@ -39,3 +42,11 @@ class NaborisSocketServer(SocketServer):
                 else:
                     self.camera.post_bytes = True
         await asyncio.sleep(1 / self.camera.fps)
+
+    def client_connected(self, name):
+        self.camera_subscription.enabled = True
+
+    def client_disconnected(self):
+        if len(self.client_writers) == 0:
+            self.camera_subscription.enabled = False
+

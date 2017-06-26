@@ -1,5 +1,6 @@
 from atlasbuggy.cameras.viewer import CameraViewer
 from atlasbuggy.robot import Robot
+from atlasbuggy.subscriptions import *
 from remote.logitech import Logitech
 from remote.socket_client import CLI, NaborisSocketClient
 
@@ -24,8 +25,8 @@ cli = CLI()
 logitech = Logitech(enabled=True)
 viewer = MyCameraViewer()
 
-cli.give(socket=socket)
-logitech.give(socket=socket)
-viewer.give(socket=socket)
+cli.subscribe(Subscription("socket", socket))
+logitech.subscribe(Subscription("socket", socket))
+viewer.subscribe(Subscription("socket", socket))
 
 robot.run(socket, cli, logitech, viewer)
