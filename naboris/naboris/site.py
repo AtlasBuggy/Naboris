@@ -131,12 +131,14 @@ class NaborisWebsite(Website):
         )
 
     def update_frame_source(self):
-        if self.show_orignal:
-            self.pipeline_subscription.enabled = False
-            self.frame_feed = self.camera_feed
-        else:
+        if self.pipeline.enabled and not self.show_orignal:
+            self.pipeline_subscription.enabled = True
             self.camera_subscription.enabled = False
             self.frame_feed = self.pipeline_feed
+        else:
+            self.pipeline_subscription.enabled = False
+            self.camera_subscription.enabled = True
+            self.frame_feed = self.camera_feed
 
     def start(self):
         self.clock.start()
@@ -153,7 +155,12 @@ class NaborisWebsite(Website):
             if command[0] == ":":
                 if command == ":toggle_camera":
                     self.camera.paused = not self.camera.paused
-                    self.pipeline.paused = not self.pipeline.paused
+                    if self.camera.paused:
+                        self.pipeline_subscription.enabled = False
+                        self.camera_subscription.enabled = False
+                    else:
+                        self.update_frame_source()
+
                     return self.commands[command].switch_label(int(self.camera.paused))
 
                 elif command == ":toggle_pipeline":
@@ -180,15 +187,17 @@ class NaborisWebsite(Website):
 
     def video(self):
         """Video streaming generator function."""
-        if self.show_orignal:
-            self.camera_subscription.enabled = True
-        else:
+        if self.pipeline.enabled and not self.show_orignal:
             self.pipeline_subscription.enabled = True
+        else:
+            self.camera_subscription.enabled = True
 
         while True:
             while not self.frame_feed.empty():
                 frame = self.frame_feed.get()
                 if frame is not None:
+                    if self.pipeline_subscription.enabled and type(frame) == tuple:
+                        frame = frame[0]
                     bytes_frame = self.camera.numpy_to_bytes(frame)
                     yield (b'--frame\r\n'
                            b'Content-Type: image/jpeg\r\n\r\n' + bytes_frame + b'\r\n')

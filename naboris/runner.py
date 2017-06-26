@@ -19,7 +19,7 @@ args = parser.parse_args()
 
 log = args.log
 
-robot = Robot(write=log, log_level=10)
+robot = Robot(write=log)
 
 camera = NaborisCam()
 naboris = Naboris()
@@ -38,7 +38,7 @@ recorder = Recorder(
 
 camera.subscribe(Subscription(camera.recorder_tag, recorder))
 cmdline.subscribe(Subscription(cmdline.naboris_tag, naboris))
-pipeline.subscribe(Feed(pipeline.capture_tag, camera))
+pipeline.subscribe(Update(pipeline.capture_tag, camera))
 
 website.subscribe(Subscription(website.cmd_tag, cmdline))
 website.subscribe(Update(website.camera_tag, camera, enabled=False))

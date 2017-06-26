@@ -9,7 +9,7 @@ from atlasbuggy.cameras.cvpipeline import CvPipeline
 
 class NaborisPipeline(CvPipeline):
     def __init__(self, enabled=True, log_level=None):
-        super(NaborisPipeline, self).__init__(enabled, log_level, post_bytes=True)
+        super(NaborisPipeline, self).__init__(enabled, log_level)
         self.actuators = None
         self.autonomous_mode = False
 
