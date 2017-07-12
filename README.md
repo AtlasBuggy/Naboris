@@ -1,6 +1,7 @@
 # Naboris
 This is the code repo for my tiny robot "Naboris." <br />
-Learn how to build your own version here: https://www.instructables.com/id/Do-it-yourself-Autonomous-Tiny-Robot/
+Learn how to build your own version here: https://www.instructables.com/id/Do-it-yourself-Autonomous-Tiny-Robot/ <br />
+See it in action! https://www.youtube.com/watch?v=e5529u88afc
 
 ![Alt text](/naboris/static/naboris-small.jpeg)
 
@@ -42,7 +43,7 @@ Install git if haven't done so: ```sudo apt-get install git```<br />
 Download the repo:
 ```
 cd ~
-git clone https://github.com/Woz4tetra/Naboris
+git clone https://github.com/AtlasBuggy/Naboris
 ```
 The package isn't on the python package index, so you'll need to symlink it:<br />
 ```sudo ln -s $PWD/Naboris/Atlasbuggy/atlasbuggy /usr/local/lib/python3.6/site-packages```<br /><br />
@@ -61,6 +62,6 @@ If you're the impatience type like me, you want a code library to impress you on
 cd Naboris/naboris
 python3 tryme.py
 ```
-```python
 
-```
+# Further Reading
+For details on how everything works behind the scenes, check out the readme for https://github.com/AtlasBuggy/atlasbuggy

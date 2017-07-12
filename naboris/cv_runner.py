@@ -1,69 +1,58 @@
-import time
-import asyncio
-
 from atlasbuggy.cameras.videoplayer import VideoPlayer
 from atlasbuggy.cameras.viewer.trackbar import CameraViewerWithTrackbar
-from atlasbuggy.logparser import LogParser
-from atlasbuggy.plotters.liveplotter import LivePlotter
-from atlasbuggy.robot import Robot
-from naboris import Naboris
+from atlasbuggy import Robot
+from atlasbuggy.subscriptions import Update, Feed
+
 from naboris.pipeline import NaborisPipeline
 
 
 class MyCameraViewer(CameraViewerWithTrackbar):
     def __init__(self):
         super(MyCameraViewer, self).__init__(enabled=True)
+
+        self.pipeline_tag = "pipeline"
+
         self.pipeline = None
         self.pipeline_feed = None
-        self.capture_feed = None
 
         self.show_original = False
 
-    def take(self):
-        self.take_capture()
-        self.pipeline = self.streams["pipeline"]
+        self.require_subscription(self.pipeline_tag, Update)
 
-    def start(self):
-        self.pipeline_feed = self.get_feed(self.pipeline)
-        self.capture_feed = self.get_feed(self.capture)
+    def take(self, subscriptions):
+        self.take_capture(subscriptions)
+        self.pipeline = subscriptions[self.pipeline_tag].stream
+        self.pipeline_feed = subscriptions[self.pipeline_tag].queue
+        self.set_feed()
 
-    def check_feed_for_frames(self):
-        frame = None
-        output = None
+    def set_feed(self):
         if self.show_original:
-            feed = self.capture_feed
+            self.pipeline_feed.enabled = False
+            self.capture_feed.enabled = True
         else:
-            feed = self.pipeline_feed
+            self.pipeline_feed.enabled = True
+            self.capture_feed.enabled = False
 
-        while not feed.empty():
-            output = feed.get()
+    def get_frame_from_feed(self):
+        if self.show_original:
+            return self.capture_feed.get()
+        else:
+            return self.pipeline_feed.get()
 
-        if output is not None:
-            if self.show_original:
-                post_bytes = self.capture.post_bytes
-            else:
-                post_bytes = self.pipeline.post_bytes
-            if post_bytes:
-                frame, bytes_frame = output
-            else:
-                frame = output[0]
-        return frame
-
-    def key_callback(self, key):
+    def key_down(self, key):
         if key == 'o':
             self.show_original = not self.show_original
-            if self.show_original:
-                self.disable_feed(self.pipeline)
-                self.enable_feed(self.capture)
-            else:
-                self.disable_feed(self.capture)
-                self.enable_feed(self.pipeline)
+            self.set_feed()
         elif key == 'q':
             self.exit()
         elif key == ' ':
-            self.paused = not self.paused
-            self.capture.paused = self.paused
-            self.pipeline.paused = self.paused
+            self.toggle_pause()
+            if self.is_paused():
+                self.pipeline_feed.enabled = False
+                self.capture_feed.enabled = False
+            else:
+                self.pipeline_feed.enabled = True
+                self.capture_feed.enabled = True
 
 
 robot = Robot(log_level=10)
@@ -72,10 +61,8 @@ capture = VideoPlayer(file_name="videos/naboris/2017_May_28/16_23_21.mp4")
 viewer = MyCameraViewer()
 pipeline = NaborisPipeline()
 
-viewer.give(capture=capture, pipeline=pipeline)
-pipeline.give(capture=capture)
-
-viewer.subscribe(capture=capture, pipeline=pipeline)
-pipeline.subscribe(capture=capture)
+viewer.subscribe(Update(viewer.capture_tag, capture))
+viewer.subscribe(Update(viewer.pipeline_tag, pipeline))
+pipeline.subscribe(Update(pipeline.capture_tag, capture))
 
 robot.run(viewer, capture, pipeline)

@@ -10,93 +10,77 @@ from atlasbuggy.cameras.cvpipeline import CvPipeline
 class NaborisPipeline(CvPipeline):
     def __init__(self, enabled=True, log_level=None):
         super(NaborisPipeline, self).__init__(enabled, log_level)
-        self.actuators = None
-        self.autonomous_mode = False
-
-        self.orb = cv2.ORB_create()
 
     def pipeline(self, frame):
-        # over segment
-        # join with classifier
-        # hough line fit boundaries
-        # use vertical regions as basis for ground 3D orientation (use camera parameters)
-
-        # -- Make3D --
-        # over segment
-        # compute segment features: position, color, response magnitude, kurtosis texture, region shape
-        # Split image into 11 segments
-        # Use surrounding neighbors and linear predictor to predict 3D position of superpixel
-        # Use linear logistic regression to compute the confidence of these predictions
-        # Perform global inference using local constraints
-
-        # -- room as a box --
-        # use line segments to reconstruct room
-
-        # return self.compute_orb(frame)
         return self.hough_detector(frame)
-        # return self.watershed(frame)
 
-    def watershed(self, frame):
-        # shifted = cv2.pyrMeanShiftFiltering(frame, 21, 51)
-        shifted = cv2.medianBlur(frame, 21)
-        gray = cv2.cvtColor(shifted, cv2.COLOR_BGR2GRAY)
-        # thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY | cv2.THRESH)[1]
-        thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 11, 2)
+    def hough_detector(self, frame):
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.medianBlur(gray, 5)
+        laplacian_64f = cv2.Laplacian(gray, cv2.CV_64F, ksize=5, scale=0.5)
+        abs_laplacian_64f = np.absolute(laplacian_64f)
+        laplacian_8u = np.uint8(abs_laplacian_64f)
 
-        D = ndimage.distance_transform_edt(thresh)
-        local_max = peak_local_max(D, indices=False, min_distance=20, labels=thresh)
+        mask = cv2.inRange(laplacian_8u, 80, 255)
+        masked = cv2.bitwise_and(laplacian_8u, laplacian_8u, mask=mask)
 
-        markers = ndimage.label(local_max, structure=np.ones((3, 3)))[0]
-        labels = watershed(-D, markers, mask=thresh)
+        kernel = np.ones((5, 5), np.uint8)
+        dilated = cv2.dilate(masked, kernel, iterations=1)
 
-        for label in np.unique(labels):
-            # if the label is zero, we are examining the 'background'
-            # so simply ignore it
-            if label == 0:
-                continue
+        canny = cv2.Canny(dilated, 1, 100)
 
-            # otherwise, allocate memory for the label region and draw
-            # it on the mask
-            mask = np.zeros(gray.shape, dtype="uint8")
-            mask[labels == label] = 255
+        # lines = cv2.HoughLines(canny, rho=1.0, theta=np.pi / 180, threshold=125)
+        # if lines is not None:
+        #     for rho, theta in lines[:, 0]:
+        #         a = np.cos(theta)
+        #         b = np.sin(theta)
+        #         x0 = a * rho
+        #         y0 = b * rho
+        #         x1 = int(x0 + 1000 * (-b))
+        #         y1 = int(y0 + 1000 * (a))
+        #         x2 = int(x0 - 1000 * (-b))
+        #         y2 = int(y0 - 1000 * (a))
+        #
+        #         cv2.line(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
-            # detect contours in the mask and grab the largest one
-            cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
-                                    cv2.CHAIN_APPROX_SIMPLE)[-2]
+        lines = cv2.HoughLinesP(canny, 1, np.pi / 180, 100, minLineLength=100, maxLineGap=10)
+        if lines is not None:
+            for x1, y1, x2, y2 in lines[:, 0]:
+                cv2.line(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-            frame = cv2.drawContours(frame, cnts, -1, (0, 0, 255), 3)
-            # c = max(cnts, key=cv2.contourArea)
-            #
-            # # draw a circle enclosing the object
-            # ((x, y), r) = cv2.minEnclosingCircle(c)
-            # cv2.circle(frame, (int(x), int(y)), int(r), (0, 255, 0), 2)
-            # cv2.putText(frame, "#{}".format(label), (int(x) - 10, int(y)),
-            #             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        return np.concatenate((frame, cv2.cvtColor(canny, cv2.COLOR_GRAY2BGR)), axis=1)
 
-        return frame
+        # sobelx64f = cv2.Sobel(frame, cv2.CV_64F, 1, 0, ksize=3)
+        # abs_sobel64f = np.absolute(sobelx64f)
+        # sobel_8u = np.uint8(abs_sobel64f)
+        # gray_1 = cv2.cvtColor(sobel_8u, cv2.COLOR_BGR2GRAY)
+        #
+        # sobelx64f = cv2.Sobel(frame, cv2.CV_64F, 0, 1, ksize=3)
+        # abs_sobel64f = np.absolute(sobelx64f)
+        # sobel_8u = np.uint8(abs_sobel64f)
+        # gray_2 = cv2.cvtColor(sobel_8u, cv2.COLOR_BGR2GRAY)
+        # gray = cv2.medianBlur(gray_1 + gray_2, 5)
 
-    def compute_orb(self, frame):
-        kp = self.orb.detect(frame, None)
-        kp, des = self.orb.compute(frame, kp)
-        return cv2.drawKeypoints(frame, kp, None, color=(128, 255, 0), flags=0)
-
-    def hough_detector(self, input_frame):
-        shifted = cv2.medianBlur(input_frame, 11)
-        gray = cv2.cvtColor(shifted, cv2.COLOR_BGR2GRAY)
-        # thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY | cv2.THRESH)[1]
-        thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 11, 2)
-
+        thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
         kernel = np.ones((3, 3), np.uint8)
         thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
+
+        return thresh
+
+
+        thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+        # thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 5, 2)
+
+
         # return thresh
 
         # blur = cv2.cvtColor(input_frame.copy(), cv2.COLOR_BGR2GRAY)
         # blur = cv2.equalizeHist(blur)
         # blur = cv2.GaussianBlur(blur, (11, 11), 0)
 
-        blur = cv2.Canny(thresh, 1, 100)
+        canny = cv2.Canny(thresh, 1, 100)
         lines = cv2.HoughLines(
-            blur, rho=1.2, theta=np.pi / 180,
+            canny, rho=1.0, theta=np.pi / 180,
             threshold=125,
             # min_theta=60 * np.pi / 180,
             # max_theta=120 * np.pi / 180
@@ -108,9 +92,8 @@ class NaborisPipeline(CvPipeline):
         #     self.actuators.set_all_leds(len(lines) * 10, 0, 0)
 
         # output_frame = cv2.add(cv2.cvtColor(blur, cv2.COLOR_GRAY2BGR), input_frame)
-        output_frame = np.concatenate((input_frame, cv2.cvtColor(blur, cv2.COLOR_GRAY2BGR)), axis=1)
+        output_frame = np.concatenate((input_frame, cv2.cvtColor(canny, cv2.COLOR_GRAY2BGR)), axis=1)
         return output_frame  # , lines, safety_percentage, line_angle
-        # return blur
 
     def draw_lines(self, frame, lines, draw_threshold=30):
         height, width = frame.shape[0:2]
