@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from atlasbuggy.cameras.viewer import CameraViewer
+from atlasbuggy.cameras.viewer.viewer import CameraViewer
 from atlasbuggy.robot import Robot
 from atlasbuggy.website.socket import SocketClient
 from atlasbuggy.subscriptions import *

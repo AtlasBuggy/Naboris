@@ -1,4 +1,4 @@
-from atlasbuggy.cameras.viewer import CameraViewer
+from atlasbuggy.cameras.viewer.viewer import CameraViewer
 from atlasbuggy.robot import Robot
 from atlasbuggy.subscriptions import *
 from remote.logitech import Logitech
