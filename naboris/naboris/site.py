@@ -4,7 +4,7 @@ from flask import Response, render_template, request
 
 from atlasbuggy.clock import Clock
 from atlasbuggy.website import Website
-from atlasbuggy.subscriptions import Subscription, Update
+from atlasbuggy.subscriptions import *
 
 
 class Button:
@@ -107,6 +107,8 @@ class NaborisWebsite(Website):
 
         self.clock = Clock(float(self.camera.fps))
 
+        self.autonomous_mode = False
+
         self.commands = ButtonCollection(
             Button("spin left", "l", "spin_left_button", "command_button drive"),
             Button("spin right", "r", "spin_right_button", "command_button drive"),
@@ -119,7 +121,7 @@ class NaborisWebsite(Website):
             Button(["lights on", "lights off"], ":toggle_lights", "toggle_lights_button", "command_button toggles",
                    int(self.lights_are_on)),
             Button(["autonomous", "manual"], ":toggle_autonomy", "toggle_autonomy_button", "command_button toggles",
-                   int(self.pipeline.autonomous_mode)),
+                   int(self.autonomous_mode)),
             Button(["pause video", "unpause video"], ":toggle_camera", "toggle_camera_button",
                    "command_button toggles"),
             Button(["show original", "show pipeline"], ":toggle_pipeline", "toggle_pipeline_button",
@@ -179,8 +181,8 @@ class NaborisWebsite(Website):
                     return self.commands[command].switch_label(int(self.lights_are_on))
 
                 elif command == ":toggle_autonomy":
-                    self.pipeline.autonomous_mode = not self.pipeline.autonomous_mode
-                    return self.commands[command].switch_label(int(self.pipeline.autonomous_mode))
+                    self.autonomous_mode = not self.autonomous_mode
+                    return self.commands[command].switch_label(int(self.autonomous_mode))
             else:
                 self.cmdline.handle_input(command.replace("_", " "))
         return ""

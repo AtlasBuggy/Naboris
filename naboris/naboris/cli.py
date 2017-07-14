@@ -1,3 +1,4 @@
+import re
 from atlasbuggy.cmdline import CommandLine
 
 
@@ -7,12 +8,20 @@ class NaborisCLI(CommandLine):
         self.naboris = None
         self.actuators = None
         self.sounds = None
+        self.recorder = None
 
         self.naboris_tag = "naboris"
+        self.recorder_tag = "recorder"
+
+        self.video_num_counter_regex = r"([\s\S]*)-([0-9]*)\.([\S]*)"
+        self.video_name_regex = r"([\s\S]*)\.([\S]*)"
+
         self.require_subscription(self.naboris_tag)
+        self.require_subscription(self.recorder_tag)
 
     def take(self, subscriptions):
         self.naboris = subscriptions[self.naboris_tag].stream
+        self.recorder = subscriptions[self.recorder_tag].stream
         self.actuators = self.naboris.actuators
         self.sounds = self.naboris.sounds
 
@@ -138,6 +147,23 @@ class NaborisCLI(CommandLine):
     def say_random_sound(self, params):
         self.naboris.play_random_sound()
 
+    def start_new_video(self, params):
+        self.recorder.stop_recording()
+
+        matches = re.findall(self.video_num_counter_regex, self.recorder.file_name)
+        if len(matches) == 0:
+            name_matches = re.findall(self.video_name_regex, self.recorder.file_name)
+            file_name_no_ext, extension = name_matches[0]
+            new_file_name = "%s-1.%s" % (file_name_no_ext, extension)
+        else:
+            file_name_no_ext, counter, extension = matches
+            counter = int(counter) + 1
+            new_file_name = "%s-%s.%s" % (file_name_no_ext, counter, extension)
+
+        self.recorder.set_path(new_file_name, self.recorder.directory)
+
+        self.recorder.start_recording()
+
     def check_commands(self, line, **commands):
         function = None
         current_command = ""
@@ -167,4 +193,5 @@ class NaborisCLI(CommandLine):
                 hello=self.say_hello,
                 alert=self.say_alert,
                 sound=self.say_random_sound,
+                video=self.start_new_video
             )

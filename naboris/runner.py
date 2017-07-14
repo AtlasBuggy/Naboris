@@ -29,15 +29,17 @@ website = NaborisWebsite("templates", "static")
 socket = NaborisSocketServer(enabled=False)
 
 video_file_name = robot.log_info["file_name"].replace(";", "_")[:-3] + "mp4"
-video_directory = "videos/naboris/" + robot.log_info["directory"].split("/")[-1]
+video_directory = "videos/" + robot.log_info["directory"].split("/")[-1]
 recorder = Recorder(
     video_file_name,
     video_directory,
     enabled=log,
+    log_level=10
 )
 
 camera.subscribe(Subscription(camera.recorder_tag, recorder))
 cmdline.subscribe(Subscription(cmdline.naboris_tag, naboris))
+cmdline.subscribe(Subscription(cmdline.recorder_tag, recorder))
 pipeline.subscribe(Update(pipeline.capture_tag, camera))
 
 website.subscribe(Subscription(website.cmd_tag, cmdline))
