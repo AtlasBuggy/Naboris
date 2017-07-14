@@ -5,12 +5,22 @@ import cv2
 import numpy as np
 from numpy import linalg
 
-from atlasbuggy.cameras.cvpipeline import CvPipeline
+from atlasbuggy.camera.pipeline import Pipeline
 
 
-class NaborisPipeline(CvPipeline):
+class NaborisPipeline(Pipeline):
     def __init__(self, enabled=True, log_level=None):
         super(NaborisPipeline, self).__init__(enabled, log_level)
+
+        self.left_distance = 0
+        self.right_distance = 0
+        self.forward_distance = 0
+
+        self.results_service_tag = "results"
+        self.add_service(self.results_service_tag, self.results_post_service)
+
+    def results_post_service(self, data):
+        return data
 
     def pipeline(self, frame):
         # height, width = frame.shape[0:2]
@@ -64,6 +74,8 @@ class NaborisPipeline(CvPipeline):
         # if lines is not None:
         #     for x1, y1, x2, y2 in lines[:, 0]:
         #         cv2.line(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+        self.post((self.left_distance, self.right_distance, self.forward_distance), self.results_service_tag)
 
         return np.concatenate((frame, cv2.cvtColor(canny, cv2.COLOR_GRAY2BGR)), axis=1)
 

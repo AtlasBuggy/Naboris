@@ -1,12 +1,11 @@
-from atlasbuggy.cameras.videoplayer import VideoPlayer
-from atlasbuggy.cameras.viewer.trackbar import CameraViewerWithTrackbar
 from atlasbuggy import Robot
-from atlasbuggy.subscriptions import Update, Feed
-
+from atlasbuggy.camera.video.videoplayer import VideoPlayer
+from atlasbuggy.camera.viewer.viewer import CameraViewer
+from atlasbuggy.subscriptions import Update
 from naboris.pipeline import NaborisPipeline
 
 
-class MyCameraViewer(CameraViewerWithTrackbar):
+class MyCameraViewer(CameraViewer):
     def __init__(self):
         super(MyCameraViewer, self).__init__(enabled=True)
 

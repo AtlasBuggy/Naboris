@@ -1,11 +1,11 @@
 import asyncio
 import os
 
-from atlasbuggy.cameras.videoplayer import VideoPlayer
-from atlasbuggy.cameras.viewer.trackbar import CameraViewerWithTrackbar
+from atlasbuggy.camera.video.videoplayer import VideoPlayer
+from atlasbuggy.camera.viewer.viewer import CameraViewer
 from atlasbuggy.robot import Robot
-from atlasbuggy.website.socket import SocketServer
 from atlasbuggy.subscriptions import *
+from atlasbuggy.website.socket import SocketServer
 
 os.chdir("..")
 
@@ -39,7 +39,7 @@ robot = Robot(log_level=10)
 
 capture = VideoPlayer(file_name="21_25_23.mp4", directory="videos/naboris/2017_Jun_10", loop_video=True)
 socket = MyServer()
-viewer = CameraViewerWithTrackbar()
+viewer = CameraViewer()
 
 socket.subscribe(Feed(socket.video_tag, capture))
 viewer.subscribe(Update(viewer.capture_tag, capture))

@@ -3,17 +3,15 @@ import random
 import asyncio
 
 from atlasbuggy.serial import SerialStream
+from atlasbuggy.plotters import LivePlotter, RobotPlot, RobotPlotCollection, StaticPlotter
+from atlasbuggy.subscriptions import Feed
 
-from naboris.soundfiles import SoundStream
+from naboris.soundfiles import Sounds
 from naboris.actuators import Actuators
-from atlasbuggy.plotters.liveplotter import LivePlotter
-from atlasbuggy.plotters.plot import RobotPlot
-from atlasbuggy.plotters.collection import RobotPlotCollection
-from atlasbuggy.plotters.staticplotter import StaticPlotter
 
 
 class Naboris(SerialStream):
-    def __init__(self, enabled=True, log_level=None, plot=False):
+    def __init__(self, enabled=True, log_level=None, plotter=None):
         self.actuators = Actuators()
         super(Naboris, self).__init__(self.actuators, enabled=enabled, log_level=log_level)
 
@@ -24,23 +22,28 @@ class Naboris(SerialStream):
         self.led_index = 0
         self.prev_led_state = None
 
-        self.sounds = SoundStream("sounds", "/home/pi/Music/Bastion/")
+        self.sounds = Sounds("sounds", "/home/pi/Music/Bastion/")
         self.random_sound_folders = ["humming", "curiousity", "nothing", "confusion", "concern", "sleepy", "vibrating"]
 
         self.led_plot = RobotPlotCollection("led plot")
-        self.plotter = None
-        self.should_plot = plot
+        self.plotter = plotter
+        self.plotter.add_plots(self.led_plot)
+
+        self.pipeline_feed = None
+        self.pipeline_tag = "pipeline"
+        self.results_service_tag = "results"
+        self.require_subscription(self.pipeline_tag, Feed, service=self.results_service_tag)
+
+    def take(self, subscriptions):
+        self.pipeline_feed = subscriptions[self.pipeline_tag].get_feed()
 
     def serial_start(self):
         self.actuators.set_all_leds(5, 5, 5)
         self.actuators.set_battery(5050, 5180)
 
-    def take(self, subscriptions):
-        if self.should_plot:
-            self.plotter = self.subscriptions["plotter"].stream
-            self.plotter.add_plots(self.led_plot)
-
     async def update(self):
+        while not self.pipeline_feed.empty():
+            print(await self.pipeline_feed.get())
         if self.plotter is not None:
             if isinstance(self.plotter, StaticPlotter):
                 await asyncio.sleep(0.0)
@@ -117,7 +120,7 @@ class Naboris(SerialStream):
                     self.plotter.draw_text(
                         self.led_plot,
                         "Hi I'm naboris!\nThese are the LEDs states at t=%0.2fs" % (self.dt()),
-                        0, 0, verticalalignment='center',  horizontalalignment='center', text_name="welcome text",
+                        0, 0, verticalalignment='center', horizontalalignment='center', text_name="welcome text",
                         fontsize='small'
                     )
 

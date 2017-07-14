@@ -2,9 +2,9 @@ import os
 from subprocess import Popen, PIPE, DEVNULL
 
 
-class SoundStream:
+class Sounds:
     def __init__(self, name, sound_directory, enabled=True, debug=False):
-        # super(SoundStream, self).__init__("", sound_directory, ["wav", "ogg"], "", False, enabled, debug,
+        # super(Sounds, self).__init__("", sound_directory, ["wav", "ogg"], "", False, enabled, debug,
         #                                   False, False)
         self.directory = os.path.abspath(sound_directory)
         self.file_types = ["wav", "ogg", "mp3"]

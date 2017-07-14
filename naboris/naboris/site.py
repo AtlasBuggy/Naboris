@@ -1,3 +1,4 @@
+import cv2
 import time
 
 from flask import Response, render_template, request
@@ -200,7 +201,7 @@ class NaborisWebsite(Website):
                 if frame is not None:
                     if self.pipeline_subscription.enabled and type(frame) == tuple:
                         frame = frame[0]
-                    bytes_frame = self.camera.numpy_to_bytes(frame)
+                    bytes_frame = self.numpy_to_bytes(frame)
                     yield (b'--frame\r\n'
                            b'Content-Type: image/jpeg\r\n\r\n' + bytes_frame + b'\r\n')
 
@@ -211,3 +212,7 @@ class NaborisWebsite(Website):
     def video_feed(self):
         """Video streaming route. Put this in the src attribute of an img tag."""
         return Response(self.video(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+    @staticmethod
+    def numpy_to_bytes(frame):
+        return cv2.imencode(".jpg", frame)[1].tostring()

@@ -8,20 +8,20 @@ class NaborisCLI(CommandLine):
         self.naboris = None
         self.actuators = None
         self.sounds = None
-        self.recorder = None
+        self.capture = None
 
         self.naboris_tag = "naboris"
-        self.recorder_tag = "recorder"
+        self.capture_tag = "capture"
 
         self.video_num_counter_regex = r"([\s\S]*)-([0-9]*)\.([\S]*)"
         self.video_name_regex = r"([\s\S]*)\.([\S]*)"
 
         self.require_subscription(self.naboris_tag)
-        self.require_subscription(self.recorder_tag)
+        self.require_subscription(self.capture_tag)
 
     def take(self, subscriptions):
-        self.naboris = subscriptions[self.naboris_tag].stream
-        self.recorder = subscriptions[self.recorder_tag].stream
+        self.naboris = subscriptions[self.naboris_tag].get_stream()
+        self.capture = subscriptions[self.capture_tag].get_stream()
         self.actuators = self.naboris.actuators
         self.sounds = self.naboris.sounds
 
@@ -148,11 +148,11 @@ class NaborisCLI(CommandLine):
         self.naboris.play_random_sound()
 
     def start_new_video(self, params):
-        self.recorder.stop_recording()
+        self.capture.stop_recording()
 
-        matches = re.findall(self.video_num_counter_regex, self.recorder.file_name)
+        matches = re.findall(self.video_num_counter_regex, self.capture.file_name)
         if len(matches) == 0:
-            name_matches = re.findall(self.video_name_regex, self.recorder.file_name)
+            name_matches = re.findall(self.video_name_regex, self.capture.file_name)
             file_name_no_ext, extension = name_matches[0]
             new_file_name = "%s-1.%s" % (file_name_no_ext, extension)
         else:
@@ -160,9 +160,9 @@ class NaborisCLI(CommandLine):
             counter = int(counter) + 1
             new_file_name = "%s-%s.%s" % (file_name_no_ext, counter, extension)
 
-        self.recorder.set_path(new_file_name, self.recorder.directory)
+        self.capture.set_path(new_file_name, self.capture.directory)
 
-        self.recorder.start_recording()
+        self.capture.start_recording()
 
     def check_commands(self, line, **commands):
         function = None
