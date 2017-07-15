@@ -19,6 +19,9 @@ class NaborisPipeline(Pipeline):
         self.skelton_kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
         self.morph_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
 
+        self.k_means_criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+        self.num_clusters_k = 3
+
         self.results_service_tag = "results"
         self.add_service(self.results_service_tag, self.results_post_service)
 
@@ -69,28 +72,24 @@ class NaborisPipeline(Pipeline):
 
         lines = cv2.HoughLines(canny, rho=1.5, theta=np.pi / 180, threshold=125)
 
-        points = []
-        directions = []
         if lines is not None:
             for rho, theta in lines[:, 0]:
-                a = np.cos(theta)
-                b = np.sin(theta)
-                x0 = a * rho
-                y0 = b * rho
-                x1 = int(x0 + 1000 * -b)
-                y1 = int(y0 + 1000 * a)
-                x2 = int(x0 - 1000 * -b)
-                y2 = int(y0 - 1000 * a)
+                self.draw_houghlines(frame, rho, theta, (0, 0, 255))
 
-                points.append((y0, x0))
-                directions.append((b, a))
+            if len(lines) > self.num_clusters_k:
+                ret, label, center = cv2.kmeans(lines, self.num_clusters_k, None, self.k_means_criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
 
-                cv2.line(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
+                for pt in center:
+                    print(pt[1], end=", ")
+                    self.draw_houghlines(frame, pt[0], pt[1], (0, 255, 255))
+                print()
 
-            # intersection = self.least_squares_intersection(points, directions)
-            # intersection = tuple(np.int16(intersection.T).tolist()[0])
-            # print(intersection)
-            # cv2.circle(frame, intersection, 10, (255, 0, 0), 3)
+                # self.post((cluster1, cluster2, center), self.results_service_tag)
+
+                # intersection = self.least_squares_intersection(points, directions)
+                # intersection = tuple(np.int16(intersection.T).tolist()[0])
+                # print(intersection)
+                # cv2.circle(frame, intersection, 10, (255, 0, 0), 3)
 
         # lines = cv2.HoughLinesP(canny, 1.2, np.pi / 180, 100, minLineLength=10, maxLineGap=25)
         # if lines is not None:
@@ -98,8 +97,21 @@ class NaborisPipeline(Pipeline):
         #         cv2.line(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
         # self.post((self.left_distance, self.right_distance, self.forward_distance), self.results_service_tag)
-        #
+
+        # if cluster1 is not None or cluster2 is not None or center is not None:
+
         return np.concatenate((frame, cv2.cvtColor(canny, cv2.COLOR_GRAY2BGR)), axis=1)
+
+    def draw_houghlines(self, frame, rho, theta, color):
+        a = np.cos(theta)
+        b = np.sin(theta)
+        x0 = a * rho
+        y0 = b * rho
+        x1 = int(x0 + 1000 * -b)
+        y1 = int(y0 + 1000 * a)
+        x2 = int(x0 - 1000 * -b)
+        y2 = int(y0 - 1000 * a)
+        cv2.line(frame, (x1, y1), (x2, y2), color, 2)
 
     @staticmethod
     def least_squares_intersection(a, n, transpose=True):
