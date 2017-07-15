@@ -20,8 +20,8 @@ class MyCameraViewer(CameraViewer):
 
     def take(self, subscriptions):
         self.take_capture(subscriptions)
-        self.pipeline = subscriptions[self.pipeline_tag].stream
-        self.pipeline_feed = subscriptions[self.pipeline_tag].queue
+        self.pipeline = subscriptions[self.pipeline_tag].get_stream()
+        self.pipeline_feed = subscriptions[self.pipeline_tag].get_feed()
         self.set_feed()
 
     def set_feed(self):
@@ -56,7 +56,7 @@ class MyCameraViewer(CameraViewer):
 
 robot = Robot(log_level=10)
 
-capture = VideoPlayer(file_name="videos/naboris/2017_May_28/16_23_21.mp4")
+capture = VideoPlayer(file_name="videos/naboris/2017_Jul_14/22_36_21-8.mp4", loop_video=True)
 viewer = MyCameraViewer()
 pipeline = NaborisPipeline()
 

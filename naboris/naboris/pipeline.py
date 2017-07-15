@@ -16,6 +16,9 @@ class NaborisPipeline(Pipeline):
         self.right_distance = 0
         self.forward_distance = 0
 
+        self.skelton_kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+        self.morph_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+
         self.results_service_tag = "results"
         self.add_service(self.results_service_tag, self.results_post_service)
 
@@ -32,20 +35,39 @@ class NaborisPipeline(Pipeline):
         # frame = frame[height - new_height:  height, center_x - new_width: center_x + new_width]
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        gray = cv2.GaussianBlur(gray, (3, 3), 0)
-        laplacian_64f = cv2.Laplacian(gray, cv2.CV_16S, ksize=5, scale=0.5, delta=0)
+        gray = cv2.GaussianBlur(gray, (9, 9), 0)
+        laplacian_64f = cv2.Laplacian(gray, cv2.CV_16S, ksize=3, scale=1.5, delta=0)
         abs_laplacian_64f = np.absolute(laplacian_64f)
         laplacian_8u = np.uint8(abs_laplacian_64f)
+        value, diff_frame = cv2.threshold(laplacian_8u, 10, 255, cv2.THRESH_BINARY)
 
-        mask = cv2.inRange(laplacian_8u, 80, 255)
-        masked = cv2.bitwise_and(laplacian_8u, laplacian_8u, mask=mask)
+        # erosion = cv2.erode(dilation, self.morph_kernel, iterations=1)
+        opening = cv2.morphologyEx(diff_frame, cv2.MORPH_OPEN, self.morph_kernel, iterations=1)
+        dilation = cv2.dilate(opening, self.morph_kernel, iterations=1)
 
-        kernel = np.ones((5, 5), np.uint8)
-        dilated = cv2.dilate(masked, kernel, iterations=1)
+        # skeleton = np.zeros(dilation.shape, np.uint8)
+        # size = np.size(dilation)
+        # done = False
+        # while not done:
+        #     eroded = cv2.erode(dilation, self.skelton_kernel)
+        #     temp = cv2.dilate(eroded, self.skelton_kernel)
+        #     temp = cv2.subtract(dilation, temp)
+        #     skeleton = cv2.bitwise_or(dilation, temp)
+        #     dilation = eroded.copy()
+        #
+        #     zeros = size - cv2.countNonZero(dilation)
+        #     if zeros == size:
+        #         done = True
 
-        canny = cv2.Canny(dilated, 1, 100)
+        # mask = cv2.inRange(diff_frame, 240, 255)
+        # masked = cv2.bitwise_and(diff_frame, diff_frame, mask=mask)
+        #
+        # kernel = np.ones((5, 5), np.uint8)
+        # dilated = cv2.dilate(masked, kernel, iterations=1)
 
-        lines = cv2.HoughLines(canny, rho=1.0, theta=np.pi / 180, threshold=120, min_theta=np.pi / 4, max_theta=np.pi * 3 / 4)
+        canny = cv2.Canny(dilation, 1, 100)
+
+        lines = cv2.HoughLines(canny, rho=1.5, theta=np.pi / 180, threshold=125)
 
         points = []
         directions = []
@@ -75,8 +97,8 @@ class NaborisPipeline(Pipeline):
         #     for x1, y1, x2, y2 in lines[:, 0]:
         #         cv2.line(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-        self.post((self.left_distance, self.right_distance, self.forward_distance), self.results_service_tag)
-
+        # self.post((self.left_distance, self.right_distance, self.forward_distance), self.results_service_tag)
+        #
         return np.concatenate((frame, cv2.cvtColor(canny, cv2.COLOR_GRAY2BGR)), axis=1)
 
     @staticmethod
