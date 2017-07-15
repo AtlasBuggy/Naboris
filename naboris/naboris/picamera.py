@@ -11,7 +11,7 @@ from atlasbuggy import ThreadedStream
 
 class PiCamera(ThreadedStream):
     def __init__(self, enabled=True, record=False, log_level=None, file_name=None, directory=None):
-        super(PiCamera, self).__init__(enabled, name, log_level)
+        super(PiCamera, self).__init__(enabled, log_level=log_level)
 
         self.width = 0
         self.height = 0
@@ -27,7 +27,6 @@ class PiCamera(ThreadedStream):
         self.directory = directory
         self.full_path = ""
 
-        self.fps = None
         self.length_sec = 0.0
 
         self.fps_sum = 0.0
@@ -54,11 +53,11 @@ class PiCamera(ThreadedStream):
 
     def start_recording(self, file_name=None, directory=None):
         self.set_path(file_name, directory)
-        if self.should_record:
-            self.make_dirs()
-            self.logger.debug("Recording video on '%s'" % self.full_path)
-            self.capture.start_recording(self.full_path)
-            self.is_recording = True
+        self.num_frames = 0
+        self.make_dirs()
+        self.logger.debug("Recording video on '%s'" % self.full_path)
+        self.capture.start_recording(self.full_path)
+        self.is_recording = True
 
     def make_dirs(self):
         if self.directory is not None and len(self.directory) > 0 and not os.path.isdir(self.directory):
@@ -66,7 +65,7 @@ class PiCamera(ThreadedStream):
 
     def set_path(self, file_name=None, directory=None):
         if file_name is None:
-            file_name = time.strftime("%H;%M;%S.mp4")
+            file_name = time.strftime("%H_%M_%S.mp4")
             if directory is None:
                 # only use default if both directory and file_name are None.
                 # Assume file_name has the full path if directory is None
@@ -86,7 +85,8 @@ class PiCamera(ThreadedStream):
             self.capture.start_preview()
             time.sleep(2)
 
-            self.start_recording(self.file_name, self.directory)
+            if self.should_record:
+                self.start_recording(self.file_name, self.directory)
 
             raw_capture = PiRGBArray(self.capture, size=self.capture.resolution)
             for frame in self.capture.capture_continuous(raw_capture, format="bgr", use_video_port=True):
@@ -130,8 +130,10 @@ class PiCamera(ThreadedStream):
             if self.file_name.endswith(".mp4"):
                 converter = H264toMP4converter(self.full_path)
                 converter.start()
+
                 while converter.is_running():
-                    pass
+                    for line in converter.process.stderr:
+                        self.logger.debug(line.strip())
 
                 self.logger.debug("Conversion complete! Removing temp file: '%s'" % self.full_path)
                 os.remove(self.full_path)
@@ -155,11 +157,11 @@ class H264toMP4converter:
         self.output = None
 
     def start(self):
-        print("Converting video to mp4: '%s'" % self.new_path)
+        # print("Converting video to mp4: '%s'" % self.new_path)
         if os.path.isfile(self.new_path):
             os.remove(self.new_path)
-        self.process = Popen(['MP4Box', '-add', self.full_path, self.new_path], stdin=PIPE,
-                             stdout=DEVNULL, close_fds=True, bufsize=0)
+        self.process = Popen("/usr/bin/MP4Box -add %s %s" % (self.full_path, self.new_path),
+                             stdout=DEVNULL, stderr=PIPE, bufsize=1, universal_newlines=True, shell=True)
         self.output = None
 
         assert self.process is not None

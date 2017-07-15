@@ -22,7 +22,7 @@ robot = Robot(write=log)
 video_file_name = robot.log_info["file_name"].replace(";", "_")[:-3] + "mp4"
 video_directory = "videos/" + robot.log_info["directory"].split("/")[-1]
 
-camera = PiCamera(file_name=video_file_name, directory=video_directory)
+camera = PiCamera(file_name=video_file_name, directory=video_directory, record=log)
 naboris = Naboris()
 pipeline = NaborisPipeline(args.pipeline)
 cmdline = NaborisCLI()

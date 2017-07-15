@@ -27,7 +27,8 @@ class Naboris(SerialStream):
 
         self.led_plot = RobotPlotCollection("led plot")
         self.plotter = plotter
-        self.plotter.add_plots(self.led_plot)
+        if self.plotter is not None:
+            self.plotter.add_plots(self.led_plot)
 
         self.pipeline_feed = None
         self.pipeline_tag = "pipeline"

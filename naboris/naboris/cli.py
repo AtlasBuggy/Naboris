@@ -1,4 +1,5 @@
 import re
+import os
 from atlasbuggy.cmdline import CommandLine
 
 
@@ -148,21 +149,26 @@ class NaborisCLI(CommandLine):
         self.naboris.play_random_sound()
 
     def start_new_video(self, params):
-        self.capture.stop_recording()
+        if not self.capture.is_recording:
+            matches = re.findall(self.video_num_counter_regex, self.capture.file_name)
+            if len(matches) == 0:
+                name_matches = re.findall(self.video_name_regex, self.capture.file_name)
+                file_name_no_ext, extension = name_matches[0]
+                new_file_name = "%s-1.%s" % (file_name_no_ext, extension)
+            else:
+                file_name_no_ext, counter, extension = matches[0]
+                counter = int(counter) + 1
+                new_file_name = "%s-%s.%s" % (file_name_no_ext, counter, extension)
 
-        matches = re.findall(self.video_num_counter_regex, self.capture.file_name)
-        if len(matches) == 0:
-            name_matches = re.findall(self.video_name_regex, self.capture.file_name)
-            file_name_no_ext, extension = name_matches[0]
-            new_file_name = "%s-1.%s" % (file_name_no_ext, extension)
+            self.capture.start_recording(new_file_name, self.capture.directory)
         else:
-            file_name_no_ext, counter, extension = matches
-            counter = int(counter) + 1
-            new_file_name = "%s-%s.%s" % (file_name_no_ext, counter, extension)
+            print("PiCamera already recording")
 
-        self.capture.set_path(new_file_name, self.capture.directory)
-
-        self.capture.start_recording()
+    def stop_recording(self, params):
+        if self.capture.is_recording:
+            self.capture.stop_recording()
+        else:
+            print("PiCamera already stopped recording")
 
     def check_commands(self, line, **commands):
         function = None
@@ -193,5 +199,6 @@ class NaborisCLI(CommandLine):
                 hello=self.say_hello,
                 alert=self.say_alert,
                 sound=self.say_random_sound,
-                video=self.start_new_video
+                start_video=self.start_new_video,
+                stop_video=self.stop_recording,
             )

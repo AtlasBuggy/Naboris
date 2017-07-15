@@ -93,15 +93,15 @@ class NaborisWebsite(Website):
         self.frame_feed = None
 
     def take(self, subscriptions):
-        self.camera = subscriptions[self.camera_tag].stream
-        self.cmdline = subscriptions[self.cmd_tag].stream
-        self.pipeline = subscriptions[self.pipeline_tag].stream
+        self.camera = subscriptions[self.camera_tag].get_stream()
+        self.cmdline = subscriptions[self.cmd_tag].get_stream()
+        self.pipeline = subscriptions[self.pipeline_tag].get_stream()
 
         self.camera_subscription = subscriptions[self.camera_tag]
         self.pipeline_subscription = subscriptions[self.pipeline_tag]
 
-        self.camera_feed = subscriptions[self.camera_tag].queue
-        self.pipeline_feed = subscriptions[self.pipeline_tag].queue
+        self.camera_feed = subscriptions[self.camera_tag].get_feed()
+        self.pipeline_feed = subscriptions[self.pipeline_tag].get_feed()
 
         self.show_orignal = not self.pipeline.enabled
         self.update_frame_source()
@@ -126,8 +126,9 @@ class NaborisWebsite(Website):
             Button(["pause video", "unpause video"], ":toggle_camera", "toggle_camera_button",
                    "command_button toggles"),
             Button(["show original", "show pipeline"], ":toggle_pipeline", "toggle_pipeline_button",
-                   "command_button toggles",
-                   int(self.show_orignal)),
+                   "command_button toggles", int(self.show_orignal)),
+            Button(["start recording", "stop recording"], ":toggle_recording", "toggle_recording_button",
+                   "command_button toggles", int(self.camera.is_recording)),
 
             Button("say hello!", "hello", "say hello button", "command_button speak"),
             Button("PANIC!!!", "alert", "alert button", "command_button speak"),
@@ -184,6 +185,14 @@ class NaborisWebsite(Website):
                 elif command == ":toggle_autonomy":
                     self.autonomous_mode = not self.autonomous_mode
                     return self.commands[command].switch_label(int(self.autonomous_mode))
+
+                elif command == ":toggle_recording":
+                    if not self.camera.is_recording:
+                        self.cmdline.handle_input("start_video")
+                    else:
+                        self.cmdline.handle_input("stop_video")
+                    return self.commands[command].switch_label(int(self.camera.is_recording))
+
             else:
                 self.cmdline.handle_input(command.replace("_", " "))
         return ""
