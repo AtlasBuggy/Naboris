@@ -65,20 +65,42 @@ class NaborisPipeline(Pipeline):
         self.right_distance = 0
         self.forward_distance = 0
 
+        self.focal_length = 753.89072627, 746.98092088
+        self.principle_point = 268.01003591, 131.86922614
+        self.rms = 0.34601143374607224
+        self.distortion_coefficients = [-0.20154387, 2.59173859, -0.03040153, -0.02874057, -6.8478438]
+        self.camera_matrix = np.array([[self.focal_length[0], 0, self.principle_point[0],
+                                        0, self.focal_length[1], self.principle_point[1],
+                                        0, 0, 1]])
+        self.new_camera_matrix = None
+        self.region_of_interest = None
+
         self.wall_detector = WallDetector()
         self.odometer = VisualOdometer()
 
         self.results_service_tag = "results"
         self.add_service(self.results_service_tag, self.results_post_service)
 
+    def start(self):
+        self.new_camera_matrix, self.region_of_interest = cv2.getOptimalNewCameraMatrix(
+            self.camera_matrix, self.distortion_coefficients, (self.width, self.height), 1, (self.width, self.height))
+
+    def undistort(self, frame):
+        frame = cv2.undistort(frame, self.camera_matrix, self.distortion_coefficients, None, self.new_camera_matrix)
+        x, y, w, h = self.region_of_interest
+        return frame[y: y + h, x: x + w]
+
     def results_post_service(self, data):
         return data
 
     def pipeline(self, frame):
-        original_frame = frame.copy()
+        # original_frame = frame.copy()
         # frame = self.wall_detector.detect_walls(original_frame, frame)
-        frame = self.odometer.update(original_frame, frame)
-        return frame
+        # frame = self.odometer.update(original_frame, frame)
+        # return frame
+        undistorted = self.undistort(frame)
+        undistorted = cv2.resize(undistorted, (self.width, self.height))
+        return np.concatenate((undistorted, frame), axis=1)
 
 
 class WallDetector:
@@ -198,9 +220,6 @@ class VisualOdometer:
     def __init__(self):
         self.focal_length = 700
         self.principle_point = 607.1928, 185.2157
-        self.camera_matrix = np.array([[self.focal_length, 0, self.principle_point[0],
-                                        0, self.focal_length, self.principle_point[1],
-                                        0, 0, 1]])
 
         self.orb = cv2.ORB_create()
         self.current_points = None

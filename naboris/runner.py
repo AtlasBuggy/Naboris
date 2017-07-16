@@ -24,8 +24,8 @@ video_directory = "videos/" + robot.log_info["directory"].split("/")[-1]
 
 camera = PiCamera(file_name=video_file_name, directory=video_directory)
 naboris = Naboris()
-# pipeline = NaborisPipeline(args.pipeline)
-pipeline = CalibrationPipeline()
+pipeline = NaborisPipeline(args.pipeline)
+# pipeline = CalibrationPipeline()
 cmdline = NaborisCLI()
 website = NaborisWebsite("templates", "static")
 socket = NaborisSocketServer(enabled=False)
