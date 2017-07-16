@@ -88,16 +88,16 @@ class RhoThetaPlotter(LivePlotter):
 
 robot = Robot(log_level=10)
 
-video_name = "videos/naboris/2017_Jul_14/22_36_21-2.mp4"
-# video_name = "videos/naboris/2017_Jul_14/23_24_32-1.mp4"
+video_name = "videos/naboris/2017_Jul_14/22_36_21-7.mp4"
+# video_name = "videos/naboris/2017_Jul_14/23_24_32-2.mp4"
 capture = VideoPlayer(file_name=video_name, loop_video=True)
 viewer = MyCameraViewer()
 pipeline = NaborisPipeline()
-plotter = RhoThetaPlotter(enabled=False)
+# plotter = RhoThetaPlotter(enabled=False)
 
 viewer.subscribe(Update(viewer.capture_tag, capture))
 viewer.subscribe(Update(viewer.pipeline_tag, pipeline))
 pipeline.subscribe(Update(pipeline.capture_tag, capture))
-plotter.subscribe(Feed(plotter.pipeline_tag, pipeline, plotter.results_service_tag))
+# plotter.subscribe(Feed(plotter.pipeline_tag, pipeline, plotter.results_service_tag))
 
-robot.run(viewer, capture, pipeline, plotter)
+robot.run(viewer, capture, pipeline)

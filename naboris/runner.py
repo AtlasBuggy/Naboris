@@ -5,7 +5,7 @@ from atlasbuggy.subscriptions import *
 from naboris import Naboris
 from naboris.picamera import PiCamera
 from naboris.cli import NaborisCLI
-from naboris.pipeline import NaborisPipeline
+from naboris.pipeline import NaborisPipeline, CalibrationPipeline
 from naboris.site import NaborisWebsite
 from naboris.socket_server import NaborisSocketServer
 
@@ -24,7 +24,8 @@ video_directory = "videos/" + robot.log_info["directory"].split("/")[-1]
 
 camera = PiCamera(file_name=video_file_name, directory=video_directory, record=log)
 naboris = Naboris()
-pipeline = NaborisPipeline(args.pipeline)
+# pipeline = NaborisPipeline(args.pipeline)
+pipeline = CalibrationPipeline()
 cmdline = NaborisCLI()
 website = NaborisWebsite("templates", "static")
 socket = NaborisSocketServer(enabled=False)
