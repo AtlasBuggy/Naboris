@@ -10,7 +10,7 @@ from naboris.site import NaborisWebsite
 from naboris.socket_server import NaborisSocketServer
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-l", "--log", help="enable logging", action="store_true")
+parser.add_argument("-l", "--log", help="disable logging", action="store_false")
 parser.add_argument("-d", "--debug", help="enable debug prints", action="store_true")
 parser.add_argument("-pipe", "--pipeline", help="enable pipeline", action="store_true")
 args = parser.parse_args()
@@ -22,7 +22,7 @@ robot = Robot(write=log)
 video_file_name = robot.log_info["file_name"].replace(";", "_")[:-3] + "mp4"
 video_directory = "videos/" + robot.log_info["directory"].split("/")[-1]
 
-camera = PiCamera(file_name=video_file_name, directory=video_directory, record=log)
+camera = PiCamera(file_name=video_file_name, directory=video_directory)
 naboris = Naboris()
 pipeline = NaborisPipeline(args.pipeline)
 cmdline = NaborisCLI()
