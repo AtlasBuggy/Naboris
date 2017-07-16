@@ -36,9 +36,13 @@ class CalibrationPipeline(Pipeline):
             term = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1)
             cv2.cornerSubPix(gray, corners, (5, 5), (-1, -1), term)
 
-            self.img_points.append(corners.reshape(-1, 2))
-            self.obj_points.append(self.pattern_points)
-            print("Chessboard found!")
+            if self.current_frame_num % 10 == 0:
+                self.img_points.append(corners.reshape(-1, 2))
+                self.obj_points.append(self.pattern_points)
+                print("Chessboard found! length: %s" % len(self.img_points))
+
+                if len(self.img_points) >= 25:
+                    self.exit()
         else:
             print("Chessboard not found")
 
