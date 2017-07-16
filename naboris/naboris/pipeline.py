@@ -54,7 +54,9 @@ class CalibrationPipeline(Pipeline):
                                                                            (self.width, self.height), None, None)
         print("\nRMS:", rms)
         print("camera matrix:\n", camera_matrix)
-        print("distortion coefficients: ", dist_coefs.ravel())
+        print("distortion coefficients:\n", dist_coefs)
+        print("rvecs:", rvecs)
+        print("tvecs:", tvecs)
 
 
 class NaborisPipeline(Pipeline):
@@ -68,12 +70,15 @@ class NaborisPipeline(Pipeline):
         self.focal_length = 753.89072627, 746.98092088
         self.principle_point = 268.01003591, 131.86922614
         self.rms = 0.34601143374607224
-        self.distortion_coefficients = [-0.20154387, 2.59173859, -0.03040153, -0.02874057, -6.8478438]
-        self.camera_matrix = np.array([[self.focal_length[0], 0, self.principle_point[0],
-                                        0, self.focal_length[1], self.principle_point[1],
-                                        0, 0, 1]])
+        self.distortion_coefficients = np.array([[-0.20154387, 2.59173859, -0.03040153, -0.02874057, -6.8478438]])
+        self.camera_matrix = np.array([[self.focal_length[0], 0, self.principle_point[0]],
+                                        [0, self.focal_length[1], self.principle_point[1]],
+                                        [0, 0, 1]])
+
         self.new_camera_matrix = None
         self.region_of_interest = None
+
+        self.roi_frame = None
 
         self.wall_detector = WallDetector()
         self.odometer = VisualOdometer()
@@ -84,9 +89,10 @@ class NaborisPipeline(Pipeline):
     def start(self):
         self.new_camera_matrix, self.region_of_interest = cv2.getOptimalNewCameraMatrix(
             self.camera_matrix, self.distortion_coefficients, (self.width, self.height), 1, (self.width, self.height))
+        self.roi_frame = np.zeros((self.height, self.width, 3))
 
     def undistort(self, frame):
-        frame = cv2.undistort(frame, self.camera_matrix, self.distortion_coefficients, None, self.new_camera_matrix)
+        return cv2.undistort(frame, self.camera_matrix, self.distortion_coefficients, None, self.new_camera_matrix)
         x, y, w, h = self.region_of_interest
         return frame[y: y + h, x: x + w]
 
@@ -94,13 +100,15 @@ class NaborisPipeline(Pipeline):
         return data
 
     def pipeline(self, frame):
-        # original_frame = frame.copy()
+        original_frame = frame.copy()
         # frame = self.wall_detector.detect_walls(original_frame, frame)
-        # frame = self.odometer.update(original_frame, frame)
-        # return frame
-        undistorted = self.undistort(frame)
-        undistorted = cv2.resize(undistorted, (self.width, self.height))
-        return np.concatenate((undistorted, frame), axis=1)
+        frame = self.odometer.update(original_frame, frame)
+        return frame
+
+        # undistorted = self.undistort(frame)
+        # height, width = undistorted.shape[0:2]
+        # self.roi_frame[0:height, 0:width] = undistorted
+        # return np.concatenate((self.roi_frame, frame), axis=1)
 
 
 class WallDetector:
