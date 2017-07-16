@@ -13,8 +13,8 @@ class CalibrationPipeline(Pipeline):
     def __init__(self, enabled=True, log_level=None):
         super(CalibrationPipeline, self).__init__(enabled, log_level)
 
-        self.square_size = 1.0
-        self.pattern_size = (9, 6)
+        self.square_size = 26.715  # mm squares
+        self.pattern_size = (7, 7)  # number of corners
 
         self.pattern_points = np.zeros((np.prod(self.pattern_size), 3), np.float32)
         self.pattern_points[:, :2] = np.indices(self.pattern_size).T.reshape(-1, 2)
@@ -23,18 +23,29 @@ class CalibrationPipeline(Pipeline):
         self.obj_points = []
         self.img_points = []
 
+        self.results_service_tag = "results"
+        self.add_service(self.results_service_tag, self.results_post_service)
+
+    def results_post_service(self, data):
+        return data
+
     def pipeline(self, frame):
-        found, corners = cv2.findChessboardCorners(frame, self.pattern_size)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        found, corners = cv2.findChessboardCorners(gray, self.pattern_size)
         if found:
             term = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1)
-            cv2.cornerSubPix(frame, corners, (5, 5), (-1, -1), term)
+            cv2.cornerSubPix(gray, corners, (5, 5), (-1, -1), term)
 
             self.img_points.append(corners.reshape(-1, 2))
             self.obj_points.append(self.pattern_points)
+            print("Chessboard found!")
         else:
             print("Chessboard not found")
 
-    def stop(self):
+        cv2.drawChessboardCorners(frame, self.pattern_size, corners, found)
+        return frame
+
+    def stopped(self):
         rms, camera_matrix, dist_coefs, rvecs, tvecs = cv2.calibrateCamera(self.obj_points, self.img_points,
                                                                            (self.width, self.height), None, None)
         print("\nRMS:", rms)
