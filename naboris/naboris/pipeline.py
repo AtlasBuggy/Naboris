@@ -91,7 +91,7 @@ class NaborisPipeline(Pipeline):
         self.new_camera_matrix, self.region_of_interest = cv2.getOptimalNewCameraMatrix(
             self.camera_matrix, self.distortion_coefficients, (self.width, self.height), 1, (self.width, self.height))
         self.roi_frame = np.zeros((self.height, self.width, 3))
-        self.wall_detector = WallDetector(self.width, self.height)
+        self.wall_detector = WallDetector(self.width, self.height, self.logger)
 
     def undistort(self, frame):
         return cv2.undistort(frame, self.camera_matrix, self.distortion_coefficients, None, self.new_camera_matrix)
@@ -100,6 +100,9 @@ class NaborisPipeline(Pipeline):
 
     def results_post_service(self, data):
         return data
+
+    def adjust_filter(self):
+        self.wall_detector.adjust_filter()
 
     def pipeline(self, frame):
         original_frame = frame.copy()
@@ -118,7 +121,9 @@ class NaborisPipeline(Pipeline):
 
 
 class WallDetector:
-    def __init__(self, width, height):
+    def __init__(self, width, height, logger):
+        self.logger = logger
+
         self.morph_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
 
         self.k_means_criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 10, 1.0)
@@ -161,23 +166,40 @@ class WallDetector:
         self.pipeline_frame = None
         self.hough_result = None
         self.has_guessed = False
+        self.is_minimizing = False
+
+    def adjust_filter(self):
+        self.logger.info("before: %s" % self.initial_guess)
+        self.is_minimizing = True
+        result = minimize(self.hough_pipeline, self.initial_guess, method='nelder-mead',
+                          tol=2,
+                          options={'disp': True}
+                          )
+        self.is_minimizing = False
+        # print(self.initial_guess == result.x)
+        self.initial_guess = result.x
+        self.logger.info("after: " % self.initial_guess)
 
     def detect_walls(self, frame, draw_frame):
-        self.current_frame = frame
+        if not self.is_minimizing:
+            self.current_frame = frame
         self.draw_frame = draw_frame
-        if not self.has_guessed:  # self.hough_result is None or len(self.hough_result) > self.max_line_num:
-            print("before:", self.initial_guess)
-            result = minimize(self.hough_pipeline, self.initial_guess, method='nelder-mead',
-                              # tol=1E-9,
-                              # options={'disp': True}
-                              )
-            # print(self.initial_guess == result.x)
-            self.initial_guess = result.x
-            print("after:", self.initial_guess)
 
-            self.has_guessed = True
-        else:
-            self.hough_pipeline(self.initial_guess)
+        # if not self.has_guessed:  # self.hough_result is None or len(self.hough_result) > self.max_line_num:
+        #     print("before:", self.initial_guess)
+        #     result = minimize(self.hough_pipeline, self.initial_guess, method='nelder-mead',
+        #                       tol=2,
+        #                       options={'disp': True}
+        #                       )
+        #     # print(self.initial_guess == result.x)
+        #     self.initial_guess = result.x
+        #     print("after:", self.initial_guess)
+        #
+        #     self.has_guessed = True
+        # else:
+        #     self.hough_pipeline(self.initial_guess)
+
+        self.hough_pipeline(self.initial_guess)
 
         if self.hough_result is not None:
             # print("result length:", len(self.hough_result))
@@ -222,7 +244,7 @@ class WallDetector:
                     self.distances[index] = None
                 score_info.reset()
 
-        print(self.distances)
+        self.logger.info("distances: %s" % self.distances)
         # self.pipeline_frame = cv2.resize(self.pipeline_frame, (width, height))
         # self.pipeline_frame = cv2.cvtColor(self.pipeline_frame, cv2.COLOR_GRAY2BGR)
         self.pipeline_frame = cv2.bitwise_not(self.pipeline_frame)
@@ -258,6 +280,7 @@ class WallDetector:
         else:
             function_result = self.desired_line_num ** 2
 
+        self.logger.info("function_result: %s" % function_result)
         self.pipeline_frame = dilation
         return function_result
 
@@ -288,11 +311,13 @@ class WallDetector:
 
         self.left_score.compute_score(left_intercept)
         self.right_score.compute_score(right_intercept)
-        self.horz_score.compute_score(angle)
+
+        if -self.height < right_intercept < 2 * self.height and -self.height < left_intercept < 2 * self.height:
+            self.horz_score.compute_score(angle)
+            self.horz_score.distance_value = (left_intercept + right_intercept) / 2
 
         self.left_score.distance_value = -top_intercept
         self.right_score.distance_value = top_intercept
-        self.horz_score.distance_value = (left_intercept + right_intercept) / 2
 
 
 class LineScore:

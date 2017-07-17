@@ -129,6 +129,7 @@ class NaborisWebsite(Website):
                    "command_button toggles", int(self.show_orignal)),
             Button(["start recording", "stop recording"], ":toggle_recording", "toggle_recording_button",
                    "command_button toggles", int(self.camera.is_recording)),
+            Button("adjust filter", ":adjust_filter", "adjust_filter_button", "command_button toggles"),
 
             Button("say hello!", "hello", "say hello button", "command_button speak"),
             Button("PANIC!!!", "alert", "alert button", "command_button speak"),
@@ -193,6 +194,8 @@ class NaborisWebsite(Website):
                         self.cmdline.handle_input("stop_video")
                     return self.commands[command].switch_label(int(self.camera.is_recording))
 
+                elif command == ":adjust_filter":
+                    self.pipeline.adjust_filter()
             else:
                 self.cmdline.handle_input(command.replace("_", " "))
         return ""
