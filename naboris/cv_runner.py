@@ -57,47 +57,76 @@ class MyCameraViewer(CameraViewer):
                 self.capture_feed.enabled = True
 
 
-class RhoThetaPlotter(LivePlotter):
+class DataPlotter(LivePlotter):
     def __init__(self, enabled=True):
-        self.rho_theta_plot_1 = RobotPlot("rho_theta_1", marker=".", linestyle='', color='red')
-        self.rho_theta_plot_2 = RobotPlot("rho_theta_2", marker=".", linestyle='', color='blue')
-        self.cluster_plot_centers = RobotPlot("centers", marker="s", linestyle='', color='green')
-        plot_collection = RobotPlotCollection("rho_theta", self.rho_theta_plot_1, self.rho_theta_plot_2,
-                                              self.cluster_plot_centers)
+        self.position_plot = RobotPlot("position_plot", marker=".", linestyle='-', color='red', enabled=False)
 
-        super(RhoThetaPlotter, self).__init__(1, plot_collection, default_resize_behavior=False, enabled=enabled)
+        self.top_dist_plot = RobotPlot("top_dist_plot", color="blue")
+        self.left_dist_plot = RobotPlot("left_dist_plot", color="green")
+        self.right_dist_plot = RobotPlot("right_dist_plot", color="red")
+        self.distance_plot = RobotPlotCollection("dist_plot", self.top_dist_plot, self.left_dist_plot, self.right_dist_plot)
+
+        super(DataPlotter, self).__init__(2, self.position_plot, self.distance_plot, active_window_resizing=False,
+                                          enabled=enabled)
 
         self.pipeline_tag = "pipeline"
         self.results_service_tag = "results"
         self.pipeline_feed = None
         self.require_subscription(self.pipeline_tag, Feed, service=self.results_service_tag)
 
+        max_limit = 900
+        self.x_limits = [-max_limit, max_limit]
+        self.y_limits = [-max_limit, max_limit]
+
+    def start(self):
+        self.get_axis(self.distance_plot).set_xlim(self.x_limits)
+        self.get_axis(self.distance_plot).set_ylim(self.y_limits)
+
     def take(self, subscriptions):
         self.pipeline_feed = subscriptions[self.pipeline_tag].get_feed()
 
     async def update(self):
         while not self.pipeline_feed.empty():
-            cluster1, cluster2, center = await self.pipeline_feed.get()
+            position, rotation, distances = await self.pipeline_feed.get()
             self.pipeline_feed.task_done()
 
-            self.rho_theta_plot_1.extend(cluster1[:, 0], cluster1[:, 1])
-            self.rho_theta_plot_2.extend(cluster2[:, 0], cluster2[:, 1])
-            self.cluster_plot_centers.extend(center[:, 0], center[:, 1])
+            self.position_plot.append(position[0], position[1])
+
+            print(distances)
+            left_dist, right_dist, top_dist = distances
+
+            if left_dist is not None:
+                self.left_dist_plot.update([left_dist, left_dist], self.y_limits)
+                self.left_dist_plot.set_properties(color="blue")
+            else:
+                self.left_dist_plot.set_properties(color="gray")
+
+            if right_dist is not None:
+                self.right_dist_plot.update([right_dist, right_dist], self.y_limits)
+                self.right_dist_plot.set_properties(color="green")
+            else:
+                self.right_dist_plot.set_properties(color="gray")
+            if top_dist is not None:
+                self.top_dist_plot.update(self.x_limits, [top_dist, top_dist])
+                self.top_dist_plot.set_properties(color="red")
+            else:
+                self.top_dist_plot.set_properties(color="gray")
+
         await asyncio.sleep(0.001)
 
 
 robot = Robot(log_level=10)
 
-video_name = "videos/naboris/2017_Jul_14/22_36_21-7.mp4"
-# video_name = "videos/naboris/2017_Jul_14/23_24_32-2.mp4"
+# video_name = "videos/naboris/2017_Jul_14/22_36_21-1.mp4"
+video_name = "videos/naboris/2017_Jul_14/23_24_32-3.mp4"
 capture = VideoPlayer(file_name=video_name, loop_video=True)
 viewer = MyCameraViewer()
 pipeline = NaborisPipeline()
-# plotter = RhoThetaPlotter(enabled=False)
+plotter = DataPlotter(enabled=False)
 
 viewer.subscribe(Update(viewer.capture_tag, capture))
 viewer.subscribe(Update(viewer.pipeline_tag, pipeline))
 pipeline.subscribe(Update(pipeline.capture_tag, capture))
-# plotter.subscribe(Feed(plotter.pipeline_tag, pipeline, plotter.results_service_tag))
+plotter.subscribe(Feed(plotter.pipeline_tag, pipeline, plotter.results_service_tag))
 
-robot.run(viewer, capture, pipeline)
+robot.run(viewer, capture, pipeline, plotter)

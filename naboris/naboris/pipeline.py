@@ -5,6 +5,7 @@ import cv2
 # from numpy import linalg
 import numpy as np
 from scipy.optimize import minimize
+from scipy.stats import norm
 
 from atlasbuggy.camera.pipeline import Pipeline
 
@@ -72,16 +73,16 @@ class NaborisPipeline(Pipeline):
         self.rms = 0.34601143374607224
         self.distortion_coefficients = np.array([[-0.20154387, 2.59173859, -0.03040153, -0.02874057, -6.8478438]])
         self.camera_matrix = np.array([[self.focal_length[0], 0, self.principle_point[0]],
-                                        [0, self.focal_length[1], self.principle_point[1]],
-                                        [0, 0, 1]])
+                                       [0, self.focal_length[1], self.principle_point[1]],
+                                       [0, 0, 1]])
 
         self.new_camera_matrix = None
         self.region_of_interest = None
 
         self.roi_frame = None
 
-        self.wall_detector = WallDetector()
-        self.odometer = VisualOdometer()
+        self.wall_detector = None
+        self.odometer = VisualOdometer(self.camera_matrix)
 
         self.results_service_tag = "results"
         self.add_service(self.results_service_tag, self.results_post_service)
@@ -90,19 +91,24 @@ class NaborisPipeline(Pipeline):
         self.new_camera_matrix, self.region_of_interest = cv2.getOptimalNewCameraMatrix(
             self.camera_matrix, self.distortion_coefficients, (self.width, self.height), 1, (self.width, self.height))
         self.roi_frame = np.zeros((self.height, self.width, 3))
+        self.wall_detector = WallDetector(self.width, self.height)
 
     def undistort(self, frame):
         return cv2.undistort(frame, self.camera_matrix, self.distortion_coefficients, None, self.new_camera_matrix)
-        x, y, w, h = self.region_of_interest
-        return frame[y: y + h, x: x + w]
+        # x, y, w, h = self.region_of_interest
+        # return frame[y: y + h, x: x + w]
 
     def results_post_service(self, data):
         return data
 
     def pipeline(self, frame):
         original_frame = frame.copy()
-        # frame = self.wall_detector.detect_walls(original_frame, frame)
-        frame = self.odometer.update(original_frame, frame)
+        frame = self.wall_detector.detect_walls(original_frame, frame)
+        # frame = self.odometer.update(original_frame, frame)
+
+        self.post((self.odometer.position, self.odometer.rotation,
+                   self.wall_detector.distances), service=self.results_service_tag)
+
         return frame
 
         # undistorted = self.undistort(frame)
@@ -112,7 +118,7 @@ class NaborisPipeline(Pipeline):
 
 
 class WallDetector:
-    def __init__(self):
+    def __init__(self, width, height):
         self.morph_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
 
         self.k_means_criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 10, 1.0)
@@ -135,6 +141,20 @@ class WallDetector:
 
         self.desired_line_num = 50
         self.max_line_num = 100
+        self.width = width
+        self.height = height
+
+        self.left_score = LineScore(self.height, self.height / 2)
+        self.right_score = LineScore(self.height, self.height / 2)
+        self.horz_score = LineScore(0.0, np.radians(10.0))
+        self.scores = [self.left_score, self.right_score, self.horz_score]
+        self.distances = [0.0, 0.0, 0.0]
+
+        # self.vert_score_mean = np.pi / 2
+        # self.vert_score_std = np.radians(10.0)
+        # self.vert_normalized_value = norm.pdf(self.vert_score_mean, self.vert_score_mean, self.vert_score_std)
+
+        self.min_score = 0.75
 
         self.current_frame = None
         self.draw_frame = None
@@ -168,12 +188,41 @@ class WallDetector:
                 num_clusters_k = len(self.hough_result)
             else:
                 num_clusters_k = self.num_clusters_k
-            _, label, center = cv2.kmeans(self.hough_result, num_clusters_k, None, self.k_means_criteria, 10,
-                                          cv2.KMEANS_RANDOM_CENTERS)
-            for pt in center:
-                # print(pt[1], end=", ")
-                self.draw_houghlines(self.draw_frame, pt[0], pt[1], (0, 255, 255))
+            _, label, clusters = cv2.kmeans(self.hough_result, num_clusters_k, None, self.k_means_criteria, 10,
+                                            cv2.KMEANS_RANDOM_CENTERS)
 
+            highest_scores = [0.0, 0.0, 0.0, 0.0]
+            for rho, theta in clusters:
+                self.compute_line_scores(rho, theta)
+
+                score_info = max(self.scores, key=lambda line_score: line_score.score)
+                line_index = self.scores.index(score_info)
+                # print([line_score.score for line_score in self.scores])
+                if score_info.score > self.min_score and score_info.score > highest_scores[line_index]:
+                    highest_scores[line_index] = score_info.score
+                    score_info.hough_coord = rho, theta
+
+                    if line_index == 0:
+                        score_info.color = (int(score_info.score * 255), 0, 0)
+                    elif line_index == 1:
+                        score_info.color = (0, int(score_info.score * 255), 0)
+                    elif line_index == 2:
+                        score_info.color = (0, 0, int(score_info.score * 255))
+
+                        # color = (0, int(vert_score * 255), int(vert_score * 255))
+                        # if vert_score > self.min_score:
+                        #     vertical_lines.append((rho, theta, color))
+
+            for index, score_info in enumerate(self.scores):
+                if score_info.hough_coord is not None:
+                    self.draw_houghline(self.draw_frame, score_info.hough_coord[0], score_info.hough_coord[1],
+                                        score_info.color)
+                    self.distances[index] = score_info.distance_value
+                else:
+                    self.distances[index] = None
+                score_info.reset()
+
+        print(self.distances)
         # self.pipeline_frame = cv2.resize(self.pipeline_frame, (width, height))
         # self.pipeline_frame = cv2.cvtColor(self.pipeline_frame, cv2.COLOR_GRAY2BGR)
         self.pipeline_frame = cv2.bitwise_not(self.pipeline_frame)
@@ -212,7 +261,7 @@ class WallDetector:
         self.pipeline_frame = dilation
         return function_result
 
-    def draw_houghlines(self, frame, rho, theta, color):
+    def convert_hough_coordinates(self, rho, theta):
         a = np.cos(theta)
         b = np.sin(theta)
         x0 = a * rho
@@ -221,61 +270,169 @@ class WallDetector:
         y1 = int(y0 + 1000 * a)
         x2 = int(x0 - 1000 * -b)
         y2 = int(y0 - 1000 * a)
+        return x1, y1, x2, y2
+
+    def draw_houghline(self, frame, rho, theta, color):
+        x1, y1, x2, y2 = self.convert_hough_coordinates(rho, theta)
         cv2.line(frame, (x1, y1), (x2, y2), color, 2)
+
+    def compute_line_scores(self, rho, theta):
+        top_intercept = rho / np.cos(theta)
+        angle = (np.pi / 2 + theta) % (2 * np.pi) - np.pi
+        left_intercept = rho / np.cos(np.pi / 2 - theta)
+        right_intercept = (self.width - top_intercept) * np.tan(angle)
+        # if right_intercept > self.height:
+        #     bottom_intercept = self.width - (right_intercept - self.height) / np.tan(angle)
+        # else:
+        #     bottom_intercept = self.width + (self.height - right_intercept) / np.tan(angle)
+
+        self.left_score.compute_score(left_intercept)
+        self.right_score.compute_score(right_intercept)
+        self.horz_score.compute_score(angle)
+
+        self.left_score.distance_value = -top_intercept
+        self.right_score.distance_value = top_intercept
+        self.horz_score.distance_value = (left_intercept + right_intercept) / 2
+
+
+class LineScore:
+    def __init__(self, mean, std):
+        self.mean = mean
+        self.std = std
+        self.normalized_value = norm.pdf(self.mean, self.mean, self.std)
+        self.reset()
+
+    def reset(self):
+        self.score = 0.0
+        self.hough_coord = None
+        self.color = (0, 0, 0)
+        self.distance_value = None
+
+    def compute_score(self, value):
+        self.score = norm.pdf(value, self.mean, self.std) / self.normalized_value
 
 
 class VisualOdometer:
-    def __init__(self):
-        self.focal_length = 700
-        self.principle_point = 607.1928, 185.2157
+    def __init__(self, camera_matrix):
+        self.camera_matrix = camera_matrix
 
-        self.orb = cv2.ORB_create()
         self.current_points = None
         self.prev_points = None
-        self.optical_flow_criteria = (cv2.TERM_CRITERIA_COUNT + cv2.TERM_CRITERIA_EPS, 30, 0.01)
 
         self.current_frame = None
         self.prev_frame = None
 
+        self.r_matrix = None
+        self.t_matrix = None
+
+        self.position = (0.0, 0.0, 0.0)
+        self.rotation = (0.0, 0.0, 0.0)
+
+        self.min_feature_num = 500
+        self.feature_params = dict(
+            maxCorners=2000,
+            qualityLevel=0.001,
+            minDistance=0.001,
+            blockSize=3
+        )
+        self.lk_params = dict(
+            winSize=(7, 7),
+            maxLevel=2,
+            criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03)
+        )
+
+        # self.orb = cv2.ORB_create(2000)
+
     def detect_features(self, frame):
-        self.prev_points = self.current_points
-        keypoints = self.orb.detect(frame, None)
-        keypoints, descriptors = self.orb.compute(frame, keypoints)
+        # keypoints = self.orb.detect(frame, None)
+        # keypoints, descriptors = self.orb.compute(frame, keypoints)
+        # return cv2.KeyPoint_convert(keypoints)
+        points = cv2.goodFeaturesToTrack(frame, **self.feature_params)
+        return points[:, 0]
 
-        self.current_points = cv2.KeyPoint_convert(keypoints)
-        return cv2.drawKeypoints(frame, keypoints, None, color=(0, 255, 0), flags=0)
+    def track_features(self, prev_points, prev_frame, current_frame):
+        current_points, status, error = \
+            cv2.calcOpticalFlowPyrLK(prev_frame, current_frame, prev_points, None, **self.lk_params)
 
-    def track_features(self):
-        self.current_points, status, error = \
-            cv2.calcOpticalFlowPyrLK(self.prev_frame, self.current_frame, self.prev_points, self.current_points,
-                                     None, None, (21, 21), 3, self.optical_flow_criteria, 0, 0.001)
-
-        new_current_points = []
-        new_prev_points = []
+        new_current_points = np.array([])
+        new_prev_points = np.array([])
         for index in range(len(status)):
-            point = self.current_points[index]
-            if point.x < 0 or point.y < 0:
-                status[0] = 0
-            if status[0] != 0:
-                new_current_points.append(point)
-                new_prev_points.append(self.prev_points[index])
+            point = current_points[index]
+            if point[0] < 0 or point[1] < 0:
+                status[index][0] = 0
+            if status[index][0] != 0:
+                if len(new_current_points) == 0:
+                    new_current_points = point
+                    new_prev_points = prev_points[index]
+                else:
+                    new_current_points = np.vstack((new_current_points, point))
+                    new_prev_points = np.vstack((new_prev_points, prev_points[index]))
 
-        self.current_points = new_current_points
-        self.prev_points = new_prev_points
+        return new_current_points, new_prev_points
+
+    def compute_pose(self, prev_points, current_points):
+        E, mask = cv2.findEssentialMat(prev_points, current_points, self.camera_matrix,
+                                       method=cv2.RANSAC, prob=0.999, threshold=3.0)
+        points, rotation_matrix, translation_matrix, mask = \
+            cv2.recoverPose(E, current_points, prev_points, self.camera_matrix)
+
+        # print(rotation_matrix)
+        # print(translation_matrix)
+        # print()
+
+        return rotation_matrix, translation_matrix
+
+    def calculate_rotation(self, R):
+        dist = np.sqrt(R[0, 0] ** 2 + R[1, 0] ** 2)
+        if dist > 1E-6:
+            roll = np.arctan2(R[2, 1], R[2, 2])
+            pitch = np.arctan2(-R[2, 0], dist)
+            yaw = np.arctan2(R[1, 0], R[0, 0])
+        else:
+            roll = np.arctan2(-R[1, 2], R[1, 1])
+            pitch = np.arctan2(-R[2, 0], dist)
+            yaw = 0.0
+
+        return roll, pitch, yaw
 
     def update(self, frame, draw_frame):
-        frame = self.detect_features(frame)
-        if self.prev_points is None:
-            self.track_features()
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        if self.current_points is None:
+            self.current_points = self.detect_features(frame)
+
+            self.current_frame = frame
         else:
-            print(len(self.prev_points))
-            E, mask = cv2.findEssentialMat(self.current_points, self.prev_points, focal=self.focal_length,
-                                           pp=self.principle_point, method=cv2.RANSAC, prob=0.999, threshold=3.0)
-            points, R, t, mask = cv2.recoverPose(E, self.current_points, self.prev_points)
+            self.prev_frame = self.current_frame
+            self.current_frame = frame
+            self.prev_points = self.current_points
+            self.current_points, self.prev_points = \
+                self.track_features(self.prev_points, self.prev_frame, self.current_frame)
+            print(len(self.current_points))
 
-            self.track_features()
+            if len(self.prev_points) < self.min_feature_num:
+                self.current_points = self.detect_features(frame)
+            else:
+                new_r, new_t = \
+                    self.compute_pose(self.prev_points, self.current_points)
+                if self.r_matrix is None or self.t_matrix is None:
+                    self.r_matrix = new_r
+                    self.t_matrix = new_t
+                else:
+                    scale = 1.0
+                    if scale > 0.1 and new_t[2] > new_t[0] and new_t[2] > new_t[1]:
+                        self.t_matrix += scale * np.dot(self.r_matrix, new_t)
+                        self.r_matrix = np.dot(new_r, self.r_matrix)
 
-        return frame
+                self.position = tuple(self.t_matrix.T[0].tolist())
+                self.rotation = self.calculate_rotation(self.r_matrix)
+
+                print("X: %s, Y: %s, R: %s" % (self.position[0], self.position[1], self.rotation[2]))
+
+        for point in self.current_points:
+            x, y = point
+            cv2.circle(draw_frame, (int(x), int(y)), 3, (255, 0, 0))
+
+        return draw_frame
 
 # self.skelton_kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
 # @staticmethod
