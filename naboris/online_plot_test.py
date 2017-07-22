@@ -4,7 +4,7 @@ matplotlib.use('Agg')
 
 from atlasbuggy.camera import VideoPlayer, CameraViewer
 from atlasbuggy.logparser import LogParser
-from atlasbuggy.plotters import LivePlotter
+from atlasbuggy.plotters import StaticPlotter, RobotPlot
 from atlasbuggy.subscriptions import *
 from atlasbuggy import DataStream
 from atlasbuggy import Robot
@@ -26,17 +26,19 @@ def key_press_fn(event):
     if event.key == "q":
         plotter.exit()
 
+dummy_plot = RobotPlot("dummy")
+dummy_plot.update([0, 1, 2], [4, 3, 5])
+
 
 robot = Robot(log_level=10)
 
-simulator = LogParser("logs/2017_Jun_10/21;25;23.log.xz", enabled=True, update_rate=0.01)
-plotter = LivePlotter(1, matplotlib_events=dict(key_press_event=key_press_fn),
-                      close_when_finished=True, enabled=True)
-naboris = Naboris(plotter=plotter)
+simulator = LogParser("logs/2017_Jun_10/21;25;23.log.xz", enabled=True, update_rate=0.1)
+plotter = StaticPlotter(1, dummy_plot, enabled=True)
+naboris = Naboris()
 capture = VideoPlayer(file_name="videos/naboris/2017_Jun_10/21_25_23.mp4", enabled=True)
 viewer = CameraViewer(enabled=False, enable_trackbar=False)
 pipeline = NaborisPipeline(enabled=False)
-site = NaborisWebsite("templates", "static", enabled=True)
+site = NaborisWebsite("templates", "static")
 dummy_cmd = DummyCommandLine()
 
 simulator.look_for(naboris)
@@ -48,4 +50,5 @@ site.subscribe(Update(site.pipeline_tag, pipeline))
 site.subscribe(Subscription(site.cmd_tag, dummy_cmd))
 site.subscribe(Subscription(site.plotter_tag, plotter))
 
-robot.run(simulator, plotter, viewer, site, capture, pipeline)
+plotter.plot()
+robot.run(simulator, viewer, site, capture, pipeline)

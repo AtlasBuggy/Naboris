@@ -118,12 +118,12 @@ class Naboris(SerialStream):
                             self.led_plot[led_num].set_properties(color=(r / 255, g / 255, b / 255))
                     else:
                         self.led_plot[start_led].set_properties(color=(r / 255, g / 255, b / 255))
-                    self.plotter.draw_text(
-                        self.led_plot,
-                        "Hi I'm naboris!\nThese are the LEDs states at t=%0.2fs" % (self.dt()),
-                        0, 0, verticalalignment='center', horizontalalignment='center', text_name="welcome text",
-                        fontsize='small'
-                    )
+                    # self.plotter.draw_text(
+                    #     self.led_plot,
+                    #     "Hi I'm naboris!\nThese are the LEDs states at t=%0.2fs" % (self.dt()),
+                    #     0, 0, verticalalignment='center', horizontalalignment='center', text_name="welcome text",
+                    #     fontsize='small'
+                    # )
 
     def led_clock(self):
         self.prev_led_state = self.actuators.get_led(self.led_index)

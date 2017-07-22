@@ -36,4 +36,4 @@ ax.set_xlabel('x')
 ax.set_ylabel('y')
 ax.set_title('Interactive legend', size=20)
 
-mpld3.show()
+# mpld3.show()

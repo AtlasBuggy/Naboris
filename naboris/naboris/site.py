@@ -1,7 +1,8 @@
 import cv2
 import time
+import mpld3
 
-from flask import Response, render_template, request
+from flask import Response, render_template, request, json
 
 from atlasbuggy.clock import Clock
 from atlasbuggy.website import Website
@@ -65,9 +66,11 @@ class NaborisWebsite(Website):
         # self.app.add_url_rule("/lights", view_func=self.lights, methods=['POST'])
         self.app.add_url_rule("/cmd", view_func=self.command_response, methods=['POST'])
         self.app.add_url_rule("/video_feed", view_func=self.video_feed)
+        self.app.add_url_rule("/plot", view_func=self.plot, methods=['POST'])
 
         self.show_orignal = True
         self.lights_are_on = False
+        self.autonomous_mode = False
 
         self.clock = None
         self.commands = None
@@ -75,14 +78,17 @@ class NaborisWebsite(Website):
         self.camera_tag = "camera"
         self.pipeline_tag = "pipeline"
         self.cmd_tag = "cmdline"
+        self.plotter_tag = "plotter"
 
         self.require_subscription(self.camera_tag, Update)
         self.require_subscription(self.pipeline_tag, Update)
         self.require_subscription(self.cmd_tag, Subscription)
+        self.require_subscription(self.plotter_tag, Subscription)
 
         self.camera = None
         self.cmdline = None
         self.pipeline = None
+        self.plotter = None
 
         self.camera_subscription = None
         self.pipeline_subscription = None
@@ -94,8 +100,9 @@ class NaborisWebsite(Website):
 
     def take(self, subscriptions):
         self.camera = subscriptions[self.camera_tag].get_stream()
-        self.cmdline = subscriptions[self.cmd_tag].get_stream()
         self.pipeline = subscriptions[self.pipeline_tag].get_stream()
+        self.cmdline = subscriptions[self.cmd_tag].get_stream()
+        self.plotter = subscriptions[self.plotter_tag].get_stream()
 
         self.camera_subscription = subscriptions[self.camera_tag]
         self.pipeline_subscription = subscriptions[self.pipeline_tag]
@@ -128,7 +135,7 @@ class NaborisWebsite(Website):
             Button(["show original", "show pipeline"], ":toggle_pipeline", "toggle_pipeline_button",
                    "command_button toggles", int(self.show_orignal)),
             Button(["start recording", "stop recording"], ":toggle_recording", "toggle_recording_button",
-                   "command_button toggles", int(self.camera.is_recording)),
+                   "command_button toggles", int(self.is_recording())),
             Button("adjust filter", ":adjust_filter", "adjust_filter_button", "command_button toggles"),
 
             Button("say hello!", "hello", "say hello button", "command_button speak"),
@@ -144,6 +151,12 @@ class NaborisWebsite(Website):
             self.pipeline_subscription.enabled = False
             self.camera_subscription.enabled = True
             self.frame_feed = self.camera_feed
+
+    def is_recording(self):
+        if hasattr(self.camera, "is_recording"):
+            return self.camera.is_recording
+        else:
+            return False
 
     def start(self):
         self.clock.start()
@@ -188,11 +201,11 @@ class NaborisWebsite(Website):
                     return self.commands[command].switch_label(int(self.autonomous_mode))
 
                 elif command == ":toggle_recording":
-                    if not self.camera.is_recording:
+                    if not self.is_recording():
                         self.cmdline.handle_input("start_video")
                     else:
                         self.cmdline.handle_input("stop_video")
-                    return self.commands[command].switch_label(int(self.camera.is_recording))
+                    return self.commands[command].switch_label(int(self.is_recording()))
 
                 elif command == ":adjust_filter":
                     self.pipeline.adjust_filter()
@@ -220,6 +233,15 @@ class NaborisWebsite(Website):
                     if self.camera.paused:
                         time.sleep(0.25)
                     self.clock.update()
+
+    def update_plot(self):
+        while True:
+            time.sleep(0.01)
+            yield mpld3.fig_to_html(self.plotter.fig)
+
+    def plot(self):
+        return Response(self.update_plot(), mimetype='text/html')
+        # return mpld3.fig_to_html(self.plotter.fig)
 
     def video_feed(self):
         """Video streaming route. Put this in the src attribute of an img tag."""

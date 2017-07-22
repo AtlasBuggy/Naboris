@@ -152,8 +152,6 @@ function requestCommand(command, clickedButton=null) {
     var request = new XMLHttpRequest();
 
     request.onload = function() {
-        // We could do more interesting things with the response
-        // or, we could ignore it entirely
         // alert(request.responseText);
 
         if (request.responseText.length > 0) {
@@ -168,3 +166,92 @@ function requestCommand(command, clickedButton=null) {
     // and then we send it off
     request.send();
 }
+
+
+function myInsertAndExecute(id, text)
+{
+    domelement = document.getElementById(id);
+    domelement.innerHTML = text;
+    var scripts = [];
+
+    ret = domelement.childNodes;
+    for (var i = 0; ret[i]; i++) {
+      if (scripts && myNodeName(ret[i], "script") && (!ret[i].type || ret[i].type.toLowerCase() === "text/javascript")) {
+            scripts.push(ret[i].parentNode ? ret[i].parentNode.removeChild(ret[i]) : ret[i]);
+        }
+    }
+
+    for(script in scripts)
+    {
+      myEvalScript(scripts[script]);
+    }
+}
+function myNodeName(elem, name) {
+    return elem.nodeName && elem.nodeName.toUpperCase() === name.toUpperCase();
+}
+
+function myEvalScript(elem)
+{
+    data = (elem.text || elem.textContent || elem.innerHTML || "");
+    
+    var head = document.getElementsByTagName("head")[0] || document.documentElement;
+    script = document.createElement("script");
+    script.type = "text/javascript";
+    script.appendChild(document.createTextNode(data));
+    head.insertBefore(script, head.firstChild);
+    head.removeChild(script);
+    
+    if (elem.parentNode) {
+        elem.parentNode.removeChild(elem);
+    }
+}
+
+function handlePlot(data) {
+//    var graph = $("#container");
+//    graph.html(data);
+//    document.getElementById("container").innerHTML = "something interesting";
+    myInsertAndExecute("container", data);
+}
+
+
+function requestPlot() {
+    var request = new XMLHttpRequest();
+    request.open("POST", "/plot", true);
+    request.responseType = "html";
+    request.setRequestHeader("Content-type", "application/json; charset=utf-8")
+    request.send();
+
+    var timer;
+    var position = 0;
+    timer = setInterval(function() {
+        if (request.responseText.length > 0) {
+            // check the response for new data
+            message = request.responseText.split("<style>\n\n</style>\n").slice(-1).pop();
+//            console.log(messages.length);
+            handlePlot(message);
+//            console.log(messages);
+//            messages.slice(position, -1).forEach(function(value) {
+//                handlePlot(value);
+//            });
+//            console.log(request.responseText);
+//            position = messages.length - 1;
+        }
+            // stop checking once the response has ended
+        if (request.readyState == XMLHttpRequest.DONE) {
+            clearInterval(timer);
+        }
+
+    }, 50);
+}
+
+requestPlot();
+//$.ajax({
+//    type: "POST",
+//    async:true,
+//    contentType: "application/json; charset=utf-8",
+//    url: "/plot",
+////    data: "",
+//    success: handlePlot,
+//   dataType: "html"
+// });
+//

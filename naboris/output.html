@@ -1,0 +1,99 @@
+[Log]
+<h1>Naboris Console</h1>
+<hr>
+<!-- <img src="/video_feed"> -->
+<img src="video_feed">
+
+<div class="buttons">
+    <div class="drive_buttons">
+
+        <button id="spin_left_button" class="command_button drive l" value="l">
+            spin left
+        </button>
+
+        <button id="spin_right_button" class="command_button drive r" value="r">
+            spin right
+        </button>
+
+        <button id="drive_forward_button" class="command_button drive d_0" value="d_0">
+            drive forward
+        </button>
+
+        <button id="drive_left_button" class="command_button drive d_90_150" value="d_90_150">
+            drive left
+        </button>
+
+        <button id="drive_backward_button" class="command_button drive d_180" value="d_180">
+            drive backward
+        </button>
+
+        <button id="drive_right_button" class="command_button drive d_270_150" value="d_270_150">
+            drive right
+        </button>
+
+        <button id="stop_driving_button" class="command_button drive s" value="s">
+            stop
+        </button>
+
+    </div>
+
+    <div class="toggle_buttons">
+
+        <button id="toggle_lights_button" class="command_button toggles :toggle_lights" value=":toggle_lights">
+            lights on
+        </button>
+
+        <button id="toggle_autonomy_button" class="command_button toggles :toggle_autonomy" value=":toggle_autonomy">
+            autonomous
+        </button>
+
+        <button id="toggle_camera_button" class="command_button toggles :toggle_camera" value=":toggle_camera">
+            pause video
+        </button>
+
+        <button id="toggle_pipeline_button" class="command_button toggles :toggle_pipeline" value=":toggle_pipeline">
+            show pipeline
+        </button>
+
+        <button id="toggle_recording_button" class="command_button toggles :toggle_recording" value=":toggle_recording">
+            start recording
+        </button>
+
+        <button id="adjust_filter_button" class="command_button toggles :adjust_filter" value=":adjust_filter">
+            adjust filter
+        </button>
+
+    </div>
+
+    <div class="speak_buttons">
+
+        <button id="say hello button" class="command_button speak hello" value="hello">
+            say hello!
+        </button>
+
+        <button id="alert button" class="command_button speak alert" value="alert">
+            PANIC!!!
+        </button>
+
+    </div>
+</div>
+
+<div class="container">
+    <div id="container"></div>
+    <style>
+div #container
+{
+  margin: 0 auto;
+  border:2px solid #a1a1a1;
+  padding:10px 20px;
+  border-radius:2px;
+}
+
+    </style>
+</div>
+
+
+
+<script type="text/javascript" src="/static/naboris.js"></script>
+<link rel="stylesheet" type="text/css" href="/static/style.css">
+
