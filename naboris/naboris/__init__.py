@@ -4,14 +4,14 @@ import asyncio
 
 from atlasbuggy.serial import SerialStream
 from atlasbuggy.plotters import LivePlotter, RobotPlot, RobotPlotCollection, StaticPlotter
-from atlasbuggy.subscriptions import Feed
+from atlasbuggy.subscriptions import *
 
 from naboris.soundfiles import Sounds
 from naboris.actuators import Actuators
 
 
 class Naboris(SerialStream):
-    def __init__(self, enabled=True, log_level=None, plotter=None):
+    def __init__(self, enabled=True, log_level=None):
         self.actuators = Actuators()
         super(Naboris, self).__init__(self.actuators, enabled=enabled, log_level=log_level)
 
@@ -26,17 +26,21 @@ class Naboris(SerialStream):
         self.random_sound_folders = ["humming", "curiousity", "nothing", "confusion", "concern", "sleepy", "vibrating"]
 
         self.led_plot = RobotPlotCollection("led plot")
-        self.plotter = plotter
-        if self.plotter is not None:
-            self.plotter.add_plots(self.led_plot)
 
         self.pipeline_feed = None
         self.pipeline_tag = "pipeline"
         self.results_service_tag = "results"
         self.require_subscription(self.pipeline_tag, Feed, service=self.results_service_tag)
 
+        self.plotter = None
+        self.plotter_tag = "plotter"
+
     def take(self, subscriptions):
         self.pipeline_feed = subscriptions[self.pipeline_tag].get_feed()
+        if self.plotter_tag in subscriptions:
+            self.plotter = subscriptions[self.plotter_tag].get_stream()
+            if self.plotter.enabled:
+                self.plotter.add_plots(self.led_plot)
 
     def serial_start(self):
         self.actuators.set_all_leds(5, 5, 5)
@@ -45,7 +49,7 @@ class Naboris(SerialStream):
     async def update(self):
         while not self.pipeline_feed.empty():
             print(await self.pipeline_feed.get())
-        if self.plotter is not None:
+        if self.is_subscribed(self.plotter):
             if isinstance(self.plotter, StaticPlotter):
                 await asyncio.sleep(0.0)
             elif isinstance(self.plotter, LivePlotter):
@@ -62,7 +66,7 @@ class Naboris(SerialStream):
 
     def receive_actuators(self, timestamp, packet):
         if timestamp is None:
-            if self.plotter is not None:
+            if self.is_subscribed(self.plotter):
                 num_leds = self.actuators.num_leds
                 for index in range(num_leds):
                     led = RobotPlot("LED #%s" % index, marker='.', markersize=10, markeredgecolor='black',
@@ -107,7 +111,7 @@ class Naboris(SerialStream):
                     print()
 
             elif packet[0] == "o":
-                if self.plotter is not None and self.led_plot.enabled:
+                if self.is_subscribed(self.plotter) and self.led_plot.enabled:
                     start_led = int(packet[1:4])
                     r = int(packet[4:7])
                     g = int(packet[7:10])
@@ -142,9 +146,9 @@ class Naboris(SerialStream):
         self.actuators.stop()
         self.actuators.release()
 
-        if self.plotter is not None:
-            if isinstance(self.plotter, StaticPlotter):
-                self.exit()
-                self.plotter.plot()
-            elif isinstance(self.plotter, LivePlotter):
-                self.plotter.plot()
+        # if self.plotter is not None and self.plotter.enabled:
+        #     if isinstance(self.plotter, StaticPlotter):
+        #         self.exit()
+        #         self.plotter.plot()
+        #     elif isinstance(self.plotter, LivePlotter):
+        #         self.plotter.plot()

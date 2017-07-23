@@ -1,4 +1,15 @@
+var arrow_keys = [33,34,35,36,37,38,39,40];
 
+$(document).keydown(function(e) {
+     var key = e.which;
+      //console.log(key);
+      //if(key==35 || key == 36 || key == 37 || key == 39)
+      if($.inArray(key, arrow_keys) > -1) {
+          e.preventDefault();
+          return false;
+      }
+      return true;
+});
 
 // Only run what comes next *after* the page has loaded
 addEventListener("DOMContentLoaded", function() {
@@ -193,14 +204,14 @@ function myNodeName(elem, name) {
 function myEvalScript(elem)
 {
     data = (elem.text || elem.textContent || elem.innerHTML || "");
-    
+
     var head = document.getElementsByTagName("head")[0] || document.documentElement;
     script = document.createElement("script");
     script.type = "text/javascript";
     script.appendChild(document.createTextNode(data));
     head.insertBefore(script, head.firstChild);
     head.removeChild(script);
-    
+
     if (elem.parentNode) {
         elem.parentNode.removeChild(elem);
     }

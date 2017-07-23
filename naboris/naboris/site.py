@@ -83,7 +83,7 @@ class NaborisWebsite(Website):
         self.require_subscription(self.camera_tag, Update)
         self.require_subscription(self.pipeline_tag, Update)
         self.require_subscription(self.cmd_tag, Subscription)
-        self.require_subscription(self.plotter_tag, Subscription)
+        self.require_subscription(self.plotter_tag, Subscription, is_suggestion=True)
 
         self.camera = None
         self.cmdline = None
@@ -102,7 +102,8 @@ class NaborisWebsite(Website):
         self.camera = subscriptions[self.camera_tag].get_stream()
         self.pipeline = subscriptions[self.pipeline_tag].get_stream()
         self.cmdline = subscriptions[self.cmd_tag].get_stream()
-        self.plotter = subscriptions[self.plotter_tag].get_stream()
+        if self.plotter_tag in subscriptions:
+            self.plotter = subscriptions[self.plotter_tag].get_stream()
 
         self.camera_subscription = subscriptions[self.camera_tag]
         self.pipeline_subscription = subscriptions[self.pipeline_tag]
@@ -240,7 +241,10 @@ class NaborisWebsite(Website):
             yield mpld3.fig_to_html(self.plotter.fig)
 
     def plot(self):
-        return Response(self.update_plot(), mimetype='text/html')
+        if self.is_subscribed(self.plotter):
+            return Response(self.update_plot(), mimetype='text/html')
+        else:
+            return ""
         # return mpld3.fig_to_html(self.plotter.fig)
 
     def video_feed(self):

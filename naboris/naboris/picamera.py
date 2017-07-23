@@ -43,7 +43,7 @@ class PiCamera(ThreadedStream):
     def start(self):
         self.capture = picamera.PiCamera()
 
-        self.capture.resolution = (self.capture.resolution[0] // 2, self.capture.resolution[1] // 2)
+        # self.capture.resolution = (self.capture.resolution[0] // 2, self.capture.resolution[1] // 2)
         self.capture.framerate = self.fps
         self.capture.hflip = True
         self.capture.vflip = True
@@ -55,7 +55,7 @@ class PiCamera(ThreadedStream):
         self.set_path(file_name, directory)
         self.num_frames = 0
         self.make_dirs()
-        self.logger.debug("Recording video on '%s'" % self.full_path)
+        self.logger.info("Recording video on '%s'" % self.full_path)
         self.capture.start_recording(self.full_path)
         self.is_recording = True
 
@@ -135,10 +135,14 @@ class PiCamera(ThreadedStream):
                     for line in converter.process.stderr:
                         self.logger.debug(line.strip())
 
+                if not os.path.isfile(converter.new_path):
+                    raise RuntimeError("Failed to create MP4 file for some reason!!")
                 self.logger.debug("Conversion complete! Removing temp file: '%s'" % self.full_path)
                 os.remove(self.full_path)
             else:
                 self.logger.debug("Skipping conversion to mp4")
+
+            self.logger.info("Wrote video to '%s'" % self.full_path)
 
     def stop(self):
         # self.capture.stop_preview()  # picamera complains when this is called while recording
@@ -146,7 +150,7 @@ class PiCamera(ThreadedStream):
 
 
 class H264toMP4converter:
-    # expects that MP4Box be installed
+    # expects that MP4Box be installed, sudo apt-get install gpac
     def __init__(self, full_path):
         self.full_path = full_path
 

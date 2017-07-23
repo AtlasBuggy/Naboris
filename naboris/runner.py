@@ -1,13 +1,19 @@
+import matplotlib
+matplotlib.use('Agg')
+
 import argparse
 
 from atlasbuggy import Robot
 from atlasbuggy.subscriptions import *
+from atlasbuggy.plotters import LivePlotter
+
 from naboris import Naboris
 from naboris.picamera import PiCamera
 from naboris.cli import NaborisCLI
 from naboris.pipeline import NaborisPipeline, CalibrationPipeline
 from naboris.site import NaborisWebsite
 from naboris.socket_server import NaborisSocketServer
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-l", "--log", help="disable logging", action="store_false")
@@ -29,8 +35,10 @@ pipeline = NaborisPipeline(args.pipeline)
 cmdline = NaborisCLI()
 website = NaborisWebsite("templates", "static")
 socket = NaborisSocketServer(enabled=False)
+plotter = LivePlotter(1, close_when_finished=True, enabled=False)
 
 naboris.subscribe(Feed(naboris.pipeline_tag, pipeline, naboris.results_service_tag))
+naboris.subscribe(Subscription(naboris.plotter_tag, plotter))
 
 cmdline.subscribe(Subscription(cmdline.naboris_tag, naboris))
 cmdline.subscribe(Subscription(cmdline.capture_tag, camera))
@@ -39,8 +47,9 @@ pipeline.subscribe(Update(pipeline.capture_tag, camera))
 website.subscribe(Subscription(website.cmd_tag, cmdline))
 website.subscribe(Update(website.camera_tag, camera, enabled=False))
 website.subscribe(Update(website.pipeline_tag, pipeline, enabled=False))
+website.subscribe(Subscription(website.plotter_tag, plotter))
 
 socket.subscribe(Update(socket.camera_tag, camera, enabled=False))
 socket.subscribe(Subscription(socket.cmdline_tag, cmdline))
 
-robot.run(camera, naboris, pipeline, cmdline, website, socket)
+robot.run(camera, naboris, pipeline, cmdline, website, socket, plotter)
