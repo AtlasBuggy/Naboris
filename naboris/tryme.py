@@ -10,7 +10,7 @@ class NaborisCamSimulator(DataStream):
         super(NaborisCamSimulator, self).__init__(enabled, "NaborisCam", log_level)
 
     def receive_log(self, log_level, message, line_info):
-        print(self.name, message)
+        self.logger.info(message)
 
 
 def key_press_fn(event):

@@ -9,8 +9,8 @@ from naboris.pipeline import DepthPipeline
 
 
 class MyCameraViewer(CameraViewer):
-    def __init__(self):
-        super(MyCameraViewer, self).__init__(enabled=True)
+    def __init__(self, enabled=True):
+        super(MyCameraViewer, self).__init__(enabled)
 
         self.pipeline_tag = "pipeline"
 
@@ -119,9 +119,9 @@ robot = Robot(log_level=10)
 
 # video_name = "videos/naboris/2017_Jul_14/22_36_21-1.mp4"
 video_name = "videos/naboris/2017_Jul_14/23_24_32-3.mp4"
-capture = VideoPlayer(file_name=video_name, loop_video=True)
-viewer = MyCameraViewer()
-pipeline = DepthPipeline("depth_models/coarse", "depth_models/fine")
+capture = VideoPlayer(file_name=video_name, loop_video=True, enabled=True)
+viewer = MyCameraViewer(enabled=True)
+pipeline = DepthPipeline("depth_models/coarse", "depth_models/fine", enabled=True)
 plotter = DataPlotter(enabled=False)
 
 viewer.subscribe(Update(viewer.capture_tag, capture))
