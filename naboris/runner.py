@@ -10,7 +10,7 @@ from atlasbuggy.plotters import LivePlotter
 from naboris import Naboris
 from naboris.picamera import PiCamera
 from naboris.cli import NaborisCLI
-from naboris.pipeline import NaborisPipeline, CalibrationPipeline
+from naboris.pipeline import NaborisPipeline, CalibrationPipeline, DepthPipeline
 from naboris.site import NaborisWebsite
 from naboris.socket_server import NaborisSocketServer
 
@@ -30,7 +30,7 @@ video_directory = "videos/" + robot.log_info["directory"].split("/")[-1]
 
 camera = PiCamera(file_name=video_file_name, directory=video_directory)
 naboris = Naboris()
-pipeline = NaborisPipeline(args.pipeline)
+pipeline = DepthPipeline("depth_models/coarse", "depth_models/fine", enabled=args.pipeline)
 # pipeline = CalibrationPipeline()
 cmdline = NaborisCLI()
 website = NaborisWebsite("templates", "static")

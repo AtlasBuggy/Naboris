@@ -114,6 +114,7 @@ videos/
 images
 images/
 __pycache__/
+depth_models/
 
 # Xcode Project Files #
 #######################

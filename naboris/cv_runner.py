@@ -5,7 +5,7 @@ from atlasbuggy.subscriptions import *
 from atlasbuggy.plotters import LivePlotter, RobotPlot, RobotPlotCollection
 import asyncio
 
-from naboris.pipeline import NaborisPipeline
+from naboris.pipeline import DepthPipeline
 
 
 class MyCameraViewer(CameraViewer):
@@ -121,7 +121,7 @@ robot = Robot(log_level=10)
 video_name = "videos/naboris/2017_Jul_14/23_24_32-3.mp4"
 capture = VideoPlayer(file_name=video_name, loop_video=True)
 viewer = MyCameraViewer()
-pipeline = NaborisPipeline()
+pipeline = DepthPipeline("depth_models/coarse", "depth_models/fine")
 plotter = DataPlotter(enabled=False)
 
 viewer.subscribe(Update(viewer.capture_tag, capture))
