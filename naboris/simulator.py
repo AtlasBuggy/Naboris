@@ -29,17 +29,15 @@ def key_press_fn(event):
 
 robot = Robot(log_level=10)
 
-simulator = LogParser("logs/2017_Jun_10/21;25;23.log.xz", enabled=True, update_rate=0.01)
+simulator = LogParser("logs/2017_Jun_10/21;25;23.log.xz", enabled=True, update_rate=0.001)
 plotter = LivePlotter(1, matplotlib_events=dict(key_press_event=key_press_fn),
                       close_when_finished=True, enabled=True)
 naboris = Naboris()
 capture = VideoPlayer(file_name="videos/naboris/2017_Jun_10/21_25_23.mp4", enabled=True)
-viewer = CameraViewer(enabled=False, enable_trackbar=False)
-pipeline = NaborisPipeline(enabled=False)
+viewer = CameraViewer(enabled=True, enable_trackbar=True)
+pipeline = NaborisPipeline(enabled=True)
 site = NaborisWebsite("templates", "static", enabled=True)
 dummy_cmd = DummyCommandLine()
-
-simulator.look_for(naboris)
 
 viewer.subscribe(Update(viewer.capture_tag, pipeline))
 pipeline.subscribe(Update(pipeline.capture_tag, capture))
@@ -49,5 +47,7 @@ site.subscribe(Update(site.camera_tag, capture))
 site.subscribe(Update(site.pipeline_tag, pipeline))
 site.subscribe(Subscription(site.cmd_tag, dummy_cmd))
 site.subscribe(Subscription(site.plotter_tag, plotter))
+
+simulator.subscribe(Subscription("naboris", naboris))
 
 robot.run(simulator, plotter, viewer, site, capture, pipeline)

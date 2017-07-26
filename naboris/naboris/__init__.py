@@ -11,7 +11,7 @@ from naboris.actuators import Actuators
 
 
 class Naboris(SerialStream):
-    def __init__(self, enabled=True, log_level=None):
+    def __init__(self, enabled=True, log_level=None, demo=False):
         self.actuators = Actuators()
         super(Naboris, self).__init__(self.actuators, enabled=enabled, log_level=log_level)
 
@@ -21,6 +21,7 @@ class Naboris(SerialStream):
         self.link_recurring(0.1, self.led_clock)
         self.led_index = 0
         self.prev_led_state = None
+        self.demo = demo
 
         self.sounds = Sounds("sounds", "/home/pi/Music/Bastion/")
         self.random_sound_folders = ["humming", "curiousity", "nothing", "confusion", "concern", "sleepy", "vibrating"]
@@ -30,13 +31,16 @@ class Naboris(SerialStream):
         self.pipeline_feed = None
         self.pipeline_tag = "pipeline"
         self.results_service_tag = "results"
-        self.require_subscription(self.pipeline_tag, Feed, service=self.results_service_tag)
+        self.require_subscription(self.pipeline_tag, Feed, service=self.results_service_tag, is_suggestion=True)
 
         self.plotter = None
         self.plotter_tag = "plotter"
+        self.require_subscription(self.plotter_tag, Subscription, is_suggestion=True)
 
     def take(self, subscriptions):
-        self.pipeline_feed = subscriptions[self.pipeline_tag].get_feed()
+        if self.pipeline_tag in subscriptions:
+            self.pipeline_feed = subscriptions[self.pipeline_tag].get_feed()
+
         if self.plotter_tag in subscriptions:
             self.plotter = subscriptions[self.plotter_tag].get_stream()
             if self.plotter.enabled:
@@ -47,9 +51,11 @@ class Naboris(SerialStream):
         self.actuators.set_battery(5050, 5180)
 
     async def update(self):
-        while not self.pipeline_feed.empty():
-            print(await self.pipeline_feed.get())
-        if self.is_subscribed(self.plotter):
+        if self.is_subscribed(self.pipeline_tag):
+            while not self.pipeline_feed.empty():
+                print(await self.pipeline_feed.get())
+
+        if self.is_subscribed(self.plotter_tag):
             if isinstance(self.plotter, StaticPlotter):
                 await asyncio.sleep(0.0)
             elif isinstance(self.plotter, LivePlotter):
@@ -66,10 +72,10 @@ class Naboris(SerialStream):
 
     def receive_actuators(self, timestamp, packet):
         if timestamp is None:
-            if self.is_subscribed(self.plotter):
+            if self.is_subscribed(self.plotter_tag):
                 num_leds = self.actuators.num_leds
                 for index in range(num_leds):
-                    led = RobotPlot("LED #%s" % index, marker='.', markersize=10, markeredgecolor='black',
+                    led = RobotPlot("LED #%s" % index, marker='.', markersize=30, markeredgecolor='black',
                                     x_range=(-2, 2), y_range=(-2, 2), color='black')
                     self.led_plot.add_plot(led)
 
@@ -111,7 +117,7 @@ class Naboris(SerialStream):
                     print()
 
             elif packet[0] == "o":
-                if self.is_subscribed(self.plotter) and self.led_plot.enabled:
+                if self.is_subscribed(self.plotter_tag) and self.led_plot.enabled:
                     start_led = int(packet[1:4])
                     r = int(packet[4:7])
                     g = int(packet[7:10])
@@ -122,12 +128,14 @@ class Naboris(SerialStream):
                             self.led_plot[led_num].set_properties(color=(r / 255, g / 255, b / 255))
                     else:
                         self.led_plot[start_led].set_properties(color=(r / 255, g / 255, b / 255))
-                    # self.plotter.draw_text(
-                    #     self.led_plot,
-                    #     "Hi I'm naboris!\nThese are the LEDs states at t=%0.2fs" % (self.dt()),
-                    #     0, 0, verticalalignment='center', horizontalalignment='center', text_name="welcome text",
-                    #     fontsize='small'
-                    # )
+
+                    if self.demo:
+                        self.plotter.draw_text(
+                            self.led_plot,
+                            "Hi I'm naboris!\nThese are the LEDs states at t=%0.2fs" % (self.dt()),
+                            0, 0, verticalalignment='center', horizontalalignment='center', text_name="welcome text",
+                            # fontsize='medium'
+                        )
 
     def led_clock(self):
         self.prev_led_state = self.actuators.get_led(self.led_index)
