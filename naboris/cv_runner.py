@@ -5,12 +5,15 @@ from atlasbuggy.subscriptions import *
 from atlasbuggy.plotters import LivePlotter, RobotPlot, RobotPlotCollection
 import asyncio
 
-from naboris.pipeline import DepthPipeline
+# from naboris.masazi.pipeline import MasazIDepthPipeline
+from naboris.monodepth.pipeline import MonodepthPipeline
 
+
+# from naboris.pipeline import NaborisPipeline
 
 class MyCameraViewer(CameraViewer):
     def __init__(self, enabled=True):
-        super(MyCameraViewer, self).__init__(enabled)
+        super(MyCameraViewer, self).__init__(enabled, draw_while_paused=True)
 
         self.pipeline_tag = "pipeline"
 
@@ -64,7 +67,8 @@ class DataPlotter(LivePlotter):
         self.top_dist_plot = RobotPlot("top_dist_plot", color="blue")
         self.left_dist_plot = RobotPlot("left_dist_plot", color="green")
         self.right_dist_plot = RobotPlot("right_dist_plot", color="red")
-        self.distance_plot = RobotPlotCollection("dist_plot", self.top_dist_plot, self.left_dist_plot, self.right_dist_plot)
+        self.distance_plot = RobotPlotCollection("dist_plot", self.top_dist_plot, self.left_dist_plot,
+                                                 self.right_dist_plot)
 
         super(DataPlotter, self).__init__(2, self.position_plot, self.distance_plot, active_window_resizing=False,
                                           enabled=enabled)
@@ -72,7 +76,7 @@ class DataPlotter(LivePlotter):
         self.pipeline_tag = "pipeline"
         self.results_service_tag = "results"
         self.pipeline_feed = None
-        self.require_subscription(self.pipeline_tag, Feed, service=self.results_service_tag)
+        self.require_subscription(self.pipeline_tag, Feed, service_tag=self.results_service_tag)
 
         max_limit = 900
         self.x_limits = [-max_limit, max_limit]
@@ -117,11 +121,34 @@ class DataPlotter(LivePlotter):
 
 robot = Robot(log_level=10)
 
+# naboris videos
 # video_name = "videos/naboris/2017_Jul_14/22_36_21-1.mp4"
-video_name = "videos/naboris/2017_Jul_14/23_24_32-3.mp4"
-capture = VideoPlayer(file_name=video_name, loop_video=True, enabled=True)
+# video_name = "videos/naboris/2017_Jul_14/23_24_32-3.mp4"
+# video_name = "videos/naboris/2017_May_28/15_37_43.mp4"  # on the desk
+# video_name = "videos/naboris/2017_May_28/16_23_21.mp4"  # hallway
+# video_name = "videos/naboris/2017_Jul_16/23_03_26-1.mp4"  # running into a wall
+
+
+# buggy videos
+# video_name = "videos/cia_buggy_videos/Ascension 10-17 roll 3-2.mp4"
+# video_name = "videos/cia_buggy_videos/Icarus 10-11 roll 5 (+hill 1).mp4"
+# video_name = "videos/cia_buggy_videos/Impulse 2-21 roll 1.mp4"
+video_name = "videos/rd17/2017_Apr_22/07_17_12rightcam.mp4"
+
+# rccar
+# video_name = "videos/rc_car/Sun 26 Jun 2016 14;54;35 EDT.avi"
+
+# other
+# video_name = "videos/Naboris Demo.mp4"
+# video_name = "videos/10_52_33.avi"
+
+capture = VideoPlayer(file_name=video_name, loop_video=True, enabled=True, width=640, height=400)
+
+# pipeline = MasazIDepthPipeline("depth_models/coarse", "depth_models/fine", enabled=True)
+# pipeline = NaborisPipeline(enabled=True)
+pipeline = MonodepthPipeline("depth_models/monodepth/model_kitti")
+
 viewer = MyCameraViewer(enabled=True)
-pipeline = DepthPipeline("depth_models/coarse", "depth_models/fine", enabled=True)
 plotter = DataPlotter(enabled=False)
 
 viewer.subscribe(Update(viewer.capture_tag, capture))

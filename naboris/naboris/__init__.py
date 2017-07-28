@@ -1,6 +1,5 @@
 import math
 import random
-import asyncio
 
 from atlasbuggy.serial import SerialStream
 from atlasbuggy.plotters import LivePlotter, RobotPlot, RobotPlotCollection, StaticPlotter
@@ -31,7 +30,7 @@ class Naboris(SerialStream):
         self.pipeline_feed = None
         self.pipeline_tag = "pipeline"
         self.results_service_tag = "results"
-        self.require_subscription(self.pipeline_tag, Feed, service=self.results_service_tag, is_suggestion=True)
+        self.require_subscription(self.pipeline_tag, Feed, service_tag=self.results_service_tag, is_suggestion=True)
 
         self.plotter = None
         self.plotter_tag = "plotter"
@@ -82,7 +81,7 @@ class Naboris(SerialStream):
                     led.append(math.cos(-index / num_leds * 2 * math.pi), math.sin(-index / num_leds * 2 * math.pi))
                 self.plotter.update_collection(self.led_plot)
 
-    def received_log_message(self, timestamp, whoiam, packet, packet_type):
+    def receive_serial_log(self, timestamp, whoiam, packet, packet_type):
         if whoiam == self.actuators.whoiam:
             if packet == "h":
                 print("%0.4fs:" % self.dt(), "stop")

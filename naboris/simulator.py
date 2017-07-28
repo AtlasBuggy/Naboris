@@ -1,4 +1,5 @@
 import matplotlib
+import webbrowser
 
 matplotlib.use('Agg')
 
@@ -49,5 +50,7 @@ site.subscribe(Subscription(site.cmd_tag, dummy_cmd))
 site.subscribe(Subscription(site.plotter_tag, plotter))
 
 simulator.subscribe(Subscription("naboris", naboris))
+
+webbrowser.open("0.0.0.0:5000")
 
 robot.run(simulator, plotter, viewer, site, capture, pipeline)
