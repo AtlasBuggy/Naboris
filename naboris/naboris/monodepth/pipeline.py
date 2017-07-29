@@ -21,16 +21,18 @@ def post_process_disparity(disp):
 
 
 class MonodepthPipeline(Pipeline):
-    def __init__(self, model_dir, enabled=True, log_level=None):
+    def __init__(self, model_name, enabled=True, log_level=None):
         super(MonodepthPipeline, self).__init__(enabled, log_level)
 
         self.results_service_tag = "results"
         self.add_service(self.results_service_tag, lambda data: data)
 
-        self.fig = plt.figure()
-        self.fig.add_subplot(111)
+        model_dir = "depth_models/monodepth/model_" + model_name
 
-        encoder = "vgg"  # or resnet50
+        if model_name.endswith("resnet"):
+            encoder = "resnet50"
+        else:
+            encoder = "vgg"
 
         self.input_height = 256
         self.input_width = 512

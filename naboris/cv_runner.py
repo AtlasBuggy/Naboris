@@ -122,8 +122,8 @@ class DataPlotter(LivePlotter):
 robot = Robot(log_level=10)
 
 # naboris videos
-# video_name = "videos/naboris/2017_Jul_14/22_36_21-1.mp4"
-# video_name = "videos/naboris/2017_Jul_14/23_24_32-3.mp4"
+# video_name = "videos/naboris/2017_Jul_14/22_36_21-1.mp4"  # my room 1
+# video_name = "videos/naboris/2017_Jul_14/23_24_32-3.mp4"  # my room 2
 # video_name = "videos/naboris/2017_May_28/15_37_43.mp4"  # on the desk
 # video_name = "videos/naboris/2017_May_28/16_23_21.mp4"  # hallway
 # video_name = "videos/naboris/2017_Jul_16/23_03_26-1.mp4"  # running into a wall
@@ -131,9 +131,9 @@ robot = Robot(log_level=10)
 
 # buggy videos
 # video_name = "videos/cia_buggy_videos/Ascension 10-17 roll 3-2.mp4"
-# video_name = "videos/cia_buggy_videos/Icarus 10-11 roll 5 (+hill 1).mp4"
+video_name = "videos/cia_buggy_videos/Icarus 10-11 roll 5 (+hill 1).mp4"
 # video_name = "videos/cia_buggy_videos/Impulse 2-21 roll 1.mp4"
-video_name = "videos/rd17/2017_Apr_22/07_17_12rightcam.mp4"
+# video_name = "videos/rd17/2017_Apr_22/07_17_12rightcam.mp4"
 
 # rccar
 # video_name = "videos/rc_car/Sun 26 Jun 2016 14;54;35 EDT.avi"
@@ -146,7 +146,7 @@ capture = VideoPlayer(file_name=video_name, loop_video=True, enabled=True, width
 
 # pipeline = MasazIDepthPipeline("depth_models/coarse", "depth_models/fine", enabled=True)
 # pipeline = NaborisPipeline(enabled=True)
-pipeline = MonodepthPipeline("depth_models/monodepth/model_kitti")
+pipeline = MonodepthPipeline("kitti_resnet")
 
 viewer = MyCameraViewer(enabled=True)
 plotter = DataPlotter(enabled=False)
