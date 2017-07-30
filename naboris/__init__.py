@@ -53,10 +53,10 @@ class Naboris(SerialStream):
         self.actuators.set_battery(5050, 5180)
         self.actuators.look_straight()
 
-    async def update(self):
+    def serial_update(self):
         if self.is_subscribed(self.pipeline_tag):
             while not self.pipeline_feed.empty():
-                prediction_label, prediction_value = await self.pipeline_feed.get()
+                prediction_label, prediction_value = self.pipeline_feed.get()
                 if self.autonomous:
                     if prediction_label == "floor":
                         self.actuators.drive(self.autonomous_speed, 0)
@@ -68,7 +68,9 @@ class Naboris(SerialStream):
                         self.actuators.pause(0.5)
                         self.actuators.stop()
                         self.actuators.pause(0.1)
+            self.pipeline_feed.task_done()
 
+    async def update(self):
         await asyncio.sleep(0.0)
 
         if self.is_subscribed(self.plotter_tag):
