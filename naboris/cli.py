@@ -4,8 +4,8 @@ from atlasbuggy.extras.cmdline import CommandLine
 
 
 class NaborisCLI(CommandLine):
-    def __init__(self, enabled=True):
-        super(NaborisCLI, self).__init__(enabled)
+    def __init__(self, enabled=True, log_level=None):
+        super(NaborisCLI, self).__init__(enabled, log_level)
         self.naboris = None
         self.actuators = None
         self.sounds = None
@@ -110,11 +110,15 @@ class NaborisCLI(CommandLine):
     def battery(self, params):
         self.actuators.ask_battery()
 
-    def set_autonomous(self, params):
+    def set_autonomous(self, params=None):
+        self.logger.debug("Enabling autonomous mode")
         self.naboris.autonomous = True
+        self.actuators.stop()
 
-    def set_manual(self, params):
-        self.naboris.autonomous = True
+    def set_manual(self, params=None):
+        self.logger.debug("Enabling manual mode")
+        self.naboris.autonomous = False
+        self.actuators.stop()
 
     def my_exit(self, params):
         self.exit()

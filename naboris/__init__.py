@@ -1,4 +1,5 @@
 import math
+import time
 import random
 
 from atlasbuggy.serial import SerialStream
@@ -23,13 +24,14 @@ class Naboris(SerialStream):
         self.demo = demo
 
         self.autonomous = False
-        self.autonomous_speed = 50
+        self.autonomous_speed = 100
 
         self.sounds = Sounds("sounds", "/home/pi/Music/Bastion/")
         self.random_sound_folders = ["humming", "curiousity", "nothing", "confusion", "concern", "sleepy", "vibrating"]
 
         self.led_plot = RobotPlotCollection("led plot")
 
+        self.pipeline_results = None
         self.pipeline_feed = None
         self.pipeline_tag = "pipeline"
         self.results_service_tag = "results"
@@ -54,23 +56,34 @@ class Naboris(SerialStream):
         self.actuators.look_straight()
 
     def serial_update(self):
-        if self.is_subscribed(self.pipeline_tag):
-            while not self.pipeline_feed.empty():
-                prediction_label, prediction_value = self.pipeline_feed.get()
+        while self.is_running():
+            if self.pipeline_results is not None:
+                prediction_label, prediction_value = self.pipeline_results
+
                 if self.autonomous:
+                    print(prediction_label, prediction_value, self.autonomous_speed)
                     if prediction_label == "floor":
                         self.actuators.drive(self.autonomous_speed, 0)
                         self.autonomous_speed += 1
-                    elif prediction_label == "wall" and prediction_value > 0.7:
-                        self.autonomous_speed = 50
+                    elif prediction_label == "wall":
+                        self.autonomous_speed = 100
                         self.actuators.stop()
-                        self.actuators.spin(50)
+                        self.actuators.spin(200)
                         self.actuators.pause(0.5)
                         self.actuators.stop()
                         self.actuators.pause(0.1)
-            self.pipeline_feed.task_done()
+
+                self.pipeline_results = None
+            time.sleep(0.1)
+
+        self.logger.debug("Serial update exited")
 
     async def update(self):
+        if self.is_subscribed(self.pipeline_tag):
+            while not self.pipeline_feed.empty():
+                self.pipeline_results = await self.pipeline_feed.get()
+                self.pipeline_feed.task_done()
+
         await asyncio.sleep(0.0)
 
         if self.is_subscribed(self.plotter_tag):
