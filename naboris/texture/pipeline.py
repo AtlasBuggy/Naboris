@@ -18,10 +18,6 @@ class TexturePipeline(Pipeline):
         self.results_service_tag = "results"
         self.add_service(self.results_service_tag, lambda data: data)
 
-        self.viewer_tag = "viewer"
-        self.viewer_feed = None
-        self.require_subscription(self.viewer_tag, Update)
-
         self.desc = LocalBinaryPatterns(24, 8)
         self.model = LinearSVC(C=500.0, random_state=20)
         self.classifier = CalibratedClassifierCV(self.model)

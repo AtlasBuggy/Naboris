@@ -59,6 +59,12 @@ class PiCamera(ThreadedStream):
         self.capture.start_recording(self.full_path)
         self.is_recording = True
 
+    def set_pause(self, state):
+        self.paused = state
+
+    def current_frame_num(self):
+        return self.num_frames
+
     def make_dirs(self):
         if self.directory is not None and len(self.directory) > 0 and not os.path.isdir(self.directory):
             os.makedirs(self.directory)
@@ -90,6 +96,10 @@ class PiCamera(ThreadedStream):
 
             raw_capture = PiRGBArray(self.capture, size=self.capture.resolution)
             for frame in self.capture.capture_continuous(raw_capture, format="bgr", use_video_port=True):
+                if self.paused:
+                    time.sleep(0.1)
+                    continue
+
                 with self.frame_lock:
                     self.frame = frame.array
                     raw_capture.truncate(0)
@@ -97,9 +107,6 @@ class PiCamera(ThreadedStream):
 
                 self.poll_for_fps()
                 self.log_frame()
-
-                while self.paused:
-                    time.sleep(0.1)
 
                 if not self.is_running():
                     return
