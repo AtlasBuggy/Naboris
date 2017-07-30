@@ -22,7 +22,7 @@ class TexturePipeline(Pipeline):
         self.viewer_feed = None
         self.require_subscription(self.viewer_tag, Update)
 
-        self.desc = LocalBinaryPatterns(24, 8)
+        self.desc = LocalBinaryPatterns(8, 2)
         self.model = LinearSVC(C=500.0, random_state=20)
         self.classifier = CalibratedClassifierCV(self.model)
 
@@ -46,7 +46,7 @@ class TexturePipeline(Pipeline):
                         path = os.path.join(label_dir, image_name)
                         image = cv2.imread(path)
                         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-                        hist = self.desc.describe(gray)
+                        hist, _ = self.desc.describe(gray)
                         self.data.append(hist)
 
         self.classifier.fit(self.data, self.labels)
@@ -54,23 +54,37 @@ class TexturePipeline(Pipeline):
         self.height_offset = 100
         self.offset = 50
 
-    def crop_frame(self, frame):
+    def get_crop_points(self, frame):
         height, width = frame.shape[0:2]
+        y1 = height // 2 - self.offset + self.height_offset
+        y2 = height // 2 + self.offset + self.height_offset
 
-        return frame[height // 2 - self.offset: height // 2 + self.offset + self.height_offset,
-                     width // 2 - self.offset: width // 2 + self.offset + self.height_offset]
+        x1 = width // 2 - self.offset
+        x2 = width // 2 + self.offset
+
+        return y1, y2, x1, x2
+
+    def crop_frame(self, frame):
+        y1, y2, x1, x2 = self.get_crop_points(frame)
+        return frame[y1: y2, x1: x2]
 
     def pipeline(self, frame):
         self.cropped = self.crop_frame(frame)
         gray = cv2.cvtColor(self.cropped, cv2.COLOR_BGR2GRAY)
-        hist = self.desc.describe(gray)
+        gray = cv2.equalizeHist(gray)
+        hist, lbp = self.desc.describe(gray)
+
+        lbp = np.uint8(lbp)
+        lbp = cv2.equalizeHist(lbp)
         prediction = self.classifier.predict_proba(hist.reshape(1, -1))
+
         index = np.argmax(prediction.squeeze())
         prediction = self.prediction_labels[index]
 
-        pt1 = (self.width // 2 - self.offset, self.height // 2 - self.offset + self.height_offset)
-        pt2 = (self.width // 2 + self.offset, self.height // 2 + self.offset + self.height_offset)
-        cv2.rectangle(frame, pt1, pt2, (255, 0, 0))
+        y1, y2, x1, x2 = self.get_crop_points(frame)
+        frame[y1: y2, x1: x2] = cv2.cvtColor(lbp, cv2.COLOR_GRAY2BGR)
+
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0))
 
         cv2.putText(frame, prediction, (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
                     1.0, (0, 0, 255), 3)
