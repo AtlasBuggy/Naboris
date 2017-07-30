@@ -1,6 +1,6 @@
 import re
 import os
-from atlasbuggy.cmdline import CommandLine
+from atlasbuggy.extras.cmdline import CommandLine
 
 
 class NaborisCLI(CommandLine):

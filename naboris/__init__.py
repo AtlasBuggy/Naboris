@@ -53,6 +53,7 @@ class Naboris(SerialStream):
         if self.is_subscribed(self.pipeline_tag):
             while not self.pipeline_feed.empty():
                 self.logger.info(await self.pipeline_feed.get())
+        await asyncio.sleep(0.0)
 
         if self.is_subscribed(self.plotter_tag):
             if isinstance(self.plotter, StaticPlotter):
