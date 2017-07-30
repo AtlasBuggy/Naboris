@@ -22,6 +22,9 @@ class Naboris(SerialStream):
         self.prev_led_state = None
         self.demo = demo
 
+        self.autonomous = False
+        self.autonomous_speed = 50
+
         self.sounds = Sounds("sounds", "/home/pi/Music/Bastion/")
         self.random_sound_folders = ["humming", "curiousity", "nothing", "confusion", "concern", "sleepy", "vibrating"]
 
@@ -53,7 +56,19 @@ class Naboris(SerialStream):
     async def update(self):
         if self.is_subscribed(self.pipeline_tag):
             while not self.pipeline_feed.empty():
-                self.logger.info(await self.pipeline_feed.get())
+                prediction_label, prediction_value = await self.pipeline_feed.get()
+                if self.autonomous:
+                    if prediction_label == "floor":
+                        self.actuators.drive(self.autonomous_speed, 0)
+                        self.autonomous_speed += 1
+                    elif prediction_label == "wall" and prediction_value > 0.7:
+                        self.autonomous_speed = 50
+                        self.actuators.stop()
+                        self.actuators.spin(50)
+                        self.actuators.pause(0.5)
+                        self.actuators.stop()
+                        self.actuators.pause(0.1)
+
         await asyncio.sleep(0.0)
 
         if self.is_subscribed(self.plotter_tag):

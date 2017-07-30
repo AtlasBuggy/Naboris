@@ -199,6 +199,11 @@ class NaborisWebsite(Website):
 
                 elif command == ":toggle_autonomy":
                     self.autonomous_mode = not self.autonomous_mode
+                    if self.autonomous_mode:
+                        self.cmdline.set_autonomous()
+                    else:
+                        self.cmdline.set_manual()
+
                     return self.commands[command].switch_label(int(self.autonomous_mode))
 
                 elif command == ":toggle_recording":

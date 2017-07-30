@@ -91,6 +91,8 @@ class TexturePipeline(Pipeline):
         cv2.putText(frame, "%s %s" % (prediction_label, predictions_string), (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
                     0.75, (0, 0, 255), 2)
 
+        self.post((prediction_label, prediction[index]), self.results_service_tag)
+
         return frame
 
     def change_label(self, index):

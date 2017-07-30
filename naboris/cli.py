@@ -110,6 +110,12 @@ class NaborisCLI(CommandLine):
     def battery(self, params):
         self.actuators.ask_battery()
 
+    def set_autonomous(self, params):
+        self.naboris.autonomous = True
+
+    def set_manual(self, params):
+        self.naboris.autonomous = True
+
     def my_exit(self, params):
         self.exit()
 
@@ -201,4 +207,6 @@ class NaborisCLI(CommandLine):
                 sound=self.say_random_sound,
                 start_video=self.start_new_video,
                 stop_video=self.stop_recording,
+                manual=self.set_manual,
+                auton=self.set_autonomous
             )
