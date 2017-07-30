@@ -22,7 +22,7 @@ class TexturePipeline(Pipeline):
         self.viewer_feed = None
         self.require_subscription(self.viewer_tag, Update)
 
-        self.desc = LocalBinaryPatterns(8, 2)
+        self.desc = LocalBinaryPatterns(24, 8)
         self.model = LinearSVC(C=500.0, random_state=20)
         self.classifier = CalibratedClassifierCV(self.model)
 
@@ -52,7 +52,7 @@ class TexturePipeline(Pipeline):
         self.classifier.fit(self.data, self.labels)
 
         self.height_offset = 100
-        self.offset = 50
+        self.offset = 100
 
     def get_crop_points(self, frame):
         height, width = frame.shape[0:2]
@@ -77,17 +77,19 @@ class TexturePipeline(Pipeline):
         lbp = np.uint8(lbp)
         lbp = cv2.equalizeHist(lbp)
         prediction = self.classifier.predict_proba(hist.reshape(1, -1))
+        prediction = prediction.squeeze()
 
-        index = np.argmax(prediction.squeeze())
-        prediction = self.prediction_labels[index]
+        index = np.argmax(prediction)
+        prediction_label = self.prediction_labels[index]
 
         y1, y2, x1, x2 = self.get_crop_points(frame)
         frame[y1: y2, x1: x2] = cv2.cvtColor(lbp, cv2.COLOR_GRAY2BGR)
 
         cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0))
 
-        cv2.putText(frame, prediction, (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                    1.0, (0, 0, 255), 3)
+        predictions_string = ", ".join(map(lambda element: "%0.3f" % (100 * element), prediction))
+        cv2.putText(frame, "%s %s" % (prediction_label, predictions_string), (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.75, (0, 0, 255), 2)
 
         return frame
 

@@ -48,6 +48,7 @@ class Naboris(SerialStream):
     def serial_start(self):
         self.actuators.set_all_leds(5, 5, 5)
         self.actuators.set_battery(5050, 5180)
+        self.actuators.look_straight()
 
     async def update(self):
         if self.is_subscribed(self.pipeline_tag):

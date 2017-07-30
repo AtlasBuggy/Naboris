@@ -135,8 +135,8 @@ robot = Robot()
 # video_name = "videos/naboris/2017_Jul_14/22_36_21-1.mp4"  # my room 1
 # video_name = "videos/naboris/2017_Jul_14/23_24_32-3.mp4"  # my room 2
 # video_name = "videos/naboris/2017_May_28/15_37_43.mp4"  # on the desk
-video_name = "videos/naboris/2017_May_28/16_23_21.mp4"  # hallway
-# video_name = "videos/naboris/2017_Jul_16/23_03_26-1.mp4"  # running into a wall
+# video_name = "videos/naboris/2017_May_28/16_23_21.mp4"  # hallway
+video_name = "videos/naboris/2017_Jul_16/23_03_26-1.mp4"  # running into a wall
 
 
 # buggy videos
