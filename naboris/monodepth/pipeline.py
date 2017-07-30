@@ -107,7 +107,6 @@ class MonodepthPipeline(Pipeline):
         cv2.circle(depth_image, min_loc, 5, (0, 255, 0))
         cv2.circle(depth_image, max_loc, 5, (0, 0, 255))
 
-
         # self.post(disp, self.results_service_tag)
         offset = 50
         pt1 = (self.width // 2 - offset, self.height // 2 - offset)
@@ -125,7 +124,6 @@ class MonodepthPipeline(Pipeline):
                 # cv2.circle(depth_image, (y, x), 1, (0, 0, 255))
 
         return np.concatenate((depth_image, frame), axis=1)
-
 
     def stop(self):
         if self.sess is not None:

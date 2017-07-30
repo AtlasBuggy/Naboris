@@ -6,7 +6,8 @@ from atlasbuggy.plotters import LivePlotter, RobotPlot, RobotPlotCollection
 import asyncio
 
 # from naboris.masazi.pipeline import MasazIDepthPipeline
-from naboris.monodepth.pipeline import MonodepthPipeline
+# from naboris.monodepth.pipeline import MonodepthPipeline
+from naboris.texture.pipeline import TexturePipeline
 
 
 # from naboris.pipeline import NaborisPipeline
@@ -14,51 +15,60 @@ from naboris.monodepth.pipeline import MonodepthPipeline
 class MyCameraViewer(CameraViewer):
     def __init__(self, enabled=True):
         super(MyCameraViewer, self).__init__(enabled, draw_while_paused=True)
+        #
+        # self.pipeline_tag = "pipeline"
+        #
+        # self.pipeline = None
+        # self.pipeline_feed = None
+        #
+        # self.show_original = False
+        #
+        # self.require_subscription(self.pipeline_tag, Update)
 
-        self.pipeline_tag = "pipeline"
 
-        self.pipeline = None
-        self.pipeline_feed = None
-
-        self.show_original = False
-
-        self.require_subscription(self.pipeline_tag, Update)
-
-    def take(self, subscriptions):
-        self.take_capture(subscriptions)
-        self.pipeline = subscriptions[self.pipeline_tag].get_stream()
-        self.pipeline_feed = subscriptions[self.pipeline_tag].get_feed()
-        self.set_feed()
-
-    def set_feed(self):
-        if self.show_original:
-            self.pipeline_feed.enabled = False
-            self.capture_feed.enabled = True
-        else:
-            self.pipeline_feed.enabled = True
-            self.capture_feed.enabled = False
-
-    def get_frame_from_feed(self):
-        if self.show_original:
-            return self.capture_feed.get()
-        else:
-            return self.pipeline_feed.get()
-
+    # def take(self, subscriptions):
+    #     self.take_capture(subscriptions)
+    #     self.pipeline = subscriptions[self.pipeline_tag].get_stream()
+        # self.pipeline_feed = subscriptions[self.pipeline_tag].get_feed()
+        # self.set_feed()
+    #
+    # def set_feed(self):
+    #     if self.show_original:
+    #         self.pipeline_feed.enabled = False
+    #         self.capture_feed.enabled = True
+    #     else:
+    #         self.pipeline_feed.enabled = True
+    #         self.capture_feed.enabled = False
+    #
+    # def get_frame_from_feed(self):
+    #     if self.show_original:
+    #         return self.capture_feed.get()
+    #     else:
+    #         return self.pipeline_feed.get()
+    #
+    # def key_down(self, key):
+    #     if key == 'o':
+    #         self.show_original = not self.show_original
+    #         self.set_feed()
+    #     elif key == 'q':
+    #         self.exit()
+    #     elif key == ' ':
+    #         self.toggle_pause()
+    #         if self.is_paused():
+    #             self.pipeline_feed.enabled = False
+    #             self.capture_feed.enabled = False
+    #         else:
+    #             self.pipeline_feed.enabled = True
+    #             self.capture_feed.enabled = True
     def key_down(self, key):
-        if key == 'o':
-            self.show_original = not self.show_original
-            self.set_feed()
-        elif key == 'q':
+        if key == 'q':
             self.exit()
         elif key == ' ':
             self.toggle_pause()
-            if self.is_paused():
-                self.pipeline_feed.enabled = False
-                self.capture_feed.enabled = False
-            else:
-                self.pipeline_feed.enabled = True
-                self.capture_feed.enabled = True
-
+        elif key == 's':
+            self.capture.save_image()
+        elif key.isdigit():
+            self.capture.change_label(int(key) - 1)
 
 class DataPlotter(LivePlotter):
     def __init__(self, enabled=True):
@@ -124,8 +134,8 @@ robot = Robot()
 # naboris videos
 # video_name = "videos/naboris/2017_Jul_14/22_36_21-1.mp4"  # my room 1
 # video_name = "videos/naboris/2017_Jul_14/23_24_32-3.mp4"  # my room 2
-# video_name = "videos/naboris/2017_May_28/15_37_43.mp4"  # on the desk
-video_name = "videos/naboris/2017_May_28/16_23_21.mp4"  # hallway
+video_name = "videos/naboris/2017_May_28/15_37_43.mp4"  # on the desk
+# video_name = "videos/naboris/2017_May_28/16_23_21.mp4"  # hallway
 # video_name = "videos/naboris/2017_Jul_16/23_03_26-1.mp4"  # running into a wall
 
 
@@ -146,13 +156,13 @@ capture = VideoPlayer(file_name=video_name, loop_video=True, enabled=True, width
 
 # pipeline = MasazIDepthPipeline("depth_models/coarse", "depth_models/fine", enabled=True)
 # pipeline = NaborisPipeline(enabled=True)
-pipeline = MonodepthPipeline("kitti_resnet")
+# pipeline = MonodepthPipeline("kitti_resnet", enabled=False)
+pipeline = TexturePipeline("training_images")
 
-# viewer = MyCameraViewer(enabled=True)
-viewer = CameraViewer(enabled=True)
+viewer = MyCameraViewer(enabled=True)
+# viewer = CameraViewer(enabled=True)
 plotter = DataPlotter(enabled=False)
 
-# viewer.subscribe(Update(viewer.capture_tag, capture))
 viewer.subscribe(Update(viewer.capture_tag, pipeline))
 pipeline.subscribe(Update(pipeline.capture_tag, capture))
 pipeline.subscribe(Update(pipeline.viewer_tag, viewer))
