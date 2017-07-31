@@ -18,7 +18,7 @@ from naboris.socket_server import NaborisSocketServer
 parser = argparse.ArgumentParser()
 parser.add_argument("-l", "--log", help="disable logging", action="store_false")
 parser.add_argument("-d", "--debug", help="enable debug prints", action="store_true")
-parser.add_argument("-pipe", "--pipeline", help="enable pipeline", action="store_true")
+parser.add_argument("-pipe", "--nopipeline", help="disable pipeline", action="store_false")
 args = parser.parse_args()
 
 log = args.log
@@ -32,7 +32,7 @@ camera = PiCamera(file_name=video_file_name, directory=video_directory)
 naboris = Naboris()
 # pipeline = MasazIDepthPipeline("depth_models/coarse", "depth_models/fine", enabled=args.pipeline)
 # pipeline = CalibrationPipeline()
-pipeline = TexturePipeline("training_images")
+pipeline = TexturePipeline("training_images", enabled=args.nopipeline)
 cmdline = NaborisCLI()
 website = NaborisWebsite("templates", "static")
 socket = NaborisSocketServer(enabled=False)

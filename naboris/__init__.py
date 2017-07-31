@@ -51,8 +51,9 @@ class Naboris(SerialStream):
                 self.plotter.add_plots(self.led_plot)
 
     def serial_start(self):
-        self.actuators.set_all_leds(5, 5, 5)
+        self.actuators.set_all_leds(0, 0, 0)
         self.actuators.set_battery(5050, 5180)
+        self.actuators.pause(0.1)  # servos don't like being set at the same time as LEDs
         self.actuators.look_straight()
 
     def serial_update(self):
