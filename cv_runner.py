@@ -8,67 +8,59 @@ import asyncio
 # from naboris.masazi.pipeline import MasazIDepthPipeline
 # from naboris.monodepth.pipeline import MonodepthPipeline
 from naboris.texture.pipeline import TexturePipeline
-
+from naboris.image_labeler import ImageLabeler
 
 # from naboris.pipeline import NaborisPipeline
 
 class MyCameraViewer(CameraViewer):
     def __init__(self, enabled=True):
         super(MyCameraViewer, self).__init__(enabled, draw_while_paused=True)
-        #
-        # self.pipeline_tag = "pipeline"
-        #
-        # self.pipeline = None
-        # self.pipeline_feed = None
-        #
-        # self.show_original = False
-        #
-        # self.require_subscription(self.pipeline_tag, Update)
+
+        self.pipeline_tag = "pipeline"
+
+        self.pipeline = None
+        self.pipeline_feed = None
+
+        self.show_original = False
+
+        self.require_subscription(self.pipeline_tag, Update)
 
 
-    # def take(self, subscriptions):
-    #     self.take_capture(subscriptions)
-    #     self.pipeline = subscriptions[self.pipeline_tag].get_stream()
-        # self.pipeline_feed = subscriptions[self.pipeline_tag].get_feed()
-        # self.set_feed()
-    #
-    # def set_feed(self):
-    #     if self.show_original:
-    #         self.pipeline_feed.enabled = False
-    #         self.capture_feed.enabled = True
-    #     else:
-    #         self.pipeline_feed.enabled = True
-    #         self.capture_feed.enabled = False
-    #
-    # def get_frame_from_feed(self):
-    #     if self.show_original:
-    #         return self.capture_feed.get()
-    #     else:
-    #         return self.pipeline_feed.get()
-    #
-    # def key_down(self, key):
-    #     if key == 'o':
-    #         self.show_original = not self.show_original
-    #         self.set_feed()
-    #     elif key == 'q':
-    #         self.exit()
-    #     elif key == ' ':
-    #         self.toggle_pause()
-    #         if self.is_paused():
-    #             self.pipeline_feed.enabled = False
-    #             self.capture_feed.enabled = False
-    #         else:
-    #             self.pipeline_feed.enabled = True
-    #             self.capture_feed.enabled = True
+    def take(self, subscriptions):
+        self.take_capture(subscriptions)
+        self.pipeline = subscriptions[self.pipeline_tag].get_stream()
+        self.pipeline_feed = subscriptions[self.pipeline_tag].get_feed()
+        self.set_feed()
+
+    def set_feed(self):
+        if self.show_original:
+            self.pipeline_feed.enabled = False
+            self.capture_feed.enabled = True
+        else:
+            self.pipeline_feed.enabled = True
+            self.capture_feed.enabled = False
+
+    def get_frame_from_feed(self):
+        if self.show_original:
+            return self.capture_feed.get()
+        else:
+            return self.pipeline_feed.get()
+
     def key_down(self, key):
-        if key == 'q':
+        if key == 'o':
+            self.show_original = not self.show_original
+            self.set_feed()
+        elif key == 'q':
             self.exit()
         elif key == ' ':
             self.toggle_pause()
-        elif key == 's':
-            self.capture.save_image()
-        elif key.isdigit():
-            self.capture.change_label(int(key) - 1)
+            if self.is_paused():
+                self.pipeline_feed.enabled = False
+                self.capture_feed.enabled = False
+            else:
+                self.pipeline_feed.enabled = True
+                self.capture_feed.enabled = True
+
 
 class DataPlotter(LivePlotter):
     def __init__(self, enabled=True):
@@ -129,14 +121,35 @@ class DataPlotter(LivePlotter):
         await asyncio.sleep(0.001)
 
 
-robot = Robot()
+robot = Robot(log_level=10)
+
+# my room
+# video_name = "videos/naboris/2017_Jul_14/22_36_21-1.mp4"
+# video_name = "videos/naboris/2017_Jul_14/23_24_32-3.mp4"
+# video_name = "videos/naboris/2017_Jul_14/23_24_32-1.mp4"
+
+# video_name = "videos/naboris/2017_Jul_16/22_56_19-1.mp4"
+# video_name = "videos/naboris/2017_Jul_16/22_56_19-2.mp4"
+# video_name = "videos/naboris/2017_Jul_16/23_03_26-4.mp4"
+# video_name = "videos/naboris/2017_Jul_16/23_03_26-5.mp4"
+# video_name = "videos/naboris/2017_Jul_16/23_03_26-6.mp4"
+# video_name = "videos/naboris/2017_Jul_16/23_03_26-7.mp4"
+# video_name = "videos/naboris/2017_Jul_16/23_03_26-8.mp4"
 
 # naboris videos
-# video_name = "videos/naboris/2017_Jul_14/22_36_21-1.mp4"  # my room 1
-# video_name = "videos/naboris/2017_Jul_14/23_24_32-3.mp4"  # my room 2
 # video_name = "videos/naboris/2017_May_28/15_37_43.mp4"  # on the desk
 # video_name = "videos/naboris/2017_May_28/16_23_21.mp4"  # hallway
-video_name = "videos/naboris/2017_Jul_16/23_03_26-1.mp4"  # running into a wall
+# video_name = "videos/naboris/2017_Jul_16/23_03_26-1.mp4"  # running into a wall
+
+# amazon robotics office videos
+# video_name = "videos/naboris/2017_Jul_31/16_26_48-1.mp4"
+# video_name = "videos/naboris/2017_Jul_31/16_34_21-1.mp4"
+# video_name = "videos/naboris/2017_Jul_31/16_34_21-2.mp4"
+# video_name = "videos/naboris/2017_Jul_31/16_34_21-3.mp4"
+# video_name = "videos/naboris/2017_Jul_31/16_34_21-4.mp4"
+# video_name = "videos/naboris/2017_Jul_31/16_34_21-5.mp4"
+# video_name = "videos/naboris/2017_Jul_31/16_34_21-6.mp4"
+video_name = "videos/naboris/2017_Jul_31/16_34_21-7.mp4"
 
 
 # buggy videos
@@ -152,20 +165,21 @@ video_name = "videos/naboris/2017_Jul_16/23_03_26-1.mp4"  # running into a wall
 # video_name = "videos/Naboris Demo.mp4"
 # video_name = "videos/10_52_33.avi"
 
-capture = VideoPlayer(file_name=video_name, loop_video=True, enabled=True, width=640, height=400)
+capture = VideoPlayer(file_name=video_name, loop_video=True, enabled=True, width=640, height=400,
+                      post_while_paused=True)
 
 # pipeline = MasazIDepthPipeline("depth_models/coarse", "depth_models/fine", enabled=True)
 # pipeline = NaborisPipeline(enabled=True)
 # pipeline = MonodepthPipeline("kitti_resnet", enabled=False)
-pipeline = TexturePipeline("training_images")
+pipeline = TexturePipeline()
 
-viewer = MyCameraViewer(enabled=True)
+# viewer = MyCameraViewer(enabled=True)
 # viewer = CameraViewer(enabled=True)
+viewer = ImageLabeler(enabled=True)
 plotter = DataPlotter(enabled=False)
 
-viewer.subscribe(Update(viewer.capture_tag, pipeline))
+viewer.subscribe(Update(viewer.capture_tag, pipeline, viewer.texture_service_tag))
 pipeline.subscribe(Update(pipeline.capture_tag, capture))
-pipeline.subscribe(Update(pipeline.viewer_tag, viewer))
 plotter.subscribe(Feed(plotter.pipeline_tag, pipeline, plotter.results_service_tag))
 
 robot.run(viewer, capture, pipeline, plotter)
