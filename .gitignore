@@ -112,7 +112,11 @@ images
 images/
 depth_models/
 depth_models
+
+# ML files #
+############
 training_images/
+*.pb
 
 # Xcode Project Files #
 #######################

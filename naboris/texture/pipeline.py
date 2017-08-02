@@ -119,14 +119,16 @@ class TexturePipeline(Pipeline):
         prediction = self.classifier.predict_proba(hist.reshape(1, -1))
         prediction = prediction.squeeze()
 
-        index = np.argmax(prediction)
-        prediction_label = self.prediction_labels[index]
+        max_index = np.argmax(prediction)
+        prediction_label = self.prediction_labels[max_index]
 
         y1, y2, x1, x2 = self.get_crop_points(frame)
         # frame.setflags(write=1)
         # frame[y1: y2, x1: x2] = cv2.cvtColor(lbp, cv2.COLOR_GRAY2BGR)
 
         cv2.rectangle(frame, (x1 - 1, y1 - 1), (x2 + 1, y2 + 1), (255, 0, 0))
+
+        self.post((prediction_label, prediction[max_index]), self.results_service_tag)
 
         text_y = 30
         num_line_elements = 3
@@ -144,7 +146,6 @@ class TexturePipeline(Pipeline):
                         0.75, (0, 0, 255), 2)
             text_y += 25
 
-        self.post((prediction_label, prediction[index]), self.results_service_tag)
         self.post((frame, self.cropped), self.texture_service_tag)
 
         return frame

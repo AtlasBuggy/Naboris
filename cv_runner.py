@@ -7,7 +7,8 @@ import asyncio
 
 # from naboris.masazi.pipeline import MasazIDepthPipeline
 # from naboris.monodepth.pipeline import MonodepthPipeline
-from naboris.texture.pipeline import TexturePipeline
+# from naboris.texture.pipeline import TexturePipeline
+from naboris.inception.pipeline import InceptionPipeline
 from naboris.image_labeler import ImageLabeler
 
 # from naboris.pipeline import NaborisPipeline
@@ -180,7 +181,8 @@ capture = VideoPlayer(file_name=video_name, loop_video=True, enabled=True, width
 # pipeline = MasazIDepthPipeline("depth_models/coarse", "depth_models/fine", enabled=True)
 # pipeline = NaborisPipeline(enabled=True)
 # pipeline = MonodepthPipeline("kitti_resnet", enabled=False)
-pipeline = TexturePipeline()
+# pipeline = TexturePipeline()
+pipeline = InceptionPipeline()
 
 # viewer = MyCameraViewer(enabled=True)
 # viewer = CameraViewer(enabled=True)

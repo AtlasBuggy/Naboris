@@ -1,0 +1,6 @@
+carpet
+obstacle
+tile
+wall
+wall lip
+wood
