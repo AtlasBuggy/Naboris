@@ -85,7 +85,11 @@ class TexturePipeline(Pipeline):
         self.training_data[category] += 1
         count = self.training_data[category]
 
-        path = os.path.join(self.training_image_path, category, "%s-%s%s" % (category, count, self.file_extension))
+        image_dir = os.path.join(self.training_image_path, category)
+        if not os.path.isdir(image_dir):
+            os.mkdir(image_dir)
+
+        path = os.path.join(image_dir, "%s-%s%s" % (category, count, self.file_extension))
 
         cv2.imwrite(path, image)
         self.logger.info("Wrote: %s" % path)

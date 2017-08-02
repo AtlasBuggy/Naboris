@@ -139,10 +139,10 @@ robot = Robot(log_level=10)
 
 # video_name = "videos/naboris/2017_Aug_01/22_04_03-1.mp4"
 # video_name = "videos/naboris/2017_Aug_01/22_04_03-2.mp4"
-# video_name = "videos/naboris/2017_Aug_01/22_09_43-1.mp4"
+video_name = "videos/naboris/2017_Aug_01/22_09_43-1.mp4"
 # video_name = "videos/naboris/2017_Aug_01/22_37_17-1.mp4"
 # video_name = "videos/naboris/2017_Aug_01/22_44_16-1.mp4"
-video_name = "videos/naboris/2017_Aug_01/22_49_47-1.mp4"
+# video_name = "videos/naboris/2017_Aug_01/22_49_47-1.mp4"
 
 
 

@@ -1,37 +1,29 @@
 import cv2
 import numpy as np
+import multiprocessing
 import tensorflow as tf
 
-from atlasbuggy.camera.pipeline import Pipeline
+from naboris.texture.pipeline import TexturePipeline
 
 
-class InceptionPipeline(Pipeline):
+class InceptionPipeline(TexturePipeline):
     def __init__(self, enabled=True, log_level=None):
         super(InceptionPipeline, self).__init__(enabled, log_level)
-
-        self.results_service_tag = "results"
-        self.add_service(self.results_service_tag)
-
-        self.texture_service_tag = "texture"
-        self.add_service(self.texture_service_tag, self.post_texture_images)
 
         self.model_path = "naboris/inception/output_graph.pb"
         self.labels_path = "naboris/inception/output_labels.txt"
 
-        self.offset = 100
-
         self.create_graph()
 
-        self.sess = tf.Session()
+        num_threads = multiprocessing.cpu_count()
+        print("Running on %s threads" % num_threads)
+        self.sess = tf.Session(config=tf.ConfigProto(
+            intra_op_parallelism_threads=num_threads))
         self.softmax_tensor = self.sess.graph.get_tensor_by_name('final_result:0')
 
         with open(self.labels_path) as labels_file:
             lines = labels_file.readlines()
             self.prediction_labels = [str(w).replace("\n", "") for w in lines]
-
-    def post_texture_images(self, data):
-        frame, texture = data
-        return frame.copy(), texture.copy()
 
     def create_graph(self):
         """Creates a graph from saved GraphDef file and returns a saver."""
@@ -40,20 +32,6 @@ class InceptionPipeline(Pipeline):
             graph_def = tf.GraphDef()
             graph_def.ParseFromString(f.read())
             _ = tf.import_graph_def(graph_def, name='')
-
-    def get_crop_points(self, frame):
-        height, width = frame.shape[0:2]
-        y1 = height - self.offset * 2
-        y2 = height
-
-        x1 = width // 2 - self.offset
-        x2 = width // 2 + self.offset
-
-        return y1, y2, x1, x2
-
-    def crop_frame(self, frame):
-        y1, y2, x1, x2 = self.get_crop_points(frame)
-        return frame[y1: y2, x1: x2]
 
     def pipeline(self, frame):
         cropped = self.crop_frame(frame)

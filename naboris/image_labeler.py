@@ -8,7 +8,11 @@ class ImageLabeler(CameraViewer):
 
         self.cropped = None
         self.texture_service_tag = "texture"
-        self.adjust_subscription(self.capture_tag, service_tag=self.texture_service_tag)
+
+        required_attributes = self.required_subscriptions[self.capture_tag]["required_attributes"]
+        required_attributes += "write_training_image", "prediction_labels"
+        self.adjust_subscription(self.capture_tag, service_tag=self.texture_service_tag,
+                                 required_attributes=required_attributes)
 
         self.buttons = {}
         self.textboxes = {}
