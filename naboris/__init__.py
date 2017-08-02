@@ -24,7 +24,6 @@ class Naboris(SerialStream):
         self.demo = demo
 
         self.autonomous = False
-        self.autonomous_speed = 100
 
         self.sounds = Sounds("sounds", "/home/pi/Music/Bastion/")
         self.random_sound_folders = ["humming", "curiousity", "nothing", "confusion", "concern", "sleepy", "vibrating"]
@@ -65,16 +64,10 @@ class Naboris(SerialStream):
                 prediction_label, prediction_value = self.pipeline_results
 
                 if self.autonomous:
-                    print(prediction_label, prediction_value, self.autonomous_speed)
                     if prediction_label in self.good_labels:
-                        self.actuators.drive(self.autonomous_speed, 0)
-                        self.autonomous_speed += 1
+                        self.actuators.drive(100, 0)
                     elif prediction_label in self.bad_labels:
-                        self.autonomous_speed = 100
-                        self.actuators.stop()
-                        self.actuators.spin(200)
-                        self.actuators.pause(0.5)
-                        self.actuators.stop()
+                        self.actuators.spin(150)
                         self.actuators.pause(0.1)
 
                 self.pipeline_results = None

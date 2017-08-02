@@ -136,10 +136,15 @@ robot = Robot(log_level=10)
 # video_name = "videos/naboris/2017_Jul_16/23_03_26-7.mp4"
 # video_name = "videos/naboris/2017_Jul_16/23_03_26-8.mp4"
 
+# video_name = "videos/naboris/2017_Aug_01/22_04_03-1.mp4"
+video_name = "videos/naboris/2017_Aug_01/22_04_03-2.mp4"
+# video_name = "videos/naboris/2017_Aug_01/22_09_43-1.mp4"
+
+
 # naboris videos
 # video_name = "videos/naboris/2017_May_28/15_37_43.mp4"  # on the desk
 # video_name = "videos/naboris/2017_May_28/16_23_21.mp4"  # hallway
-video_name = "videos/naboris/2017_Jul_16/23_03_26-1.mp4"  # running into a wall
+# video_name = "videos/naboris/2017_Jul_16/23_03_26-1.mp4"  # running into a wall
 
 # amazon robotics office videos
 # video_name = "videos/naboris/2017_Jul_31/16_26_48-1.mp4"
