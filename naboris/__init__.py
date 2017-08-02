@@ -37,6 +37,9 @@ class Naboris(SerialStream):
         self.results_service_tag = "results"
         self.require_subscription(self.pipeline_tag, Feed, service_tag=self.results_service_tag, is_suggestion=True)
 
+        self.good_labels = ["wood", "tile", "carpet"]
+        self.bad_labels = ["wall_lip", "wall", "obstacle"]
+
         self.plotter = None
         self.plotter_tag = "plotter"
         self.require_subscription(self.plotter_tag, Subscription, is_suggestion=True)
@@ -63,10 +66,10 @@ class Naboris(SerialStream):
 
                 if self.autonomous:
                     print(prediction_label, prediction_value, self.autonomous_speed)
-                    if prediction_label == "floor":
+                    if prediction_label in self.good_labels:
                         self.actuators.drive(self.autonomous_speed, 0)
                         self.autonomous_speed += 1
-                    elif prediction_label == "wall":
+                    elif prediction_label in self.bad_labels:
                         self.autonomous_speed = 100
                         self.actuators.stop()
                         self.actuators.spin(200)

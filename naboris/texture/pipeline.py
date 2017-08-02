@@ -41,7 +41,6 @@ class TexturePipeline(Pipeline):
 
         self.prediction_labels = sorted(list(self.training_data.keys()))
 
-        self.height_offset = 100
         self.offset = 100
 
     def load_model(self):
@@ -51,7 +50,7 @@ class TexturePipeline(Pipeline):
     def train(self):
         labels = []
         data = []
-        
+
         for label, num_images in self.training_data.items():
             print("loading '%s'. %s images" % (label, num_images))
             dir_path = os.path.join(self.training_image_path, label)
@@ -96,8 +95,8 @@ class TexturePipeline(Pipeline):
 
     def get_crop_points(self, frame):
         height, width = frame.shape[0:2]
-        y1 = height // 2 - self.offset + self.height_offset
-        y2 = height // 2 + self.offset + self.height_offset
+        y1 = height - self.offset * 2
+        y2 = height
 
         x1 = width // 2 - self.offset
         x2 = width // 2 + self.offset
