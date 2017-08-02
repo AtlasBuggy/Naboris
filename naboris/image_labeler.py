@@ -10,9 +10,14 @@ class ImageLabeler(CameraViewer):
         self.texture_service_tag = "texture"
         self.adjust_subscription(self.capture_tag, service_tag=self.texture_service_tag)
 
-        categories = ["wood", "tile", "carpet", "wall_lip", "wall", "obstacle"]
         self.buttons = {}
         self.textboxes = {}
+
+        cv2.setMouseCallback(self.name, self.mouse_callback)
+
+    def viewer_started(self):
+        # categories = ["wood", "tile", "carpet", "wall_lip", "wall", "obstacle"]
+        categories = self.capture.prediction_labels
 
         button_x = 20
         button_y = 100
@@ -29,8 +34,6 @@ class ImageLabeler(CameraViewer):
             self.textboxes[category] = text
 
             button_y += 50
-
-        cv2.setMouseCallback(self.name, self.mouse_callback)
 
     def get_frame_from_feed(self):
         frame, self.cropped = self.capture_feed.get()

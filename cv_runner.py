@@ -139,7 +139,7 @@ robot = Robot(log_level=10)
 # naboris videos
 # video_name = "videos/naboris/2017_May_28/15_37_43.mp4"  # on the desk
 # video_name = "videos/naboris/2017_May_28/16_23_21.mp4"  # hallway
-# video_name = "videos/naboris/2017_Jul_16/23_03_26-1.mp4"  # running into a wall
+video_name = "videos/naboris/2017_Jul_16/23_03_26-1.mp4"  # running into a wall
 
 # amazon robotics office videos
 # video_name = "videos/naboris/2017_Jul_31/16_26_48-1.mp4"
@@ -149,7 +149,7 @@ robot = Robot(log_level=10)
 # video_name = "videos/naboris/2017_Jul_31/16_34_21-4.mp4"
 # video_name = "videos/naboris/2017_Jul_31/16_34_21-5.mp4"
 # video_name = "videos/naboris/2017_Jul_31/16_34_21-6.mp4"
-video_name = "videos/naboris/2017_Jul_31/16_34_21-7.mp4"
+# video_name = "videos/naboris/2017_Jul_31/16_34_21-7.mp4"
 
 
 # buggy videos

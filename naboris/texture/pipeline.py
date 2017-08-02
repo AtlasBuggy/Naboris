@@ -17,7 +17,11 @@ class TexturePipeline(Pipeline):
     def __init__(self, enabled=True, log_level=None):
         super(TexturePipeline, self).__init__(enabled, log_level)
 
-        with open("training_images/training.json") as training_file:
+        self.database_file_path = "naboris/texture/training.json"
+        self.model_pickle_path = "naboris/texture/models/texture.pkl"
+        self.training_image_path = "naboris/texture/training_images"
+
+        with open(self.database_file_path) as training_file:
             self.training_data = json.load(training_file)
 
         self.results_service_tag = "results"
@@ -35,56 +39,53 @@ class TexturePipeline(Pipeline):
         self.cropped_label = ""
         self.cropped_num = 0
 
-        self.labels = []
-        self.data = []
-        self.prediction_labels = []
-
-        for label, paths in self.training_data.items():
-            if label not in self.prediction_labels:
-                self.prediction_labels.append(label)
-        self.prediction_labels.sort()
+        self.prediction_labels = sorted(list(self.training_data.keys()))
 
         self.height_offset = 100
         self.offset = 100
 
     def load_model(self):
-        with open("naboris/texture/models/texture.pkl", 'rb') as model:
+        with open(self.model_pickle_path, 'rb') as model:
             self.classifier = pickle.load(model)
 
     def train(self):
-        for label, paths in self.training_data.items():
-            print("loading '%s'. %s images" % (label, len(paths)))
-            for path in paths:
-                if not os.path.isfile(path):
-                    raise FileNotFoundError(path)
-                self.labels.append(label)
-                image = cv2.imread(path)
-                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-                gray = cv2.equalizeHist(gray)
-                hist, _ = self.desc.describe(gray)
-                self.data.append(hist)
+        labels = []
+        data = []
+
+        for label, num_images in self.training_data.items():
+            print("loading '%s'. %s images" % (label, num_images))
+            dir_path = os.path.join(self.training_image_path, label)
+            file_names = os.listdir(dir_path)
+            if len(file_names) != num_images:
+                self.logger.warning(
+                    "Number of images (%s) doesn't match number in json (%s)" % (len(file_names), num_images)
+                )
+
+            for file_name in file_names:
+                if file_name.endswith(".png"):
+                    path = os.path.join(dir_path, file_name)
+
+                    if not os.path.isfile(path):
+                        raise FileNotFoundError(path)
+                    labels.append(label)
+                    image = cv2.imread(path)
+                    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                    gray = cv2.equalizeHist(gray)
+                    hist, _ = self.desc.describe(gray)
+                    data.append(hist)
             print("done")
 
         print("fitting...")
-        self.classifier.fit(self.data, self.labels)
+        self.classifier.fit(data, labels)
         print("done")
         with open("naboris/texture/models/texture.pkl", 'wb') as model:
             pickle.dump(self.classifier, model)
 
     def write_training_image(self, category, image):
-        if len(self.training_data[category]) == 0:
-            count = 0
-        else:
-            last_file_name = self.training_data[category][-1]
+        self.training_data[category] += 1
+        count = self.training_data[category]
 
-            match = re.match(r"[\s\S]*-(?P<count>[0-9]*)\.png", last_file_name)
-            if match is None:
-                raise ValueError("Invalid file entry: %s" % str(last_file_name))
-            else:
-                count = int(match.groupdict()["count"]) + 1
-
-        path = "training_images/%s/%s-%s.png" % (category, category, count)
-        self.training_data[category].append(path)
+        path = os.path.join(self.training_image_path, category, "%s-%s.png" % (category, count))
 
         cv2.imwrite(path, image)
         self.logger.info("Wrote: %s" % path)
@@ -149,5 +150,5 @@ class TexturePipeline(Pipeline):
         return frame
 
     def stop(self):
-        with open("training_images/training.json", 'w+') as training_file:
+        with open(self.database_file_path, 'w+') as training_file:
             json.dump(self.training_data, training_file)
