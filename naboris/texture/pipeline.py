@@ -17,6 +17,7 @@ class TexturePipeline(Pipeline):
     def __init__(self, enabled=True, log_level=None):
         super(TexturePipeline, self).__init__(enabled, log_level)
 
+        self.file_extension = ".jpg"
         self.database_file_path = "naboris/texture/training.json"
         self.model_pickle_path = "naboris/texture/models/texture.pkl"
         self.training_image_path = "naboris/texture/training_images"
@@ -25,7 +26,7 @@ class TexturePipeline(Pipeline):
             self.training_data = json.load(training_file)
 
         self.results_service_tag = "results"
-        self.add_service(self.results_service_tag, lambda data: data)
+        self.add_service(self.results_service_tag)
 
         self.texture_service_tag = "texture"
         self.add_service(self.texture_service_tag, self.post_texture_images)
@@ -61,7 +62,7 @@ class TexturePipeline(Pipeline):
                 )
 
             for file_name in file_names:
-                if file_name.endswith(".png"):
+                if file_name.endswith(self.file_extension):
                     path = os.path.join(dir_path, file_name)
 
                     if not os.path.isfile(path):
@@ -84,7 +85,7 @@ class TexturePipeline(Pipeline):
         self.training_data[category] += 1
         count = self.training_data[category]
 
-        path = os.path.join(self.training_image_path, category, "%s-%s.png" % (category, count))
+        path = os.path.join(self.training_image_path, category, "%s-%s%s" % (category, count, self.file_extension))
 
         cv2.imwrite(path, image)
         self.logger.info("Wrote: %s" % path)
