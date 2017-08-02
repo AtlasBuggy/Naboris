@@ -1,6 +1,7 @@
 import math
 import time
 import random
+import numpy as np
 
 from atlasbuggy.serial import SerialStream
 from atlasbuggy.plotters import LivePlotter, RobotPlot, RobotPlotCollection, StaticPlotter
@@ -67,8 +68,11 @@ class Naboris(SerialStream):
                     if prediction_label in self.good_labels:
                         self.actuators.drive(100, 0)
                     elif prediction_label in self.bad_labels:
-                        self.actuators.spin(150)
+                        self.actuators.stop()
+                        spin_direction = np.random.choice([150, -150], 1, p=[0.75, 0.25])
+                        self.actuators.spin(spin_direction)
                         self.actuators.pause(0.1)
+                        self.actuators.look_straight()
 
                 self.pipeline_results = None
             time.sleep(0.1)
@@ -168,7 +172,10 @@ class Naboris(SerialStream):
     def led_clock(self):
         self.prev_led_state = self.actuators.get_led(self.led_index)
 
-        self.actuators.set_led(self.led_index, 0, 128, 255, show=False)
+        if self.autonomous:
+            self.actuators.set_led(self.led_index, 255, 0, 0, show=False)
+        else:
+            self.actuators.set_led(self.led_index, 0, 128, 255, show=False)
         self.actuators.set_led((self.led_index - 1) % self.actuators.num_leds, self.prev_led_state)
 
         self.led_index += 1
