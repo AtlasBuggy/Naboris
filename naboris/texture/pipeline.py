@@ -35,14 +35,7 @@ class TexturePipeline(Pipeline):
         self.cropped_label = ""
         self.cropped_num = 0
 
-        self.labels = []
-        self.data = []
-        self.prediction_labels = []
-
-        for label, paths in self.training_data.items():
-            if label not in self.prediction_labels:
-                self.prediction_labels.append(label)
-        self.prediction_labels.sort()
+        self.prediction_labels = sorted(list(self.training_data.keys()))
 
         self.height_offset = 100
         self.offset = 100
@@ -52,21 +45,24 @@ class TexturePipeline(Pipeline):
             self.classifier = pickle.load(model)
 
     def train(self):
+        labels = []
+        data = []
+
         for label, paths in self.training_data.items():
             print("loading '%s'. %s images" % (label, len(paths)))
             for path in paths:
                 if not os.path.isfile(path):
                     raise FileNotFoundError(path)
-                self.labels.append(label)
+                labels.append(label)
                 image = cv2.imread(path)
                 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 gray = cv2.equalizeHist(gray)
                 hist, _ = self.desc.describe(gray)
-                self.data.append(hist)
+                data.append(hist)
             print("done")
 
         print("fitting...")
-        self.classifier.fit(self.data, self.labels)
+        self.classifier.fit(data, labels)
         print("done")
         with open("naboris/texture/models/texture.pkl", 'wb') as model:
             pickle.dump(self.classifier, model)
