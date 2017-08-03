@@ -1,12 +1,13 @@
 import cv2
 import json
+import time
 import socket
 import numpy as np
 from http.client import HTTPConnection
 
 from atlasbuggy import ThreadedStream
 from atlasbuggy.extras.cmdline import CommandLine
-from atlasbuggy.subscriptions import Subscription
+from atlasbuggy.subscriptions import *
 
 
 class NaborisSocketClient(ThreadedStream):
@@ -24,7 +25,9 @@ class NaborisSocketClient(ThreadedStream):
         self.reader = None
         self.writer = None
 
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.prev_time = 0.0
+
+        # self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connection = None
 
     def set_frame(self):
@@ -37,13 +40,27 @@ class NaborisSocketClient(ThreadedStream):
         return False
 
     def start(self):
-        self.socket.connect(self.address)
-        self.socket.send(b"GET /video_feed HTTP/1.0\n\n")
+        # self.socket.connect(self.address)
+        # self.socket.send(b"GET /video_feed HTTP/1.0\n\n")
         self.connection = HTTPConnection("%s:%s" % (self.address[0], self.address[1]))
 
+    def recv(self, response, chunk_size=1024):
+        buf = response.read(chunk_size)
+        while buf:
+            yield buf
+            buf = response.read(chunk_size)
+
     def run(self):
-        while self.is_running():
-            resp = self.socket.recv(1024)
+        headers = {'Content-type': 'image/jpeg'}
+        self.connection.request("GET", "/video_feed", headers=headers)
+        response = self.connection.getresponse()
+
+        for resp in self.recv(response):
+            if not self.is_running():
+                return
+
+            # resp = self.socket.recv(1024)
+
             if len(resp) == 0:
                 return
 
@@ -60,8 +77,11 @@ class NaborisSocketClient(ThreadedStream):
 
                 self.current_frame_num += 1
                 self.num_frames += 1
+                print(self.num_frames, 1 / (self.dt() - self.prev_time))
+                self.prev_time = self.dt()
 
     def send_command(self, command):
+        print("sending: %s" % command)
         headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
         self.connection.request("POST", "/cmd?command=" + str(command), json.dumps(""), headers)
         response = self.connection.getresponse()
@@ -77,9 +97,10 @@ class NaborisSocketClient(ThreadedStream):
         if self.writer is not None:
             self.writer.close()
 
+
 class CLI(CommandLine):
-    def __init__(self):
-        super(CLI, self).__init__(True)
+    def __init__(self, enabled=True):
+        super(CLI, self).__init__(enabled)
 
         self.client = None
         self.client_tag = "client"
@@ -93,6 +114,42 @@ class CLI(CommandLine):
             self.exit()
         else:
             self.client.send_command(line)
+
+
+class Commander(ThreadedStream):
+    def __init__(self, enabled=True):
+        super(Commander, self).__init__(enabled)
+
+        self.pipeline_feed = None
+        self.pipeline_tag = "pipeline"
+        self.results_service_tag = "results"
+        self.require_subscription(self.pipeline_tag, Update, service_tag=self.results_service_tag)
+
+        self.client = None
+        self.client_tag = "client"
+        self.require_subscription(self.client_tag, Subscription, NaborisSocketClient)
+
+        self.good_labels = ["wood", "tile", "carpet"]
+        self.bad_labels = ["walllip", "wall", "obstacle"]
+
+    def take(self, subscriptions):
+        self.client = self.subscriptions[self.client_tag].get_stream()
+        self.pipeline_feed = self.subscriptions[self.pipeline_tag].get_feed()
+
+    def run(self):
+        while self.is_running():
+            while not self.pipeline_feed.empty():
+                prediction_label, prediction_value = self.pipeline_feed.get()
+
+                if prediction_label in self.good_labels:
+                    self.client.send_command("d_0_100")
+                elif prediction_label in self.bad_labels:
+                    self.client.send_command("s")
+                    # spin_direction = np.random.choice([150, -150], 1, p=[0.75, 0.25])
+                    self.client.send_command("l")
+                    self.client.send_command("look")
+            time.sleep(0.01)
+
 
 # import cv2
 # import numpy as np

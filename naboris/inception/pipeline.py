@@ -51,6 +51,8 @@ class InceptionPipeline(TexturePipeline):
         self.post((answer, top_k[0]), self.results_service_tag)
         self.post((frame, cropped), self.texture_service_tag)
 
+        print("prediction: %s" % answer)
+
         return frame
 
     @staticmethod
