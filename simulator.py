@@ -11,7 +11,8 @@ from atlasbuggy import DataStream
 from atlasbuggy import Robot
 
 from naboris import Naboris
-from naboris.hough_pipeline import NaborisPipeline
+# from naboris.hough_pipeline import NaborisPipeline
+from naboris.inception.pipeline import InceptionPipeline
 from naboris.site import NaborisWebsite
 
 
@@ -30,17 +31,18 @@ def key_press_fn(event):
 
 robot = Robot(log_level=10)
 
-simulator = LogParser("logs/2017_Jun_10/21;25;23.log.xz", enabled=True, update_rate=0.001)
+simulator = LogParser("logs/2017_Jun_10/21;25;23.log.xz", enabled=False, update_rate=0.001)
 plotter = LivePlotter(1, matplotlib_events=dict(key_press_event=key_press_fn),
                       close_when_finished=True, enabled=True)
 naboris = Naboris()
-capture = VideoPlayer(file_name="videos/naboris/2017_Jun_10/21_25_23.mp4", enabled=True)
+capture = VideoPlayer(file_name="videos/naboris/2017_Jun_10/21_25_23.mp4", enabled=True, loop_video=True)
 viewer = CameraViewer(enabled=True, enable_trackbar=True)
-pipeline = NaborisPipeline(enabled=True)
+# pipeline = NaborisPipeline(enabled=True)
+pipeline = InceptionPipeline(enabled=False)
 site = NaborisWebsite("templates", "static", enabled=True)
 dummy_cmd = DummyCommandLine()
 
-viewer.subscribe(Update(viewer.capture_tag, pipeline))
+viewer.subscribe(Update(viewer.capture_tag, capture))
 pipeline.subscribe(Update(pipeline.capture_tag, capture))
 naboris.subscribe(Subscription(naboris.plotter_tag, plotter))
 
@@ -51,6 +53,6 @@ site.subscribe(Subscription(site.plotter_tag, plotter))
 
 simulator.subscribe(Subscription("naboris", naboris))
 
-webbrowser.open("0.0.0.0:5000")
+# webbrowser.open("0.0.0.0:5000")
 
 robot.run(simulator, plotter, viewer, site, capture, pipeline)

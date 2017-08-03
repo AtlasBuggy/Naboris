@@ -1,38 +1,20 @@
-from atlasbuggy.camera.viewer.base import BaseViewer
+from atlasbuggy.camera.viewer import CameraViewer
 from atlasbuggy.robot import Robot
 from atlasbuggy.subscriptions import *
-from remote.logitech import Logitech
-from remote.socket_client import CLI, NaborisSocketClient
 
-
-class MyCameraViewer(BaseViewer):
-    def __init__(self):
-        super(MyCameraViewer, self).__init__()
-        self.socket = None
-        self.socket_feed = None
-        self.socket_tag = "socket"
-        self.delay = 0.05
-
-    def take(self, subscriptions):
-        self.socket = subscriptions["socket"].stream
-        self.socket_feed = subscriptions["socket"].queue
-
-    def get_frame(self):
-        if self.socket_feed.empty():
-            return None
-        else:
-            return self.socket_feed.get()
+from naboris.inception.pipeline import InceptionPipeline
+from remote.socket_client import NaborisSocketClient, CLI
 
 
 robot = Robot()
 
 socket = NaborisSocketClient()
+pipeline = InceptionPipeline()
+viewer = CameraViewer(enable_trackbar=False)
 cli = CLI()
-logitech = Logitech(enabled=True)
-viewer = MyCameraViewer()
 
-cli.subscribe(Subscription("socket", socket))
-logitech.subscribe(Subscription("socket", socket))
-viewer.subscribe(Update(viewer.socket_tag, socket))
+pipeline.subscribe(Update(pipeline.capture_tag, socket))
+viewer.subscribe(Update(viewer.capture_tag, pipeline))
+cli.subscribe(Subscription(cli.client_tag, socket))
 
-robot.run(socket, cli, logitech, viewer)
+robot.run(socket, viewer, pipeline, cli)
