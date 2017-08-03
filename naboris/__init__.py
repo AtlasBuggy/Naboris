@@ -38,7 +38,7 @@ class Naboris(SerialStream):
         self.require_subscription(self.pipeline_tag, Feed, service_tag=self.results_service_tag, is_suggestion=True)
 
         self.good_labels = ["wood", "tile", "carpet"]
-        self.bad_labels = ["wall_lip", "wall", "obstacle"]
+        self.bad_labels = ["walllip", "wall", "obstacle"]
 
         self.plotter = None
         self.plotter_tag = "plotter"
@@ -60,6 +60,7 @@ class Naboris(SerialStream):
         self.actuators.look_straight()
 
     def serial_update(self):
+        spin_direction = 150
         while self.is_running():
             if self.pipeline_results is not None:
                 prediction_label, prediction_value = self.pipeline_results
@@ -69,8 +70,10 @@ class Naboris(SerialStream):
                         self.actuators.drive(100, 0)
                     elif prediction_label in self.bad_labels:
                         self.actuators.stop()
-                        spin_direction = np.random.choice([150, -150], 1, p=[0.75, 0.25])
+                        # spin_direction = np.random.choice([150, -150], 1, p=[0.75, 0.25])
                         self.actuators.spin(spin_direction)
+                        self.actuators.pause(0.5)
+                        self.actuators.stop()
                         self.actuators.pause(0.1)
                         self.actuators.look_straight()
 
