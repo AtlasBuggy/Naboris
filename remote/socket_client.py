@@ -1,7 +1,7 @@
 import cv2
 import json
 import time
-import socket
+from threading import Lock
 import numpy as np
 from http.client import HTTPConnection
 
@@ -29,6 +29,7 @@ class NaborisSocketClient(ThreadedStream):
 
         # self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connection = None
+        self.response_lock = Lock()
 
     def set_frame(self):
         pass
@@ -48,7 +49,8 @@ class NaborisSocketClient(ThreadedStream):
         buf = response.read(chunk_size)
         while buf:
             yield buf
-            buf = response.read(chunk_size)
+            with self.response_lock:
+                buf = response.read(chunk_size)
 
     def run(self):
         headers = {'Content-type': 'image/jpeg'}
@@ -77,16 +79,18 @@ class NaborisSocketClient(ThreadedStream):
 
                 self.current_frame_num += 1
                 self.num_frames += 1
-                print(self.num_frames, 1 / (self.dt() - self.prev_time))
+                print(self.num_frames, self.dt() - self.prev_time)
                 self.prev_time = self.dt()
+            time.sleep(0.001)
 
     def send_command(self, command):
-        print("sending: %s" % command)
-        headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-        self.connection.request("POST", "/cmd?command=" + str(command), json.dumps(""), headers)
-        response = self.connection.getresponse()
-        if response.status != 200:
-            raise RuntimeError("Response was not OK: %s, %s" % (response.status, response.reason))
+        with self.response_lock:
+            print("sending: %s" % command)
+            headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+            self.connection.request("POST", "/cmd?command=" + str(command), json.dumps(""), headers)
+            response = self.connection.getresponse()
+            if response.status != 200:
+                raise RuntimeError("Response was not OK: %s, %s" % (response.status, response.reason))
 
     def to_image(self, byte_stream):
         return cv2.imdecode(np.fromstring(byte_stream, dtype=np.uint8), 1)
@@ -147,8 +151,8 @@ class Commander(ThreadedStream):
                     self.client.send_command("s")
                     # spin_direction = np.random.choice([150, -150], 1, p=[0.75, 0.25])
                     self.client.send_command("l")
-                    self.client.send_command("look")
-            time.sleep(0.01)
+                    # self.client.send_command("look")
+                time.sleep(0.01)
 
 
 # import cv2
