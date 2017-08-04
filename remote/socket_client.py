@@ -17,8 +17,8 @@ class NaborisSocketClient(ThreadedStream):
 
         self.buffer = b''
 
-        self.width = None
-        self.height = None
+        self.width = 640
+        self.height = 480
         self.num_frames = 0
         self.current_frame_num = 0
 
@@ -29,6 +29,8 @@ class NaborisSocketClient(ThreadedStream):
 
         self.connection = None
         self.response_lock = Lock()
+
+        self.chunk_size = int(self.width * self.height / 16)
 
     def set_frame(self):
         pass
@@ -42,12 +44,12 @@ class NaborisSocketClient(ThreadedStream):
     def start(self):
         self.connection = HTTPConnection("%s:%s" % (self.address[0], self.address[1]))
 
-    def recv(self, response, chunk_size=16384):
-        buf = response.read(chunk_size)
+    def recv(self, response):
+        buf = response.read(self.chunk_size)
         while buf:
             yield buf
             with self.response_lock:
-                buf = response.read(chunk_size)
+                buf = response.read(self.chunk_size)
 
     def run(self):
         headers = {'Content-type': 'image/jpeg'}
