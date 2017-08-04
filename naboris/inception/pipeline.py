@@ -1,4 +1,5 @@
 import cv2
+import time
 import numpy as np
 import multiprocessing
 import tensorflow as tf
@@ -36,11 +37,14 @@ class InceptionPipeline(TexturePipeline):
     def pipeline(self, frame):
         cropped = self.crop_frame(frame)
 
+        t0 = time.time()
         predictions = self.sess.run(self.softmax_tensor,
                                     {'DecodeJpeg/contents:0': self.numpy_to_bytes(cropped)})
         predictions = np.squeeze(predictions)
         top_k = predictions.argsort()[::-1]
         answer = self.prediction_labels[top_k[0]]
+        t1 = time.time()
+        self.logger.info("Took: %0.4fs, Answer: %s" % (t1 - t0, answer))
 
         cv2.putText(frame, answer, (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
                     0.75, (0, 0, 255), 2)
@@ -50,8 +54,6 @@ class InceptionPipeline(TexturePipeline):
 
         self.post((answer, top_k[0]), self.results_service_tag)
         self.post((frame, cropped), self.texture_service_tag)
-
-        print("prediction: %s" % answer)
 
         return frame
 

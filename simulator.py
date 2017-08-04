@@ -31,11 +31,11 @@ def key_press_fn(event):
 
 robot = Robot(log_level=10)
 
-simulator = LogParser("logs/2017_Jun_10/21;25;23.log.xz", enabled=False, update_rate=0.001)
+simulator = LogParser("logs/2017_Aug_01/22;49;47.log.xz", enabled=False, update_rate=0.001)
 plotter = LivePlotter(1, matplotlib_events=dict(key_press_event=key_press_fn),
                       close_when_finished=True, enabled=True)
 naboris = Naboris()
-capture = VideoPlayer(file_name="videos/naboris/2017_Jun_10/21_25_23.mp4", enabled=True, loop_video=True)
+capture = VideoPlayer(file_name="videos/naboris/2017_Aug_01/22_49_47-1.mp4", enabled=True, loop_video=True)
 viewer = CameraViewer(enabled=True, enable_trackbar=True)
 # pipeline = NaborisPipeline(enabled=True)
 pipeline = InceptionPipeline(enabled=False)

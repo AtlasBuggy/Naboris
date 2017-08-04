@@ -1,13 +1,13 @@
 import cv2
 import json
 import time
-from threading import Lock
 import numpy as np
 from http.client import HTTPConnection
 
 from atlasbuggy import ThreadedStream
 from atlasbuggy.extras.cmdline import CommandLine
 from atlasbuggy.subscriptions import *
+from threading import Lock
 
 
 class NaborisSocketClient(ThreadedStream):
@@ -27,7 +27,6 @@ class NaborisSocketClient(ThreadedStream):
 
         self.prev_time = 0.0
 
-        # self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connection = None
         self.response_lock = Lock()
 
@@ -41,11 +40,9 @@ class NaborisSocketClient(ThreadedStream):
         return False
 
     def start(self):
-        # self.socket.connect(self.address)
-        # self.socket.send(b"GET /video_feed HTTP/1.0\n\n")
         self.connection = HTTPConnection("%s:%s" % (self.address[0], self.address[1]))
 
-    def recv(self, response, chunk_size=1024):
+    def recv(self, response, chunk_size=16384):
         buf = response.read(chunk_size)
         while buf:
             yield buf
@@ -61,8 +58,6 @@ class NaborisSocketClient(ThreadedStream):
             if not self.is_running():
                 return
 
-            # resp = self.socket.recv(1024)
-
             if len(resp) == 0:
                 return
 
@@ -72,6 +67,7 @@ class NaborisSocketClient(ThreadedStream):
 
             if response_1 != -1 and response_2 != -1:
                 jpg = self.buffer[response_1:response_2 + 2]
+                print(len(jpg))
                 self.buffer = self.buffer[response_2 + 2:]
                 image = self.to_image(jpg)
 
@@ -79,13 +75,13 @@ class NaborisSocketClient(ThreadedStream):
 
                 self.current_frame_num += 1
                 self.num_frames += 1
-                print(self.num_frames, self.dt() - self.prev_time)
+                self.logger.debug("received frame #%s. Took %0.4fs" % (self.num_frames, self.dt() - self.prev_time))
                 self.prev_time = self.dt()
-            time.sleep(0.001)
+                # time.sleep(0.03)
 
     def send_command(self, command):
         with self.response_lock:
-            print("sending: %s" % command)
+            self.logger.debug("sending: %s" % command)
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
             self.connection.request("POST", "/cmd?command=" + str(command), json.dumps(""), headers)
             response = self.connection.getresponse()
@@ -152,8 +148,9 @@ class Commander(ThreadedStream):
                     # spin_direction = np.random.choice([150, -150], 1, p=[0.75, 0.25])
                     self.client.send_command("l")
                     # self.client.send_command("look")
-                time.sleep(0.01)
-
+                    time.sleep(0.75)
+            #     time.sleep(0.03)
+            # time.sleep(0.03)
 
 # import cv2
 # import numpy as np

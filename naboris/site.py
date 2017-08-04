@@ -4,7 +4,6 @@ import mpld3
 
 from flask import Response, render_template, request, json
 
-from atlasbuggy.clock import Clock
 from atlasbuggy.website import Website
 from atlasbuggy.subscriptions import *
 
@@ -72,7 +71,6 @@ class NaborisWebsite(Website):
         self.lights_are_on = False
         self.autonomous_mode = False
 
-        self.clock = None
         self.commands = None
 
         self.camera_tag = "camera"
@@ -113,8 +111,6 @@ class NaborisWebsite(Website):
 
         self.show_orignal = not self.pipeline.enabled
         self.update_frame_source()
-
-        self.clock = Clock(float(self.camera.fps))
 
         self.autonomous_mode = False
 
@@ -158,9 +154,6 @@ class NaborisWebsite(Website):
             return self.camera.is_recording
         else:
             return False
-
-    def start(self):
-        self.clock.start()
 
     def index(self):
         return render_template('index.html', commands=self.commands)
@@ -238,7 +231,7 @@ class NaborisWebsite(Website):
 
                     if self.camera.paused:
                         time.sleep(0.25)
-                    self.clock.update()
+                    time.sleep(1 / self.camera.fps)
 
     def update_plot(self):
         while True:
