@@ -28,7 +28,6 @@ class InceptionPipeline(TexturePipeline):
 
     def create_graph(self):
         """Creates a graph from saved GraphDef file and returns a saver."""
-        # Creates graph from saved graph_def.pb.
         with tf.gfile.FastGFile(self.model_path, 'rb') as f:
             graph_def = tf.GraphDef()
             graph_def.ParseFromString(f.read())

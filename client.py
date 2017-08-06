@@ -9,7 +9,7 @@ from remote.socket_client import NaborisSocketClient, CLI, Commander
 robot = Robot(log_level=10)
 
 socket = NaborisSocketClient(
-    # address=("naboris", 5000),
+    address=("naboris", 5000),
 )
 pipeline = InceptionPipeline(enabled=True)
 viewer = CameraViewer(enable_trackbar=False)

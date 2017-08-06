@@ -145,54 +145,10 @@ class Commander(ThreadedStream):
 
                 if prediction_label in self.good_labels:
                     self.client.send_command("d_0_100")
+                    time.sleep(0.15)
                 elif prediction_label in self.bad_labels:
                     self.client.send_command("s")
                     # spin_direction = np.random.choice([150, -150], 1, p=[0.75, 0.25])
                     self.client.send_command("l")
                     # self.client.send_command("look")
                     time.sleep(0.75)
-            #     time.sleep(0.03)
-            # time.sleep(0.03)
-
-# import cv2
-# import numpy as np
-# import socket
-#
-# address = ("0.0.0.0", 5000)
-#
-# # Set up a TCP/IP socket
-# s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#
-# # Connect as client to a selected server
-# # on a specified port
-# s.connect(address)
-#
-# # Protocol exchange - sends and receives
-# s.send(b"GET /video_feed HTTP/1.0\n\n")
-#
-# buffer = b''
-#
-# window_name = "stream"
-# cv2.namedWindow(window_name)
-#
-# while True:
-#     resp = s.recv(1024)
-#     if len(resp) == 0:
-#         break
-#
-#     buffer += resp
-#     response_1 = buffer.find(b'\xff\xd8')
-#     response_2 = buffer.find(b'\xff\xd9')
-#
-#     if response_1 != -1 and response_2 != -1:
-#         jpg = buffer[response_1:response_2 + 2]
-#         buffer = buffer[response_2 + 2:]
-#         image = cv2.imdecode(np.fromstring(jpg, dtype=np.uint8), 1)
-#
-#         cv2.imshow(window_name, image)
-#         key = cv2.waitKey(1)
-#         if key != 255:
-#             break
-#
-# # Close the connection when completed
-# s.close()
