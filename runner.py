@@ -1,4 +1,5 @@
 import matplotlib
+
 matplotlib.use('Agg')
 
 import argparse
@@ -10,11 +11,10 @@ from atlasbuggy.plotters import LivePlotter
 from naboris import Naboris
 from naboris.picamera import PiCamera
 from naboris.cli import NaborisCLI
-from naboris.texture.pipeline import TexturePipeline
-# from naboris.inception.pipeline import InceptionPipeline
-
 from naboris.site import NaborisWebsite
-from naboris.socket_server import NaborisSocketServer
+from naboris.texture.pipeline import TexturePipeline
+
+# from naboris.inception.pipeline import InceptionPipeline
 
 
 parser = argparse.ArgumentParser()

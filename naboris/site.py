@@ -4,7 +4,7 @@ import mpld3
 
 from flask import Response, render_template, request, json
 
-from atlasbuggy.website import Website
+from atlasbuggy.extras.website import Website
 from atlasbuggy.subscriptions import *
 
 
