@@ -1,17 +1,18 @@
 import os
 import time
-from threading import Lock
+import asyncio
 from subprocess import Popen, PIPE, DEVNULL
 
 import picamera
 from picamera.array import PiRGBArray
 
-from atlasbuggy import ThreadedStream
+from atlasbuggy import Node
+from atlasbuggy.opencv.messages import ImageMessage
 
 
-class PiCamera(ThreadedStream):
-    def __init__(self, enabled=True, record=False, log_level=None, file_name=None, directory=None):
-        super(PiCamera, self).__init__(enabled, log_level=log_level)
+class PiCamera(Node):
+    def __init__(self, enabled=True, record=False, file_name=None, directory=None):
+        super(PiCamera, self).__init__(enabled)
 
         self.width = 0
         self.height = 0
@@ -38,9 +39,7 @@ class PiCamera(ThreadedStream):
 
         self.paused = False
 
-        self.frame_lock = Lock()
-
-    def start(self):
+    async def setup(self):
         self.capture = picamera.PiCamera()
 
         # self.capture.resolution = (self.capture.resolution[0] // 2, self.capture.resolution[1] // 2)
@@ -85,11 +84,11 @@ class PiCamera(ThreadedStream):
 
         self.full_path = os.path.join(self.directory, self.file_name)
 
-    def run(self):
+    async def loop(self):
         with self.capture:
             # let camera warm up
             self.capture.start_preview()
-            time.sleep(2)
+            await asyncio.sleep(2)
 
             if self.should_record:
                 self.start_recording(self.file_name, self.directory)
@@ -97,19 +96,17 @@ class PiCamera(ThreadedStream):
             raw_capture = PiRGBArray(self.capture, size=self.capture.resolution)
             for frame in self.capture.capture_continuous(raw_capture, format="bgr", use_video_port=True):
                 if self.paused:
-                    time.sleep(0.1)
+                    await asyncio.sleep(0.1)
                     continue
 
-                with self.frame_lock:
-                    self.frame = frame.array
-                    raw_capture.truncate(0)
-                    self.post(self.frame)
+                self.frame = frame.array
+                raw_capture.truncate(0)
+
+                message = ImageMessage(self.frame, self.num_frames)
+                self.logger.info("PiCamera image received: %s" % message)
+                self.broadcast(message)
 
                 self.poll_for_fps()
-                self.log_frame()
-
-                if not self.is_running():
-                    return
 
     def poll_for_fps(self):
         if self.prev_t is None:
@@ -122,13 +119,9 @@ class PiCamera(ThreadedStream):
         self.fps_avg = self.fps_sum / self.num_frames
         self.prev_t = time.time()
 
-    def log_frame(self):
-        self.logger.debug("frame #%s" % self.num_frames)
-
     def stop_recording(self):
         if self.enabled and self.is_recording:
-            if self.is_running():
-                self.capture.stop_recording()
+            self.capture.stop_recording()
             self.is_recording = False
 
             if self.file_name.endswith(self.default_file_type):
@@ -151,7 +144,8 @@ class PiCamera(ThreadedStream):
 
             self.logger.info("Wrote video to '%s'" % self.full_path)
 
-    def stop(self):
+    @asyncio.coroutine
+    def teardown(self):
         # self.capture.stop_preview()  # picamera complains when this is called while recording
         self.stop_recording()
 

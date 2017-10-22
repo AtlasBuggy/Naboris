@@ -11,7 +11,7 @@ from atlasbuggy import Robot
 
 from naboris import Naboris
 from naboris.hough_pipeline import NaborisPipeline
-from naboris.site import NaborisWebsite
+from naboris.naboris_site import NaborisWebsite
 
 
 class DummyCommandLine(DataStream):

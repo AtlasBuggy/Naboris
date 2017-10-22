@@ -1,30 +1,71 @@
 import re
-import os
-from atlasbuggy.extras.cmdline import CommandLine
+import sys
+import asyncio
+import traceback
+from atlasbuggy import Node
 
 
-class NaborisCLI(CommandLine):
-    def __init__(self, enabled=True, log_level=None):
-        super(NaborisCLI, self).__init__(enabled, log_level)
-        self.naboris = None
+class NaborisCLI(Node):
+    def __init__(self, enabled=True, prompt_text=">> "):
+        super(NaborisCLI, self).__init__(enabled)
+        self.prompt_text = prompt_text
+        self.queue = asyncio.Queue()
+
         self.actuators = None
         self.sounds = None
         self.capture = None
 
-        self.naboris_tag = "naboris"
+        self.actuators_tag = "actuators"
+        self.sounds_tag = "capture"
         self.capture_tag = "capture"
+
+        self.should_exit = False
 
         self.video_num_counter_regex = r"([\s\S]*)-([0-9]*)\.([\S]*)"
         self.video_name_regex = r"([\s\S]*)\.([\S]*)"
 
-        self.require_subscription(self.naboris_tag)
-        self.require_subscription(self.capture_tag)
+        self.actuators_sub = self.define_subscription(
+            self.actuators_tag,
+            required_methods=(
+                "drive",
+                "look_straight",
+                "look_up",
+                "look_down",
+                "look_left",
+                "look_right",
+                "set_turret",
+                "set_all_leds",
+                "ask_battery",
+                "stop",
+            ))
+        self.sounds_sub = self.define_subscription(self.sounds_tag)
+        self.capture_sub = self.define_subscription(self.capture_tag)
 
-    def take(self, subscriptions):
-        self.naboris = subscriptions[self.naboris_tag].get_stream()
-        self.capture = subscriptions[self.capture_tag].get_stream()
-        self.actuators = self.naboris.actuators
-        self.sounds = self.naboris.sounds
+    async def setup(self):
+        self.event_loop.add_reader(sys.stdin, self.handle_stdin)
+
+    def handle_stdin(self):
+        data = sys.stdin.readline()
+        asyncio.async(self.queue.put(data))
+
+    async def loop(self):
+        while True:
+            print("\r%s" % self.prompt_text, end="")
+            data = await self.queue.get()
+            try:
+                self.handle_input(data.strip('\n'))
+            except BaseException as error:
+                traceback.print_exc()
+                print(error)
+                self.logger.warning("Failed to parse input: " + repr(data))
+
+            if self.should_exit:
+                return
+
+    def take(self):
+        self.capture = self.capture_sub.get_producer()
+        self.actuators = self.actuators_sub.get_producer()
+        self.sounds = self.sounds_sub.ge
 
     def spin_left(self, params):
         value = int(params) if len(params) > 0 else 75
@@ -110,18 +151,8 @@ class NaborisCLI(CommandLine):
     def battery(self, params):
         self.actuators.ask_battery()
 
-    def set_autonomous(self, params=None):
-        self.logger.debug("Enabling autonomous mode")
-        self.naboris.autonomous = True
-        self.actuators.stop()
-
-    def set_manual(self, params=None):
-        self.logger.debug("Enabling manual mode")
-        self.naboris.autonomous = False
-        self.actuators.stop()
-
-    def my_exit(self, params):
-        self.exit()
+    def exit(self, params):
+        self.should_exit = True
 
     def my_stop(self, params):
         self.actuators.stop()
@@ -156,7 +187,7 @@ class NaborisCLI(CommandLine):
         self.actuators.set_all_leds(15, 15, 15)
 
     def say_random_sound(self, params):
-        self.naboris.play_random_sound()
+        self.sounds.play_random_sound()
 
     def start_new_video(self, params):
         if not self.capture.is_recording:
@@ -194,7 +225,7 @@ class NaborisCLI(CommandLine):
         if type(line) == str:
             self.check_commands(
                 line,
-                q=self.my_exit,
+                q=self.exit,
                 l=self.spin_left,
                 r=self.spin_right,
                 d=self.drive,
@@ -211,6 +242,4 @@ class NaborisCLI(CommandLine):
                 sound=self.say_random_sound,
                 start_video=self.start_new_video,
                 stop_video=self.stop_recording,
-                manual=self.set_manual,
-                auton=self.set_autonomous
             )

@@ -1,7 +1,7 @@
 import matplotlib
 import webbrowser
 
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 
 from atlasbuggy.camera import VideoPlayer, CameraViewer
 from atlasbuggy.logparser import LogParser
@@ -13,7 +13,7 @@ from atlasbuggy import Robot
 from naboris import Naboris
 # from naboris.hough_pipeline import NaborisPipeline
 from naboris.inception.pipeline import InceptionPipeline
-from naboris.site import NaborisWebsite
+from naboris.naboris_site import NaborisWebsite
 
 
 class DummyCommandLine(DataStream):
@@ -31,7 +31,7 @@ def key_press_fn(event):
 
 robot = Robot(log_level=10)
 
-simulator = LogParser("logs/2017_Aug_01/22;49;47.log.xz", enabled=False, update_rate=0.001)
+simulator = LogParser("logs/2017_Aug_01/22;49;47.log.xz", enabled=True, update_rate=0.001)
 plotter = LivePlotter(1, matplotlib_events=dict(key_press_event=key_press_fn),
                       close_when_finished=True, enabled=True)
 naboris = Naboris()
@@ -51,7 +51,7 @@ site.subscribe(Update(site.pipeline_tag, pipeline))
 site.subscribe(Subscription(site.cmd_tag, dummy_cmd))
 site.subscribe(Subscription(site.plotter_tag, plotter))
 
-simulator.subscribe(Subscription("naboris", naboris))
+simulator.subscribe(Subscription("Naboris", naboris))
 
 # webbrowser.open("0.0.0.0:5000")
 

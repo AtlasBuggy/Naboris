@@ -1,7 +1,9 @@
-from atlasbuggy.serial.object import SerialObject
+import asyncio
+
+from atlasbuggy.device.arduino import Arduino
 
 
-class Actuators(SerialObject):
+class Actuators(Arduino):
     def __init__(self, enabled=True):
         self.num_leds = None
         self.speed_increment = None
@@ -15,6 +17,26 @@ class Actuators(SerialObject):
         self.led_states = None
 
         super(Actuators, self).__init__("naboris actuators", enabled)
+
+    async def loop(self):
+        self.receive_first(self.first_packet)
+
+        self.set_all_leds(0, 0, 0)
+        self.set_battery(5050, 5180)
+        await asyncio.sleep(0.1)  # servos don't like being set at the same time as LEDs
+        self.look_straight()
+
+        while True:
+            while not self.empty():
+                packet_time, packets = self.read()
+
+                for packet in packets:
+                    self.receive(packet_time, packet)
+                    self.log_to_buffer(packet_time, packet)
+
+    async def teardown(self):
+        self.stop_motors()
+        self.release_motors()
 
     def receive_first(self, packet):
         data = packet.split("\t")
@@ -47,17 +69,17 @@ class Actuators(SerialObject):
                 direction_flag = 2
         command = "p%d%03d%03d%03d" % (direction_flag, angle, abs(speed), abs(rotational_speed))
 
-        self.send(command)
+        self.write(command)
 
     def spin(self, speed):
         command = "r%d%03d" % (int(-speed > 0), abs(speed))
-        self.send(command)
+        self.write(command)
 
-    def stop(self):
-        self.send("h")
+    def stop_motors(self):
+        self.write("h")
 
-    def release(self):
-        self.send("d")
+    def release_motors(self):
+        self.write("d")
 
     def set_turret(self, yaw, azimuth):
         if azimuth < 30:
@@ -70,7 +92,7 @@ class Actuators(SerialObject):
         if yaw > 150:
             yaw = 150
 
-        self.send("c%03d%03d" % (yaw, azimuth))
+        self.write("c%03d%03d" % (yaw, azimuth))
 
     def set_yaw(self, yaw):
         self.turret_yaw = yaw
@@ -122,7 +144,7 @@ class Actuators(SerialObject):
         self.led_states[led_index][1] = g
         self.led_states[led_index][2] = b
 
-        self.send("o%03d%03d%03d%03d" % (led_index, r, g, b))
+        self.write("o%03d%03d%03d%03d" % (led_index, r, g, b))
         if show:
             self.show()
 
@@ -145,9 +167,9 @@ class Actuators(SerialObject):
             self.led_states[index][1] = g
             self.led_states[index][2] = b
 
-        assert end <= self.num_leds and 0 <= start and start < end
+        assert 0 <= start < end <= self.num_leds
 
-        self.send("o%03d%03d%03d%03d%03d" % (start, r, g, b, end))
+        self.write("o%03d%03d%03d%03d%03d" % (start, r, g, b, end))
         if show:
             self.show()
 
@@ -158,13 +180,13 @@ class Actuators(SerialObject):
         return tuple(self.led_states[index])
 
     def toggle_led_cycle(self):
-        self.send("o")
+        self.write("o")
 
     def show(self):
-        self.send("x")
+        self.write("x")
 
     def ask_battery(self):
-        self.send("b")
+        self.write("b")
 
     def set_battery(self, lower_V, upper_V):
-        self.send("b%03d%03d" % (lower_V, upper_V))
+        self.write("b%03d%03d" % (lower_V, upper_V))

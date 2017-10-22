@@ -1,11 +1,15 @@
 import os
+import random
+import asyncio
 from subprocess import Popen, PIPE, DEVNULL
 
+from atlasbuggy import Node
 
-class Sounds:
-    def __init__(self, name, sound_directory, enabled=True, debug=False):
-        # super(Sounds, self).__init__("", sound_directory, ["wav", "ogg"], "", False, enabled, debug,
-        #                                   False, False)
+class Sounds(Node):
+    def __init__(self, name, sound_directory, random_sound_folders, enabled=True):
+        super(Sounds, self).__init__(enabled)
+
+        self.random_sound_folders = random_sound_folders
         self.directory = os.path.abspath(sound_directory)
         self.file_types = ["wav", "ogg", "mp3"]
         self.tunes = {}
@@ -46,6 +50,13 @@ class Sounds:
     def stop_all(self):
         for tune_name in self.tunes.keys():
             self.tunes[tune_name].stop()
+
+    async def loop(self):
+        while True:
+            folder = random.choice(self.random_sound_folders)
+            sound = random.choice(self.list_sounds(folder))
+            self.play(sound)
+            await asyncio.sleep(random.randint(30, 120))
 
 
 class Player:
