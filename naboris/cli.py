@@ -16,7 +16,7 @@ class NaborisCLI(Node):
         self.capture = None
 
         self.actuators_tag = "actuators"
-        self.sounds_tag = "capture"
+        self.sounds_tag = "sounds"
         self.capture_tag = "capture"
 
         self.should_exit = False
@@ -24,8 +24,10 @@ class NaborisCLI(Node):
         self.video_num_counter_regex = r"([\s\S]*)-([0-9]*)\.([\S]*)"
         self.video_name_regex = r"([\s\S]*)\.([\S]*)"
 
+        self.capture_sub = self.define_subscription(self.capture_tag, queue_size=None)
         self.actuators_sub = self.define_subscription(
             self.actuators_tag,
+            queue_size=None,
             required_methods=(
                 "drive",
                 "look_straight",
@@ -36,10 +38,30 @@ class NaborisCLI(Node):
                 "set_turret",
                 "set_all_leds",
                 "ask_battery",
-                "stop",
+                "stop_motors",
             ))
-        self.sounds_sub = self.define_subscription(self.sounds_tag)
-        self.capture_sub = self.define_subscription(self.capture_tag)
+        self.sounds_sub = self.define_subscription(self.sounds_tag, queue_size=None)
+
+        self.available_commands = dict(
+            q=self.exit,
+            l=self.spin_left,
+            r=self.spin_right,
+            d=self.drive,
+            h=self.help,
+            look=self.look,
+            s=self.my_stop,
+            red=self.red,
+            green=self.green,
+            blue=self.blue,
+            white=self.white,
+            rgb=self.rgb,
+            battery=self.battery,
+            hello=self.say_hello,
+            alert=self.say_alert,
+            sound=self.say_random_sound,
+            start_video=self.start_new_video,
+            stop_video=self.stop_recording,
+        )
 
     async def setup(self):
         self.event_loop.add_reader(sys.stdin, self.handle_stdin)
@@ -65,7 +87,7 @@ class NaborisCLI(Node):
     def take(self):
         self.capture = self.capture_sub.get_producer()
         self.actuators = self.actuators_sub.get_producer()
-        self.sounds = self.sounds_sub.ge
+        self.sounds = self.sounds_sub.get_producer()
 
     def spin_left(self, params):
         value = int(params) if len(params) > 0 else 75
@@ -155,7 +177,7 @@ class NaborisCLI(Node):
         self.should_exit = True
 
     def my_stop(self, params):
-        self.actuators.stop()
+        self.actuators.stop_motors()
 
     def say_hello(self, params):
         self.sounds.play("emotes/hello")
@@ -211,7 +233,14 @@ class NaborisCLI(Node):
         else:
             print("PiCamera already stopped recording")
 
-    def check_commands(self, line, **commands):
+    def help(self, params):
+        print("\nAvailable commands:")
+        for command in self.available_commands:
+            print("\t%s" % command)
+
+        print(self.prompt_text, end="")
+
+    def check_commands(self, line, commands):
         function = None
         current_command = ""
         for command, fn in commands.items():
@@ -223,23 +252,4 @@ class NaborisCLI(Node):
 
     def handle_input(self, line):
         if type(line) == str:
-            self.check_commands(
-                line,
-                q=self.exit,
-                l=self.spin_left,
-                r=self.spin_right,
-                d=self.drive,
-                look=self.look,
-                s=self.my_stop,
-                red=self.red,
-                green=self.green,
-                blue=self.blue,
-                white=self.white,
-                rgb=self.rgb,
-                battery=self.battery,
-                hello=self.say_hello,
-                alert=self.say_alert,
-                sound=self.say_random_sound,
-                start_video=self.start_new_video,
-                stop_video=self.stop_recording,
-            )
+            self.check_commands(line, self.available_commands)

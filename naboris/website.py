@@ -37,11 +37,18 @@ class Website(Node):
         else:
             self.app_params = {}
 
-        self.website_thread = Thread(target=self.run())
+        self.website_thread = Thread(target=self.run)
         self.website_thread.daemon = True
 
     async def setup(self):
+        self.logger.info("starting website thread")
         self.website_thread.start()
+
+    async def loop(self):
+        while True:
+            self.logger.info("website is waiting")
+
+            await asyncio.sleep(5.0)
 
     def index(self):
         """

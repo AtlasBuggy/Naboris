@@ -71,8 +71,8 @@ class NaborisWebsite(Website):
         self.cmd_tag = "cmdline"
 
         self.camera_sub = self.define_subscription(self.camera_tag, message_type=ImageMessage,
-                                                   required_attributes=("fps",), required_methods=("get_paused",))
-        self.cmd_sub = self.define_subscription(self.cmd_tag, required_attributes=("handle_input",))
+                                                   required_attributes=("fps",), required_methods=("get_pause",))
+        self.cmd_sub = self.define_subscription(self.cmd_tag, required_attributes=("handle_input",), queue_size=None)
 
         self.camera = None
         self.cmdline = None
@@ -128,9 +128,8 @@ class NaborisWebsite(Website):
         if len(command) > 0:
             if command[0] == ":":
                 if command == ":toggle_camera":
+                    self.camera_sub.enabled = self.camera.paused
                     self.camera.paused = not self.camera.paused
-                    if self.camera.paused:
-                        self.camera_sub.enabled = False
 
                     return self.commands[command].switch_label(int(self.camera.paused))
 
@@ -169,7 +168,7 @@ class NaborisWebsite(Website):
                 self.image_message = await self.camera_queue.get()
                 self.logger.info("website delay: %ss" % (time.time() - self.image_message.timestamp))
 
-                await asyncio.sleep(0.5 / self.camera.fps)
+            await asyncio.sleep(0.5 / self.camera.fps)
 
     def video(self):
         """Video streaming generator function."""
@@ -181,7 +180,7 @@ class NaborisWebsite(Website):
 
                 self.image_message = None
             time.sleep(0.5 / self.camera.fps)
-            if self.camera.get_paused():
+            if self.camera.get_pause():
                 time.sleep(0.25)
 
     def video_feed(self):

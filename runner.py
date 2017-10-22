@@ -8,14 +8,10 @@ from naboris.actuators import Actuators
 from naboris.picamera import PiCamera
 from naboris.cli import NaborisCLI
 from naboris.naboris_site import NaborisWebsite
-from naboris.texture.pipeline import TexturePipeline
-
-# from naboris.inception.pipeline import InceptionPipeline
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-l", "--log", help="disable logging", action="store_false")
-parser.add_argument("-d", "--debug", help="enable debug prints", action="store_true")
 args = parser.parse_args()
 
 log = args.log
@@ -23,27 +19,30 @@ log = args.log
 
 class NaborisOrchestrator(Orchestrator):
     def __init__(self, event_loop):
-        self.set_default(write=log)
+        self.set_default(write=log, level=30)
         super(NaborisOrchestrator, self).__init__(event_loop)
 
-        video_file_name = self.file_name["file_name"][:-3] + "mp4"
-        video_directory = "videos/" + os.path.split(self.directory)[-1]
+        video_file_name = self.file_name[:-3] + "mp4"
 
-        camera = PiCamera(file_name=video_file_name, directory=video_directory)
-        actuators = Actuators()
+        video_directory = "videos/" + os.path.join(*self.directory.split(os.sep)[1:])  # remove "log" part of directory
+
+        camera = PiCamera(file_name=video_file_name, directory=video_directory, enabled=True)
+        actuators = Actuators(enabled=True)
         sounds = Sounds("sounds", "/home/pi/Music/Bastion/",
-                        ("humming", "curiousity", "nothing", "confusion", "concern", "sleepy", "vibrating"))
+                        ("humming", "curiousity", "nothing", "confusion", "concern", "sleepy", "vibrating"),
+                        enabled=True)
 
         cmdline = NaborisCLI()
         website = NaborisWebsite("templates", "static")
 
         self.add_nodes(camera, actuators, sounds, cmdline, website)
 
-        self.subscribe(cmdline.actuators_tag, actuators, cmdline)
-        self.subscribe(cmdline.capture_tag, actuators, camera)
+        self.subscribe(actuators, cmdline, cmdline.actuators_tag)
+        self.subscribe(camera, cmdline, cmdline.capture_tag)
+        self.subscribe(sounds, cmdline, cmdline.sounds_tag)
 
-        self.subscribe(website.cmd_tag, cmdline, website)
-        self.subscribe(website.camera_tag, camera, website)
+        self.subscribe(cmdline, website, website.cmd_tag)
+        self.subscribe(camera, website, website.camera_tag)
 
 
 run(NaborisOrchestrator)

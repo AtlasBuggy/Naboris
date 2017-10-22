@@ -1,6 +1,7 @@
 import os
 import time
 import asyncio
+from threading import Thread, Event
 from subprocess import Popen, PIPE, DEVNULL
 
 import picamera
@@ -38,8 +39,11 @@ class PiCamera(Node):
         self.num_frames = 0
 
         self.paused = False
+        self.camera_thread = Thread(target=self.run)
+        self.exit_event = Event()
 
     async def setup(self):
+        self.logger.debug("PiCamera setup")
         self.capture = picamera.PiCamera()
 
         # self.capture.resolution = (self.capture.resolution[0] // 2, self.capture.resolution[1] // 2)
@@ -49,6 +53,10 @@ class PiCamera(Node):
 
         self.width = self.capture.resolution[0]
         self.height = self.capture.resolution[1]
+
+        self.logger.info("PiCamera initialized: %s" % self.capture)
+
+        self.camera_thread.start()
 
     def start_recording(self, file_name=None, directory=None):
         self.set_path(file_name, directory)
@@ -60,6 +68,9 @@ class PiCamera(Node):
 
     def set_pause(self, state):
         self.paused = state
+
+    def get_pause(self):
+        return self.paused
 
     def current_frame_num(self):
         return self.num_frames
@@ -85,28 +96,38 @@ class PiCamera(Node):
         self.full_path = os.path.join(self.directory, self.file_name)
 
     async def loop(self):
-        with self.capture:
-            # let camera warm up
-            self.capture.start_preview()
-            await asyncio.sleep(2)
-
-            if self.should_record:
-                self.start_recording(self.file_name, self.directory)
-
-            raw_capture = PiRGBArray(self.capture, size=self.capture.resolution)
-            for frame in self.capture.capture_continuous(raw_capture, format="bgr", use_video_port=True):
-                if self.paused:
-                    await asyncio.sleep(0.1)
-                    continue
-
-                self.frame = frame.array
-                raw_capture.truncate(0)
-
+        while True:
+            if self.frame is not None and not self.paused:
                 message = ImageMessage(self.frame, self.num_frames)
-                self.logger.info("PiCamera image received: %s" % message)
-                self.broadcast(message)
+                self.log_to_buffer(time.time(), "PiCamera image received: %s" % message)
+                num_broadcasts = await self.broadcast(message)
+                self.frame = None
+            else:
+                await asyncio.sleep(1 / self.fps)
 
-                self.poll_for_fps()
+    def run(self):
+        with self.capture:
+            while not self.exit_event.is_set():
+                self.logger.info("Warming up camera")
+                self.capture.start_preview()
+                time.sleep(2)
+
+                if self.should_record:
+                    self.start_recording(self.file_name, self.directory)
+
+                raw_capture = PiRGBArray(self.capture, size=self.capture.resolution)
+                for frame in self.capture.capture_continuous(raw_capture, format="bgr", use_video_port=True):
+
+                    self.frame = frame.array
+                    raw_capture.truncate(0)
+
+                    self.poll_for_fps()
+                    if self.exit_event.is_set():
+                        return
+
+                    if self.paused:
+                        time.sleep(0.1)
+                        continue
 
     def poll_for_fps(self):
         if self.prev_t is None:
@@ -148,6 +169,7 @@ class PiCamera(Node):
     def teardown(self):
         # self.capture.stop_preview()  # picamera complains when this is called while recording
         self.stop_recording()
+        self.exit_event.set()
 
 
 class H264toMP4converter:

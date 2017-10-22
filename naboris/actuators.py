@@ -16,12 +16,12 @@ class Actuators(Arduino):
         self.turret_azimuth = 90
         self.led_states = None
 
-        super(Actuators, self).__init__("naboris actuators", enabled)
+        super(Actuators, self).__init__("naboris actuators", enabled=enabled)
 
     async def loop(self):
         self.receive_first(self.first_packet)
 
-        self.set_all_leds(0, 0, 0)
+        self.set_all_leds(0, 15, 0)
         self.set_battery(5050, 5180)
         await asyncio.sleep(0.1)  # servos don't like being set at the same time as LEDs
         self.look_straight()
@@ -33,8 +33,10 @@ class Actuators(Arduino):
                 for packet in packets:
                     self.receive(packet_time, packet)
                     self.log_to_buffer(packet_time, packet)
+            await asyncio.sleep(0.01)
 
     async def teardown(self):
+        await super(Actuators, self).teardown()
         self.stop_motors()
         self.release_motors()
 
@@ -50,6 +52,8 @@ class Actuators(Arduino):
         self.percentage_V = int(data[5])
         self.value_V = int(data[6])
         self.led_states = [[0, 0, 0] for _ in range(self.num_leds)]
+
+        self.logger.info("Number of leds: %s" % self.num_leds)
 
     def receive(self, timestamp, packet):
         if packet[0] == 'b':

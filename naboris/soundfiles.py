@@ -52,11 +52,15 @@ class Sounds(Node):
             self.tunes[tune_name].stop()
 
     async def loop(self):
+        self.play_random_sound()
         while True:
-            folder = random.choice(self.random_sound_folders)
-            sound = random.choice(self.list_sounds(folder))
-            self.play(sound)
             await asyncio.sleep(random.randint(30, 120))
+            self.play_random_sound()
+
+    def play_random_sound(self):
+        folder = random.choice(self.random_sound_folders)
+        sound = random.choice(self.list_sounds(folder))
+        self.play(sound)
 
 
 class Player:
