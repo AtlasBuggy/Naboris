@@ -1,18 +1,18 @@
 import cv2
-import json
 import time
+import json
+import asyncio
 import numpy as np
+from threading import Lock
 from http.client import HTTPConnection
 
-from atlasbuggy import ThreadedStream
-from atlasbuggy.extras.cmdline import CommandLine
-from atlasbuggy.subscriptions import *
-from threading import Lock
+from atlasbuggy import Node
+from atlasbuggy.opencv import ImageMessage
 
 
-class NaborisSocketClient(ThreadedStream):
-    def __init__(self, address=("0.0.0.0", 5000), enabled=True, log_level=None):
-        super(NaborisSocketClient, self).__init__(enabled, log_level)
+class NaborisSocketClient(Node):
+    def __init__(self, address=("0.0.0.0", 5000), enabled=True):
+        super(NaborisSocketClient, self).__init__(enabled)
         self.address = address
 
         self.buffer = b''
@@ -25,12 +25,17 @@ class NaborisSocketClient(ThreadedStream):
         self.reader = None
         self.writer = None
 
-        self.prev_time = 0.0
-
         self.connection = None
         self.response_lock = Lock()
 
         self.chunk_size = int(self.width * self.height / 16)
+
+        self.fps = 30.0
+        self.length_sec = 0.0
+
+        self.fps_sum = 0.0
+        self.fps_avg = 30.0
+        self.prev_t = None
 
     def set_frame(self):
         pass
@@ -41,7 +46,7 @@ class NaborisSocketClient(ThreadedStream):
     def get_pause(self):
         return False
 
-    def start(self):
+    async def setup(self):
         self.connection = HTTPConnection("%s:%s" % (self.address[0], self.address[1]))
 
     def recv(self, response):
@@ -51,15 +56,12 @@ class NaborisSocketClient(ThreadedStream):
             with self.response_lock:
                 buf = response.read(self.chunk_size)
 
-    def run(self):
+    async def loop(self):
         headers = {'Content-type': 'image/jpeg'}
         self.connection.request("GET", "/video_feed", headers=headers)
         response = self.connection.getresponse()
 
         for resp in self.recv(response):
-            if not self.is_running():
-                return
-
             if len(resp) == 0:
                 return
 
@@ -73,13 +75,14 @@ class NaborisSocketClient(ThreadedStream):
                 self.buffer = self.buffer[response_2 + 2:]
                 image = self.to_image(jpg)
 
-                self.post(image)
+                message = ImageMessage(image, self.current_frame_num)
+                await self.broadcast(message)
 
                 self.current_frame_num += 1
                 self.num_frames += 1
-                self.logger.debug("received frame #%s. Took %0.4fs" % (self.num_frames, self.dt() - self.prev_time))
-                self.prev_time = self.dt()
-                # time.sleep(0.03)
+            await asyncio.sleep(0.0)
+
+            self.poll_for_fps()
 
     def send_command(self, command):
         with self.response_lock:
@@ -93,62 +96,60 @@ class NaborisSocketClient(ThreadedStream):
     def to_image(self, byte_stream):
         return cv2.imdecode(np.fromstring(byte_stream, dtype=np.uint8), 1)
 
-    def stop(self):
+    def poll_for_fps(self):
+        if self.prev_t is None:
+            self.prev_t = time.time()
+            return 0.0
+
+        self.length_sec = time.time() - self.start_time
+        self.num_frames += 1
+        self.fps_sum += 1 / (time.time() - self.prev_t)
+        self.fps_avg = self.fps_sum / self.num_frames
+        self.prev_t = time.time()
+
+        self.fps = self.fps_avg
+
+    async def teardown(self):
         if self.reader is not None:
             self.reader.close()
         if self.writer is not None:
             self.writer.close()
 
 
-class CLI(CommandLine):
-    def __init__(self, enabled=True):
-        super(CLI, self).__init__(enabled)
-
-        self.client = None
-        self.client_tag = "client"
-        self.require_subscription(self.client_tag, Subscription, NaborisSocketClient)
-
-    def take(self, subscriptions):
-        self.client = self.subscriptions[self.client_tag].get_stream()
-
-    def handle_input(self, line):
-        if line == "q":
-            self.exit()
-        else:
-            self.client.send_command(line)
-
-
-class Commander(ThreadedStream):
+class Commander(Node):
     def __init__(self, enabled=True):
         super(Commander, self).__init__(enabled)
 
-        self.pipeline_feed = None
+        self.pipeline_queue = None
+        self.pipeline = None
         self.pipeline_tag = "pipeline"
         self.results_service_tag = "results"
-        self.require_subscription(self.pipeline_tag, Update, service_tag=self.results_service_tag)
+        self.pipeline_sub = self.define_subscription(self.pipeline_tag, service=self.results_service_tag, queue_size=1)
 
         self.client = None
         self.client_tag = "client"
-        self.require_subscription(self.client_tag, Subscription, NaborisSocketClient)
+        self.client_sub = self.define_subscription(self.client_tag, producer_type=NaborisSocketClient, queue_size=None)
 
         self.good_labels = ["wood", "tile", "carpet"]
         self.bad_labels = ["walllip", "wall", "obstacle"]
 
-    def take(self, subscriptions):
-        self.client = self.subscriptions[self.client_tag].get_stream()
-        self.pipeline_feed = self.subscriptions[self.pipeline_tag].get_feed()
+    def take(self):
+        self.client = self.client_sub.get_producer()
+        self.pipeline = self.pipeline_sub.get_producer()
+        self.pipeline_queue = self.pipeline_sub.get_queue()
 
-    def run(self):
-        while self.is_running():
-            while not self.pipeline_feed.empty():
-                prediction_label, prediction_value = self.pipeline_feed.get()
+    async def loop(self):
+        while True:
+            while not self.pipeline_queue.empty():
+                prediction_label, prediction_value = await self.pipeline_queue.get()
 
                 if prediction_label in self.good_labels:
                     self.client.send_command("d_0_100")
-                    time.sleep(0.15)
+                    await asyncio.sleep(0.5)
                 elif prediction_label in self.bad_labels:
                     self.client.send_command("s")
                     # spin_direction = np.random.choice([150, -150], 1, p=[0.75, 0.25])
                     self.client.send_command("l")
                     # self.client.send_command("look")
-                    time.sleep(0.75)
+                    await asyncio.sleep(1.25)
+            await asyncio.sleep(0.01)

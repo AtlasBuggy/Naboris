@@ -1,5 +1,4 @@
 import os
-import re
 import cv2
 import json
 import pickle
@@ -8,12 +7,12 @@ import numpy as np
 from sklearn.svm import LinearSVC
 from sklearn.calibration import CalibratedClassifierCV
 
-from atlasbuggy.camera.pipeline import Pipeline
+from atlasbuggy.opencv import OpenCVPipeline, ImageMessage
 
 from .localbinarypatterns import LocalBinaryPatterns
 
 
-class TexturePipeline(Pipeline):
+class TexturePipeline(OpenCVPipeline):
     def __init__(self, enabled=True, log_level=None):
         super(TexturePipeline, self).__init__(enabled, log_level)
 
@@ -26,10 +25,10 @@ class TexturePipeline(Pipeline):
             self.training_data = json.load(training_file)
 
         self.results_service_tag = "results"
-        self.add_service(self.results_service_tag)
+        self.define_service(self.results_service_tag)
 
         self.texture_service_tag = "texture"
-        self.add_service(self.texture_service_tag, self.post_texture_images)
+        self.define_service(self.texture_service_tag, ImageMessage)
 
         self.desc = LocalBinaryPatterns(24, 8)
         self.model = LinearSVC(C=500.0, random_state=20)
@@ -43,6 +42,7 @@ class TexturePipeline(Pipeline):
         self.prediction_labels = sorted(list(self.training_data.keys()))
 
         self.offset = 100
+        self.frame_num = 0
 
     def load_model(self):
         with open(self.model_pickle_path, 'rb') as model:
@@ -132,7 +132,7 @@ class TexturePipeline(Pipeline):
 
         cv2.rectangle(frame, (x1 - 1, y1 - 1), (x2 + 1, y2 + 1), (255, 0, 0))
 
-        self.post((prediction_label, prediction[max_index]), self.results_service_tag)
+        self.broadcast_nowait((prediction_label, prediction[max_index]), self.results_service_tag)
 
         text_y = 30
         num_line_elements = 3
@@ -150,7 +150,10 @@ class TexturePipeline(Pipeline):
                         0.75, (0, 0, 255), 2)
             text_y += 25
 
-        self.post((frame, self.cropped), self.texture_service_tag)
+        message = ImageMessage(self.cropped, self.frame_num)
+        self.broadcast_nowait(message, self.texture_service_tag)
+
+        self.frame_num += 1
 
         return frame
 

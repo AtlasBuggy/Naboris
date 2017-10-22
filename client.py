@@ -1,25 +1,28 @@
-from atlasbuggy.camera.viewer import CameraViewer
-from atlasbuggy.robot import Robot
-from atlasbuggy.subscriptions import *
+from atlasbuggy.opencv import OpenCVViewer
+from atlasbuggy import Orchestrator, run
 
 from naboris.inception.pipeline import InceptionPipeline
-from remote.socket_client import NaborisSocketClient, CLI, Commander
+from remote.socket_client import NaborisSocketClient, Commander
 
 
-robot = Robot(log_level=10)
+class ClientOrchestrator(Orchestrator):
+    def __init__(self, event_loop):
+        super(ClientOrchestrator, self).__init__(event_loop)
 
-socket = NaborisSocketClient(
-    address=("192.168.200.1", 5000),
-)
-pipeline = InceptionPipeline(enabled=True)
-viewer = CameraViewer(enable_trackbar=False)
-cli = CLI(enabled=False)
-commander = Commander()
+        socket = NaborisSocketClient(
+            address=("192.168.200.1", 5000),
+        )
+        pipeline = InceptionPipeline(enabled=True)
+        viewer = OpenCVViewer(enable_trackbar=False)
+        commander = Commander()
 
-pipeline.subscribe(Update(pipeline.capture_tag, socket))
-viewer.subscribe(Update(viewer.capture_tag, pipeline))
-cli.subscribe(Subscription(cli.client_tag, socket))
-commander.subscribe(Subscription(commander.client_tag, socket))
-commander.subscribe(Update(commander.pipeline_tag, pipeline, service=commander.results_service_tag))
+        self.add_nodes(socket, pipeline, viewer, commander)
 
-robot.run(socket, viewer, pipeline, cli, commander)
+        self.subscribe(socket, pipeline, pipeline.capture_tag)
+        self.subscribe(socket, commander, commander.client_tag)
+
+        self.subscribe(pipeline, viewer, viewer.capture_tag)
+        self.subscribe(pipeline, commander, commander.pipeline_tag)
+
+
+run(ClientOrchestrator)

@@ -4,12 +4,14 @@ import numpy as np
 import multiprocessing
 import tensorflow as tf
 
+from atlasbuggy.opencv import ImageMessage
+
 from naboris.texture.pipeline import TexturePipeline
 
 
 class InceptionPipeline(TexturePipeline):
-    def __init__(self, enabled=True, log_level=None):
-        super(InceptionPipeline, self).__init__(enabled, log_level)
+    def __init__(self, enabled=True):
+        super(InceptionPipeline, self).__init__(enabled)
 
         self.model_path = "naboris/inception/output_graph.pb"
         self.labels_path = "naboris/inception/output_labels.txt"
@@ -51,8 +53,12 @@ class InceptionPipeline(TexturePipeline):
         y1, y2, x1, x2 = self.get_crop_points(frame)
         cv2.rectangle(frame, (x1 - 1, y1 - 1), (x2 + 1, y2 + 1), (255, 0, 0))
 
-        self.post((answer, top_k[0]), self.results_service_tag)
-        self.post((frame, cropped), self.texture_service_tag)
+        self.broadcast_nowait((answer, top_k[0]), self.results_service_tag)
+
+        message = ImageMessage(cropped, self.frame_num)
+        self.broadcast_nowait(message, self.texture_service_tag)
+
+        self.frame_num += 1
 
         return frame
 
@@ -60,5 +66,5 @@ class InceptionPipeline(TexturePipeline):
     def numpy_to_bytes(frame):
         return cv2.imencode(".jpg", frame)[1].tostring()
 
-    def stop(self):
+    async def teardown(self):
         self.sess.close()
