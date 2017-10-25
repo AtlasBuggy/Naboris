@@ -1,3 +1,4 @@
+import time
 import asyncio
 
 from atlasbuggy.device.arduino import Arduino
@@ -39,6 +40,10 @@ class Actuators(Arduino):
         await super(Actuators, self).teardown()
         self.stop_motors()
         self.release_motors()
+
+    def write(self, packet):
+        self.device_write_queue.put(packet)
+        self.log_to_buffer(time.time(), "writing: " + str(packet))
 
     def receive_first(self, packet):
         data = packet.split("\t")
