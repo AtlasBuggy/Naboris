@@ -31,29 +31,28 @@ class MouseMessage(Message):
         return "%s(t=%s, n=%s, dx=%s, dy=%s)" % (self.__class__.__name__, self.timestamp, self.n, self.dx, self.dy)
 
 
-m = PyMouse()
-x_dim, y_dim = m.screen_size()
-
-x_lower = x_dim / 4
-x_upper = 3 * x_dim / 4
-
-y_lower = y_dim / 4
-y_upper = 3 * y_dim / 4
-
-x_reset = x_dim / 2
-y_reset = y_dim / 2
-
-
 class MouseEventHandler(PyMouseEvent):
     def __init__(self):
         super(MouseEventHandler, self).__init__()
 
-        m.move(x_reset, y_reset)
-        self.prev_x = x_reset
-        self.prev_y = y_reset
+        self.m = PyMouse()
+        self.x_dim, self.y_dim = self.m.screen_size()
 
-        self.current_x = x_reset
-        self.current_y = y_reset
+        self.x_lower = self.x_dim / 4
+        self.x_upper = 3 * self.x_dim / 4
+
+        self.y_lower = self.y_dim / 4
+        self.y_upper = 3 * self.y_dim / 4
+
+        self.x_reset = self.x_dim / 2
+        self.y_reset = self.y_dim / 2
+
+        self.m.move(self.x_reset, self.y_reset)
+        self.prev_x = self.x_reset
+        self.prev_y = self.y_reset
+
+        self.current_x = self.x_reset
+        self.current_y = self.y_reset
 
         self.message_num = 0
         self.mouse_messages = Queue()
@@ -65,9 +64,9 @@ class MouseEventHandler(PyMouseEvent):
         self.current_x = x
         self.current_y = y
 
-        if not (x_lower < x < x_upper) or not (y_lower < y < y_upper):
-            x_diff = x - x_reset
-            y_diff = y - y_reset
+        if not (self.x_lower < x < self.x_upper) or not (self.y_lower < y < self.y_upper):
+            x_diff = x - self.x_reset
+            y_diff = y - self.y_reset
 
             self.prev_x -= x_diff
             self.prev_y -= y_diff
@@ -75,7 +74,7 @@ class MouseEventHandler(PyMouseEvent):
             self.current_x -= x_diff
             self.current_y -= y_diff
 
-            m.move(x_reset, y_reset)
+            self.m.move(self.x_reset, self.y_reset)
 
         dx = self.current_x - self.prev_x
         dy = self.current_y - self.prev_y
@@ -98,8 +97,8 @@ class MouseSensor(Node):
             if not self.event_handler.mouse_messages.empty():
                 while not self.event_handler.mouse_messages.empty():
                     await self.broadcast(self.event_handler.mouse_messages.get())
-
-            await asyncio.sleep(0.01)
+            else:
+                await asyncio.sleep(0.01)
 
     async def stop(self):
         self.event_handler.stop()
