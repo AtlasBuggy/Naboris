@@ -8,7 +8,7 @@ from naboris.actuators import Actuators
 from naboris.picamera import PiCamera
 from naboris.cli import NaborisCLI
 from naboris.naboris_site import NaborisWebsite
-
+from naboris.mouse_sensor import MouseSensor
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-l", "--log", help="disable logging", action="store_false")
@@ -35,7 +35,9 @@ class NaborisOrchestrator(Orchestrator):
         cmdline = NaborisCLI()
         website = NaborisWebsite("templates", "static")
 
-        self.add_nodes(camera, actuators, sounds, cmdline, website)
+        mouse = MouseSensor(enabled=False)
+
+        self.add_nodes(camera, actuators, sounds, cmdline, website, mouse)
 
         self.subscribe(actuators, cmdline, cmdline.actuators_tag)
         self.subscribe(camera, cmdline, cmdline.capture_tag)
