@@ -21,7 +21,7 @@ class Actuators(Arduino):
     async def loop(self):
         self.receive_first(self.first_packet)
 
-        self.set_all_leds(0, 15, 0)
+        self.set_all_leds(15, 15, 15)
         self.set_battery(5050, 5180)
         await asyncio.sleep(0.1)  # servos don't like being set at the same time as LEDs
         self.look_straight()

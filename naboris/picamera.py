@@ -1,6 +1,7 @@
 import os
 import time
 import asyncio
+from PIL import Image
 from threading import Thread, Event
 from subprocess import Popen, PIPE, DEVNULL
 
@@ -36,7 +37,9 @@ class PiCamera(Node):
         self.prev_t = None
 
         self.frame = None
+        self.frame_is_ready = False
         self.num_frames = 0
+        self.image_num = 0
 
         self.paused = False
         self.camera_thread = Thread(target=self.run)
@@ -57,6 +60,21 @@ class PiCamera(Node):
         self.logger.info("PiCamera initialized: %s" % self.capture)
 
         self.camera_thread.start()
+
+    def save_image(self):
+        if self.frame is not None:
+            image_path = "%s-%s.png" % (os.path.splitext(self.file_name)[0], self.image_num)
+            self.image_num += 1
+
+            image = Image.fromarray(self.frame)
+            b, g, r = image.split()
+            image = Image.merge("RGB", (r, g, b))
+
+            image.save(image_path)
+
+            self.logger.info("saved to %s" % image_path)
+        else:
+            self.logger.info("Camera isn't ready yet")
 
     def start_recording(self, file_name=None, directory=None):
         self.set_path(file_name, directory)
@@ -97,11 +115,11 @@ class PiCamera(Node):
 
     async def loop(self):
         while True:
-            if self.frame is not None and not self.paused:
+            if self.frame_is_ready and not self.paused:
                 message = ImageMessage(self.frame, self.num_frames)
                 self.log_to_buffer(time.time(), "PiCamera image received: %s" % message)
                 num_broadcasts = await self.broadcast(message)
-                self.frame = None
+                self.frame_is_ready = False
             else:
                 await asyncio.sleep(1 / self.fps)
 
@@ -122,6 +140,8 @@ class PiCamera(Node):
                     raw_capture.truncate(0)
 
                     self.poll_for_fps()
+                    self.frame_is_ready = True
+
                     if self.exit_event.is_set():
                         return
 

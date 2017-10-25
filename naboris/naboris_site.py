@@ -102,6 +102,7 @@ class NaborisWebsite(Website):
 
             Button(["lights on", "lights off"], ":toggle_lights", "toggle_lights_button", "command_button toggles",
                    int(self.lights_are_on)),
+            Button("take a photo", "photo", "take_a_photo_button", "command_button toggles"),
             Button(["pause video", "unpause video"], ":toggle_camera", "toggle_camera_button",
                    "command_button toggles"),
             Button(["start recording", "stop recording"], ":toggle_recording", "toggle_recording_button",

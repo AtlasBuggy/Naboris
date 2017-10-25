@@ -24,7 +24,11 @@ class NaborisCLI(Node):
         self.video_num_counter_regex = r"([\s\S]*)-([0-9]*)\.([\S]*)"
         self.video_name_regex = r"([\s\S]*)\.([\S]*)"
 
-        self.capture_sub = self.define_subscription(self.capture_tag, queue_size=None)
+        self.capture_sub = self.define_subscription(
+            self.capture_tag, queue_size=None,
+            required_methods=("save_image", "stop_recording", "start_recording"),
+            required_attributes=("directory", "file_name")
+        )
         self.actuators_sub = self.define_subscription(
             self.actuators_tag,
             queue_size=None,
@@ -39,7 +43,8 @@ class NaborisCLI(Node):
                 "set_all_leds",
                 "ask_battery",
                 "stop_motors",
-            ))
+            )
+        )
         self.sounds_sub = self.define_subscription(self.sounds_tag, queue_size=None)
 
         self.available_commands = dict(
@@ -61,6 +66,7 @@ class NaborisCLI(Node):
             sound=self.say_random_sound,
             start_video=self.start_new_video,
             stop_video=self.stop_recording,
+            photo=self.take_a_photo
         )
 
     async def setup(self):
@@ -232,6 +238,9 @@ class NaborisCLI(Node):
             self.capture.stop_recording()
         else:
             print("PiCamera already stopped recording")
+
+    def take_a_photo(self, params):
+        self.capture.save_image()
 
     def help(self, params):
         print("\nAvailable commands:")
