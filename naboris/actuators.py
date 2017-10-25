@@ -3,9 +3,13 @@ import asyncio
 
 from atlasbuggy.device.arduino import Arduino
 
+from naboris.bno055 import *
+
 
 class Actuators(Arduino):
     def __init__(self, enabled=True):
+        super(Actuators, self).__init__("naboris actuators", enabled=enabled)
+
         self.num_leds = None
         self.speed_increment = None
         self.speed_delay = None
@@ -17,7 +21,11 @@ class Actuators(Arduino):
         self.turret_azimuth = 90
         self.led_states = None
 
-        super(Actuators, self).__init__("naboris actuators", enabled=enabled)
+        self.bno055_packet_num = 0
+        self.bno055 = BNO055()
+        self.bno055_service = "bno055"
+        self.define_service(self.bno055_service, message_type=Bno055Message)
+
 
     async def loop(self):
         self.receive_first(self.first_packet)
@@ -32,7 +40,7 @@ class Actuators(Arduino):
                 packet_time, packets = self.read()
 
                 for packet in packets:
-                    self.receive(packet_time, packet)
+                    await self.receive(packet_time, packet)
                     self.log_to_buffer(packet_time, packet)
             await asyncio.sleep(0.01)
 
@@ -47,7 +55,7 @@ class Actuators(Arduino):
 
     def receive_first(self, packet):
         data = packet.split("\t")
-        assert len(data) == 7
+        assert len(data) == 9
 
         self.num_leds = int(data[0])
         self.speed_increment = int(data[1])
@@ -56,16 +64,26 @@ class Actuators(Arduino):
         self.upper_V = int(data[4])
         self.percentage_V = int(data[5])
         self.value_V = int(data[6])
+        self.bno055.temperature = int(data[7])
+        self.bno055.sample_rate_delay_ms = int(data[8])
+
         self.led_states = [[0, 0, 0] for _ in range(self.num_leds)]
 
         self.logger.info("Number of leds: %s" % self.num_leds)
 
-    def receive(self, timestamp, packet):
+    async def receive(self, timestamp, packet):
         if packet[0] == 'b':
             data = packet[1:].split('\t')
             self.value_V = int(data[0])
             self.percentage_V = int(data[1])
-            # print("Battery: %s%%, %s mV" % (self.percentage_V, self.value_V))
+            await asyncio.sleep(0.0)
+        else:
+            message = self.bno055.parse_packet(timestamp, packet, self.bno055_packet_num)
+            self.logger.info("received: %s" % message)
+            self.bno055_packet_num += 1
+            await self.broadcast(message, self.bno055_service)
+            print("%0.4f, %0.4f, %0.4f" % message.euler.get_tuple())
+
 
     def drive(self, speed, angle, rotational_speed=0):
         direction_flag = 0

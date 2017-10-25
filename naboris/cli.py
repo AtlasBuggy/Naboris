@@ -15,9 +15,13 @@ class NaborisCLI(Node):
         self.sounds = None
         self.capture = None
 
+        self.bno055_queue = None
+        self.prev_bno055_message = None
+
         self.actuators_tag = "actuators"
         self.sounds_tag = "sounds"
         self.capture_tag = "capture"
+        self.bno055_tag = "bno055"
 
         self.should_exit = False
 
@@ -45,6 +49,7 @@ class NaborisCLI(Node):
                 "stop_motors",
             )
         )
+        self.bno055_sub = self.define_subscription(self.bno055_tag, service="bno055")
         self.sounds_sub = self.define_subscription(self.sounds_tag, queue_size=None)
 
         self.available_commands = dict(
@@ -53,6 +58,7 @@ class NaborisCLI(Node):
             r=self.spin_right,
             d=self.drive,
             h=self.help,
+            euler=self.get_orientation,
             look=self.look,
             s=self.my_stop,
             red=self.red,
@@ -94,6 +100,7 @@ class NaborisCLI(Node):
         self.capture = self.capture_sub.get_producer()
         self.actuators = self.actuators_sub.get_producer()
         self.sounds = self.sounds_sub.get_producer()
+        self.bno055_queue = self.bno055_sub.get_queue()
 
     def spin_left(self, params):
         value = int(params) if len(params) > 0 else 75
@@ -122,6 +129,18 @@ class NaborisCLI(Node):
             except ValueError:
                 print("Failed to parse input:", repr(values))
         self.actuators.drive(speed, angle, angular)
+
+    def get_orientation(self, params):
+        if not self.bno055_queue.empty():
+            message = self.bno055_queue.get_nowait()
+            print("%0.4f, %0.4f, %0.4f" % message.euler.get_tuple())
+            self.prev_bno055_message = message
+
+        elif self.prev_bno055_message is not None:
+            print("old-%0.4f, %0.4f, %0.4f" % self.prev_bno055_message.euler.get_tuple())
+        else:
+            print("No BNO055 messages received!!")
+
 
     def look(self, params):
         data = params.split(" ")
