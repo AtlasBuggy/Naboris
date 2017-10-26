@@ -1,15 +1,20 @@
 <html>
 <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.png') }}"/>
-<link rel='mask-icon' href="{{ url_for('static', filename='favicon.svg') }}" color='orange'>
+<link rel='mask-icon' href="{{ url_for('static', filename='favicon.svg') }}" color='black'>
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
 
 <head>
     <title>Naboris</title>
 </head>
-<body onload='initCompass(); requestAngle();'>
+<body>
     <h1>Naboris Console</h1>
     <hr>
     <!-- <img src="{{ url_for('video_feed') }}"> -->
-    <img src="video_feed">
+
+    <div class="HUD">
+        <canvas id="compass" width="200" height="200"></canvas>
+        <img src="video_feed">
+    </div>
 
     <div class="buttons">
         <div class="drive_buttons">
@@ -37,14 +42,11 @@
         </div>
     </div>
 
-<canvas id="compass" width="200" height="200"></canvas>
-
 </body>
 
 <script type=text/javascript src="{{ url_for('static', filename='jquery.min.js') }}"></script>
-<script type=text/javascript src="{{ url_for('static', filename='naboris.js') }}"></script>
 <script type=text/javascript src="{{ url_for('static', filename='compass.js') }}"></script>
-<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+<script type=text/javascript src="{{ url_for('static', filename='naboris.js') }}"></script>
 
 
 </html>

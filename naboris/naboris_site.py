@@ -174,12 +174,10 @@ class NaborisWebsite(Website):
         while True:
             while not self.camera_queue.empty():
                 image_message = await self.camera_queue.get()
-                self.logger.info("website delay image: %ss" % (time.time() - image_message.timestamp))
                 self.image_message = image_message
 
-                bno055_message = await self.bno055_queue.get()
-                self.logger.info("website delay bno055: %ss" % (time.time() - bno055_message.timestamp))
-                self.bno055_message = bno055_message
+            bno055_message = await self.bno055_queue.get()
+            self.bno055_message = bno055_message
 
             await asyncio.sleep(0.5 / self.camera.fps)
 
@@ -189,7 +187,6 @@ class NaborisWebsite(Website):
             if self.bno055_message is not None:
                 angle = int(math.degrees(self.bno055_message.euler.z))
                 if angle != prev_angle:
-                    print(angle)
                     yield ("%s\n" % angle).encode()
                 prev_angle = angle
 

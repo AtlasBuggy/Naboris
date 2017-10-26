@@ -238,7 +238,6 @@ function requestAngle() {
                     setCompassDirection(angle);
                 }
             }
-            // angle_message = request.responseText.split("\n").slice(-1).pop();
         }
             // stop checking once the response has ended
         if (request.readyState == XMLHttpRequest.DONE) {
@@ -247,6 +246,10 @@ function requestAngle() {
 
     }, 50);
 }
+
+initCompass();
+requestAngle();
+
 /*
 function handlePlot(data) {
 //    var graph = $("#container");
@@ -286,14 +289,3 @@ function requestPlot() {
     }, 50);
 }
 */
-
-//$.ajax({
-//    type: "POST",
-//    async:true,
-//    contentType: "application/json; charset=utf-8",
-//    url: "/plot",
-////    data: "",
-//    success: handlePlot,
-//   dataType: "html"
-// });
-//

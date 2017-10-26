@@ -2,8 +2,8 @@
 var img = null,
 	needle = null,
 	ctx = null,
-	degrees,
-	prev_degrees = 0;
+	degrees;
+var prev_degrees = 1;
 
 function clearCanvas() {
 	 // clear canvas
@@ -18,6 +18,7 @@ function draw() {
 	if (prev_degrees == degrees) {
 		return;
 	}
+	console.log(degrees);
 
 	prev_degrees = degrees;
 	clearCanvas();
