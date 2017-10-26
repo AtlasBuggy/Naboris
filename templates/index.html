@@ -2,60 +2,49 @@
 <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.png') }}"/>
 <link rel='mask-icon' href="{{ url_for('static', filename='favicon.svg') }}" color='orange'>
 
-<script type=text/javascript src="{{ url_for('static', filename='jquery.min.js') }}"></script>
-
 <head>
     <title>Naboris</title>
 </head>
-<body>
-<h1>Naboris Console</h1>
-<hr>
-<!-- <img src="{{ url_for('video_feed') }}"> -->
-<img src="video_feed">
+<body onload='initCompass(); requestAngle();'>
+    <h1>Naboris Console</h1>
+    <hr>
+    <!-- <img src="{{ url_for('video_feed') }}"> -->
+    <img src="video_feed">
 
-<div class="buttons">
-    <div class="drive_buttons">
-        {% for label, command, id, group in commands.get_group("command_button drive") %}
-        <button id="{{ id }}" class="{{ group }} {{ command }}" value="{{ command }}">
-            {{ label }}
-        </button>
-        {% endfor %}
+    <div class="buttons">
+        <div class="drive_buttons">
+            {% for label, command, id, group in commands.get_group("command_button drive") %}
+            <button id="{{ id }}" class="{{ group }} {{ command }}" value="{{ command }}">
+                {{ label }}
+            </button>
+            {% endfor %}
+        </div>
+
+        <div class="toggle_buttons">
+            {% for label, command, id, group in commands.get_group("command_button toggles") %}
+            <button id="{{ id }}" class="{{ group }} {{ command }}" value="{{ command }}">
+                {{ label }}
+            </button>
+            {% endfor %}
+        </div>
+
+        <div class="speak_buttons">
+            {% for label, command, id, group in commands.get_group("command_button speak") %}
+            <button id="{{ id }}" class="{{ group }} {{ command }}" value="{{ command }}">
+                {{ label }}
+            </button>
+            {% endfor %}
+        </div>
     </div>
 
-    <div class="toggle_buttons">
-        {% for label, command, id, group in commands.get_group("command_button toggles") %}
-        <button id="{{ id }}" class="{{ group }} {{ command }}" value="{{ command }}">
-            {{ label }}
-        </button>
-        {% endfor %}
-    </div>
-
-    <div class="speak_buttons">
-        {% for label, command, id, group in commands.get_group("command_button speak") %}
-        <button id="{{ id }}" class="{{ group }} {{ command }}" value="{{ command }}">
-            {{ label }}
-        </button>
-        {% endfor %}
-    </div>
-</div>
-
-<div class="container">
-    <div id="container"></div>
-    <style>
-div #container
-{
-  margin: 0 auto;
-  border:2px solid #a1a1a1;
-  padding:10px 20px;
-  border-radius:2px;
-}
-
-    </style>
-</div>
+<canvas id="compass" width="200" height="200"></canvas>
 
 </body>
 
+<script type=text/javascript src="{{ url_for('static', filename='jquery.min.js') }}"></script>
 <script type=text/javascript src="{{ url_for('static', filename='naboris.js') }}"></script>
+<script type=text/javascript src="{{ url_for('static', filename='compass.js') }}"></script>
 <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+
 
 </html>

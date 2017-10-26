@@ -217,6 +217,37 @@ function myEvalScript(elem)
     }
 }
 
+
+function requestAngle() {
+    var request = new XMLHttpRequest();
+    request.open("GET", "/angle", true);
+    request.responseType = "text/plain";
+    request.setRequestHeader("Content-type", "text/plain")
+    request.send();
+
+    var timer;
+    var position = 0;
+    timer = setInterval(function() {
+        if (request.responseText.length > 0) {
+            // check the response for new data
+
+            angle_message = request.responseText.split("\n")
+            for (i = 0; i < angle_message.length; i++) {
+                if (angle_message[i].length > 0) {
+                    angle = parseInt(angle_message[i]);
+                    setCompassDirection(angle);
+                }
+            }
+            // angle_message = request.responseText.split("\n").slice(-1).pop();
+        }
+            // stop checking once the response has ended
+        if (request.readyState == XMLHttpRequest.DONE) {
+            clearInterval(timer);
+        }
+
+    }, 50);
+}
+/*
 function handlePlot(data) {
 //    var graph = $("#container");
 //    graph.html(data);
@@ -254,8 +285,8 @@ function requestPlot() {
 
     }, 50);
 }
+*/
 
-requestPlot();
 //$.ajax({
 //    type: "POST",
 //    async:true,

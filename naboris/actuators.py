@@ -82,7 +82,7 @@ class Actuators(Arduino):
             self.logger.info("received: %s" % message)
             self.bno055_packet_num += 1
             await self.broadcast(message, self.bno055_service)
-            print("%0.4f, %0.4f, %0.4f" % message.euler.get_tuple())
+            # print("%0.4f, %0.4f, %0.4f" % message.euler.get_tuple())
 
 
     def drive(self, speed, angle, rotational_speed=0):

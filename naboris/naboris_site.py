@@ -1,5 +1,6 @@
 import cv2
 import time
+import math
 import asyncio
 
 from flask import Response, render_template, request
@@ -61,6 +62,7 @@ class NaborisWebsite(Website):
 
         self.app.add_url_rule("/cmd", view_func=self.command_response, methods=['POST'])
         self.app.add_url_rule("/video_feed", view_func=self.video_feed)
+        self.app.add_url_rule("/angle", view_func=self.post_angle, methods=['GET'])
 
         self.show_orignal = True
         self.lights_are_on = False
@@ -69,22 +71,27 @@ class NaborisWebsite(Website):
 
         self.camera_tag = "camera"
         self.cmd_tag = "cmdline"
+        self.bno055_tag = "bno055"
 
         self.camera_sub = self.define_subscription(self.camera_tag, message_type=ImageMessage,
                                                    required_attributes=("fps",), required_methods=("get_pause",))
         self.cmd_sub = self.define_subscription(self.cmd_tag, required_attributes=("handle_input",), queue_size=None)
+        self.bno055_sub = self.define_subscription(self.bno055_tag, service="bno055", queue_size=1)
 
         self.camera = None
         self.cmdline = None
+        self.bno055_queue = None
 
         self.camera_queue = None
         self.camera_has_attributes = False
 
         self.image_message = None
+        self.bno055_message = None
 
     def take(self):
         self.camera = self.camera_sub.get_producer()
         self.camera_queue = self.camera_sub.get_queue()
+        self.bno055_queue = self.bno055_sub.get_queue()
 
         self.cmdline = self.cmd_sub.get_producer()
 
@@ -167,10 +174,30 @@ class NaborisWebsite(Website):
         while True:
             while not self.camera_queue.empty():
                 image_message = await self.camera_queue.get()
-                self.logger.info("website delay: %ss" % (time.time() - image_message.timestamp))
+                self.logger.info("website delay image: %ss" % (time.time() - image_message.timestamp))
                 self.image_message = image_message
 
+                bno055_message = await self.bno055_queue.get()
+                self.logger.info("website delay bno055: %ss" % (time.time() - bno055_message.timestamp))
+                self.bno055_message = bno055_message
+
             await asyncio.sleep(0.5 / self.camera.fps)
+
+    def angle_generator(self):
+        prev_angle = 0
+        while True:
+            if self.bno055_message is not None:
+                angle = int(math.degrees(self.bno055_message.euler.z))
+                if angle != prev_angle:
+                    print(angle)
+                    yield ("%s\n" % angle).encode()
+                prev_angle = angle
+
+                self.bno055_message = None
+            time.sleep(0.01)
+
+    def post_angle(self):
+        return Response(self.angle_generator(), mimetype='text/plain')
 
     def video(self):
         """Video streaming generator function."""
