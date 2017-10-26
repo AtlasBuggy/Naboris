@@ -166,8 +166,9 @@ class NaborisWebsite(Website):
     async def loop(self):
         while True:
             while not self.camera_queue.empty():
-                self.image_message = await self.camera_queue.get()
-                self.logger.info("website delay: %ss" % (time.time() - self.image_message.timestamp))
+                image_message = await self.camera_queue.get()
+                self.logger.info("website delay: %ss" % (time.time() - image_message.timestamp))
+                self.image_message = image_message
 
             await asyncio.sleep(0.5 / self.camera.fps)
 

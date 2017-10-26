@@ -13,10 +13,10 @@ class Website(Node):
 
     def __init__(self, template_folder, static_folder, flask_params=None, app_params=None, enabled=True, log_level=None,
                  name=None, use_index=True, host='0.0.0.0', port=5000):
-        self.flask_logger = logging.getLogger('werkzeug')
-        self.flask_logger.setLevel(logging.DEBUG)
+        # self.flask_logger = logging.getLogger('werkzeug')
+        # self.flask_logger.setLevel(logging.DEBUG)
 
-        super(Website, self).__init__(enabled, name, self.flask_logger)
+        super(Website, self).__init__(enabled, 'werkzeug') #self.flask_logger)
 
         if flask_params is None:
             flask_params = {}

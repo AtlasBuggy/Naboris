@@ -80,7 +80,7 @@ MotorStruct init_motor(int motor_num) {
 #define BOTLEFT_OFFSET 5
 #define TOPRIGHT_OFFSET 0
 #define BOTRIGHT_OFFSET 0
-int speed_increment = 10;
+int speed_increment = 20;
 int speed_delay = 1;
 MotorStruct* motors = new MotorStruct[NUM_MOTORS];
 
@@ -163,6 +163,23 @@ void updateIMU() {
     Serial.print(millis());
 
     #ifdef INCLUDE_FILTERED_DATA
+    // Quaternion data
+    imu::Quaternion quat = bno.getQuat();
+
+    float qw = quat.w();
+    float qx = quat.x();
+    float qy = quat.y();
+    float qz = quat.z();
+
+    Serial.print("\tqw");
+    Serial.print(qw);
+    Serial.print("\tqx");
+    Serial.print(qx);
+    Serial.print("\tqy");
+    Serial.print(qy);
+    Serial.print("\tqz");
+    Serial.print(qz);
+
     imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
 
     // xyz is yaw pitch roll for some reason... switching roll pitch yaw
@@ -172,6 +189,32 @@ void updateIMU() {
     Serial.print(euler.y(), 4);
     Serial.print("\tez");
     Serial.print(euler.x(), 4);
+    // float roll;
+    // float pitch;
+    // float yaw;
+    // float singularity_check = qx * qy + qz * qw;
+    // if (singularity_check == 0.5) {  // north pole
+    //     yaw = 2 * atan2(qx, qw);
+    //     pitch = PI / 2;
+    //     roll = 0.0;
+    // }
+    // else if (singularity_check == -0.5) {  // south pole
+    //     yaw = -2 * atan2(qx, qw);
+    //     pitch = -PI / 2;
+    //     roll = 0.0;
+    // }
+    // else {
+    //     yaw = atan2(2 * qy * qw - 2 * qx * qz, 1 - 2 * qy * qy - 2 * qz * qz);
+    //     pitch = asin(2 * qx * qy + 2 * qz * qw);
+    //     roll = atan2(2 * qx * qw - 2 * qy * qz, 1 - 2 * qx * qx - 2 * qz * qz);
+    // }
+    // Serial.print("\tex");
+    // Serial.print(roll);
+    // Serial.print("\tey");
+    // Serial.print(pitch);
+    // Serial.print("\tez");
+    // Serial.print(yaw);
+
     #endif
 
     imu::Vector<3> mag = bno.getVector(Adafruit_BNO055::VECTOR_MAGNETOMETER);
@@ -209,18 +252,6 @@ void updateIMU() {
     Serial.print("\tlz");
     Serial.print(linaccel.z(), 4);
 
-    #ifdef INCLUDE_FILTERED_DATA
-    // Quaternion data
-    imu::Quaternion quat = bno.getQuat();
-    Serial.print("\tqw");
-    Serial.print(quat.w(), 4);
-    Serial.print("\tqx");
-    Serial.print(quat.x(), 4);
-    Serial.print("\tqy");
-    Serial.print(quat.y(), 4);
-    Serial.print("\tqz");
-    Serial.print(quat.z(), 4);
-
 
     /* Display calibration status for each sensor. */
     uint8_t sys_stat, gyro_stat, accel_stat, mag_stat = 0;
@@ -233,7 +264,6 @@ void updateIMU() {
     Serial.print(accel_stat, DEC);
     Serial.print("\tsm");
     Serial.print(mag_stat, DEC);
-    #endif
 
     Serial.print('\n');
 
