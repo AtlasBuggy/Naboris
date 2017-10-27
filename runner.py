@@ -11,9 +11,11 @@ from naboris.naboris_site import NaborisWebsite
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-l", "--log", help="disable logging", action="store_false")
+parser.add_argument("-r", "--record", help="record video at the start", action="store_true")
 args = parser.parse_args()
 
 log = args.log
+record_video = args.record
 
 
 class NaborisOrchestrator(Orchestrator):
@@ -22,10 +24,9 @@ class NaborisOrchestrator(Orchestrator):
         super(NaborisOrchestrator, self).__init__(event_loop)
 
         video_file_name = self.file_name[:-3] + "mp4"
-
         video_directory = "videos/" + os.path.join(*self.directory.split(os.sep)[1:])  # remove "log" part of directory
 
-        camera = PiCamera(file_name=video_file_name, directory=video_directory, enabled=True)
+        camera = PiCamera(enabled=True, record=record_video, file_name=video_file_name, directory=video_directory)
         actuators = Actuators(enabled=True)
         sounds = Sounds("sounds", "/home/pi/Music/Bastion/",
                         ("humming", "curiousity", "nothing", "confusion", "concern", "sleepy", "vibrating"),

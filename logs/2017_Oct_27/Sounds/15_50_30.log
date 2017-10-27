@@ -1,0 +1,4 @@
+[Sounds @ factory.py:85][DEBUG] 2017-10-27 15:50:30,193: Logging to: logs/2017_Oct_27/Sounds/15_50_30.log
+[Sounds @ node.py:74][INFO] 2017-10-27 15:50:34,262: setup
+[Sounds @ node.py:87][INFO] 2017-10-27 15:50:57,308: Node took 27.11423969268799s to run
+[Sounds @ node.py:82][INFO] 2017-10-27 15:50:57,796: teardown

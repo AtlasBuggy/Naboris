@@ -25,7 +25,7 @@ class PiCamera(Node):
         self.default_length = len(self.default_file_type)
 
         self.should_record = record
-        self.is_recording = False
+        self._is_recording = False
         self.file_name = file_name
         self.directory = directory
         self.full_path = ""
@@ -76,13 +76,21 @@ class PiCamera(Node):
         else:
             self.logger.info("Camera isn't ready yet")
 
+
+    @property
+    def is_recording(self):
+        return self.should_record or self._is_recording
+
     def start_recording(self, file_name=None, directory=None):
+        if self._is_recording:
+            self.logger.warning("Already recording.")
+            return
         self.set_path(file_name, directory)
         self.num_frames = 0
         self.make_dirs()
         self.logger.info("Recording video on '%s'" % self.full_path)
         self.capture.start_recording(self.full_path)
-        self.is_recording = True
+        self._is_recording = True
 
     def set_pause(self, state):
         self.paused = state
@@ -161,9 +169,9 @@ class PiCamera(Node):
         self.prev_t = time.time()
 
     def stop_recording(self):
-        if self.enabled and self.is_recording:
+        if self.enabled and self._is_recording:
             self.capture.stop_recording()
-            self.is_recording = False
+            self._is_recording = False
 
             if self.file_name.endswith(self.default_file_type):
                 self.file_name = self.file_name[:-self.default_length]
@@ -185,8 +193,7 @@ class PiCamera(Node):
 
             self.logger.info("Wrote video to '%s'" % self.full_path)
 
-    @asyncio.coroutine
-    def teardown(self):
+    async def teardown(self):
         # self.capture.stop_preview()  # picamera complains when this is called while recording
         self.stop_recording()
         self.exit_event.set()

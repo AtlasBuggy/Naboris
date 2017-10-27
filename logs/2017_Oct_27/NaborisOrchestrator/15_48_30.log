@@ -1,0 +1,25 @@
+[NaborisOrchestrator @ factory.py:85][DEBUG] 2017-10-27 15:48:30,948: Logging to: logs/2017_Oct_27/NaborisOrchestrator/15_48_30.log
+[NaborisOrchestrator @ orchestrator.py:227][INFO] 2017-10-27 15:48:30,988: 'NaborisCLI' is subscribing to 'Actuators' with the tag 'actuators'
+[NaborisOrchestrator @ orchestrator.py:227][INFO] 2017-10-27 15:48:30,988: 'NaborisCLI' is subscribing to 'Actuators' with the tag 'bno055'
+[NaborisOrchestrator @ orchestrator.py:227][INFO] 2017-10-27 15:48:30,989: 'NaborisCLI' is subscribing to 'PiCamera' with the tag 'capture'
+[NaborisOrchestrator @ orchestrator.py:227][INFO] 2017-10-27 15:48:30,989: 'NaborisCLI' is subscribing to 'Sounds' with the tag 'sounds'
+[NaborisOrchestrator @ orchestrator.py:227][INFO] 2017-10-27 15:48:30,989: 'werkzeug' is subscribing to 'NaborisCLI' with the tag 'cmdline'
+[NaborisOrchestrator @ orchestrator.py:227][INFO] 2017-10-27 15:48:30,990: 'werkzeug' is subscribing to 'PiCamera' with the tag 'camera'
+[NaborisOrchestrator @ orchestrator.py:227][INFO] 2017-10-27 15:48:30,990: 'werkzeug' is subscribing to 'Actuators' with the tag 'bno055'
+[NaborisOrchestrator @ orchestrator.py:107][DEBUG] 2017-10-27 15:48:30,990: Adding setup tasks. Apply subscriptions
+[NaborisOrchestrator @ orchestrator.py:113][DEBUG] 2017-10-27 15:48:30,991: Running set up tasks (6)
+[NaborisOrchestrator @ orchestrator.py:67][INFO] 2017-10-27 15:48:30,992: setup
+[NaborisOrchestrator @ orchestrator.py:116][DEBUG] 2017-10-27 15:48:35,043: Adding loop tasks
+[NaborisOrchestrator @ orchestrator.py:122][DEBUG] 2017-10-27 15:48:35,046: Running loop tasks (6)
+[NaborisOrchestrator @ orchestrator.py:246][INFO] 2017-10-27 15:48:55,775: loop finished
+[NaborisOrchestrator @ orchestrator.py:250][INFO] 2017-10-27 15:48:55,776: closing orchestrator
+[NaborisOrchestrator @ orchestrator.py:128][DEBUG] 2017-10-27 15:48:55,776: 6 tasks to cancel
+[NaborisOrchestrator @ orchestrator.py:131][DEBUG] 2017-10-27 15:48:55,777: Cancelling <Task cancelling coro=<Orchestrator.loop() running at /usr/local/lib/python3.6/site-packages/atlasbuggy/orchestrator.py:72> wait_for=<Future finished result=True>>: True
+[NaborisOrchestrator @ orchestrator.py:131][DEBUG] 2017-10-27 15:48:55,778: Cancelling <Task pending coro=<PiCamera.loop() running at /home/pi/Naboris/naboris/picamera.py:132> wait_for=<Future cancelled>>: True
+[NaborisOrchestrator @ orchestrator.py:131][DEBUG] 2017-10-27 15:48:55,779: Cancelling <Task pending coro=<Actuators.loop() running at /home/pi/Naboris/naboris/actuators.py:44> wait_for=<Future cancelled>>: True
+[NaborisOrchestrator @ orchestrator.py:131][DEBUG] 2017-10-27 15:48:55,780: Cancelling <Task pending coro=<Sounds.loop() running at /home/pi/Naboris/naboris/soundfiles.py:57> wait_for=<Future cancelled>>: True
+[NaborisOrchestrator @ orchestrator.py:131][DEBUG] 2017-10-27 15:48:55,781: Cancelling <Task finished coro=<NaborisCLI.loop() done, defined at /home/pi/Naboris/naboris/cli.py:85> result=None>: False
+[NaborisOrchestrator @ orchestrator.py:131][DEBUG] 2017-10-27 15:48:55,783: Cancelling <Task pending coro=<NaborisWebsite.loop() running at /home/pi/Naboris/naboris/naboris_site.py:182> wait_for=<Future cancelled>>: True
+[NaborisOrchestrator @ orchestrator.py:88][INFO] 2017-10-27 15:48:55,785: halting
+[NaborisOrchestrator @ orchestrator.py:91][INFO] 2017-10-27 15:48:55,786: Session took 24.83667254447937s to complete
+[NaborisOrchestrator @ orchestrator.py:77][INFO] 2017-10-27 15:48:55,800: teardown

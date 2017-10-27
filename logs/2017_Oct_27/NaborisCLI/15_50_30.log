@@ -1,0 +1,3 @@
+[NaborisCLI @ factory.py:85][DEBUG] 2017-10-27 15:50:30,207: Logging to: logs/2017_Oct_27/NaborisCLI/15_50_30.log
+[NaborisCLI @ node.py:87][INFO] 2017-10-27 15:50:57,310: Node took 27.101705074310303s to run
+[NaborisCLI @ node.py:82][INFO] 2017-10-27 15:50:57,798: teardown
