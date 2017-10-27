@@ -41,7 +41,6 @@ class Actuators(Arduino):
 
                 for packet in packets:
                     await self.receive(packet_time, packet)
-                    self.log_to_buffer(packet_time, packet)
             await asyncio.sleep(0.01)
 
     async def teardown(self):
@@ -76,13 +75,15 @@ class Actuators(Arduino):
             data = packet[1:].split('\t')
             self.value_V = int(data[0])
             self.percentage_V = int(data[1])
+
+            self.log_to_buffer(timestamp, "voltage: %s\tpercent: %s" % (self.value_V, self.percentage_V))
+
             await asyncio.sleep(0.0)
         else:
             message = self.bno055.parse_packet(timestamp, packet, self.bno055_packet_num)
-            self.logger.info("received: %s" % message)
+            self.log_to_buffer(timestamp, message)
             self.bno055_packet_num += 1
             await self.broadcast(message, self.bno055_service)
-            # print("%0.4f, %0.4f, %0.4f" % message.euler.get_tuple())
 
 
     def drive(self, speed, angle, rotational_speed=0):

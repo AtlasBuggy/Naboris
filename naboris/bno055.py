@@ -1,4 +1,3 @@
-import os
 import re
 import time
 import math
@@ -84,7 +83,8 @@ class Bno055Message(Message):
         super(Bno055Message, self).__init__(timestamp, n)
 
     def __str__(self):
-        string = "%s(t: %s, pt: %s, at: %s, n: %s, " % (self.name, self.timestamp, self.packet_time, self.arduino_time, self.n)
+        string = "%s(t: %s, pt: %s, at: %s, n: %s, " % (
+            self.name, self.timestamp, self.packet_time, self.arduino_time, self.n)
         for vector in self.vectors[:-1]:
             string += "%s: %s, " % (vector.name, vector.get_tuple())
 
