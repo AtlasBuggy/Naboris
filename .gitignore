@@ -113,6 +113,8 @@ images/
 depth_models/
 depth_models
 
+ORBvoc.txt
+
 # ML files #
 ############
 training_images/
