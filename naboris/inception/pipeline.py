@@ -4,12 +4,10 @@ import numpy as np
 import multiprocessing
 import tensorflow as tf
 
-from atlasbuggy.opencv import ImageMessage
-
-from naboris.texture.pipeline import TexturePipeline
+from atlasbuggy.opencv import ImageMessage, OpenCVPipeline
 
 
-class InceptionPipeline(TexturePipeline):
+class InceptionPipeline(OpenCVPipeline):
     def __init__(self, enabled=True):
         super(InceptionPipeline, self).__init__(enabled)
 
@@ -28,6 +26,11 @@ class InceptionPipeline(TexturePipeline):
             lines = labels_file.readlines()
             self.prediction_labels = [str(w).replace("\n", "") for w in lines]
 
+        self.results_service_tag = "results"
+        self.define_service(self.results_service_tag)
+
+        self.offset = 100
+
     def create_graph(self):
         """Creates a graph from saved GraphDef file and returns a saver."""
         with tf.gfile.FastGFile(self.model_path, 'rb') as f:
@@ -35,7 +38,22 @@ class InceptionPipeline(TexturePipeline):
             graph_def.ParseFromString(f.read())
             _ = tf.import_graph_def(graph_def, name='')
 
-    def pipeline(self, frame):
+    def get_crop_points(self, frame):
+        height, width = frame.shape[0:2]
+        y1 = height - self.offset * 2
+        y2 = height
+
+        x1 = width // 2 - self.offset
+        x2 = width // 2 + self.offset
+
+        return y1, y2, x1, x2
+
+    def crop_frame(self, frame):
+        y1, y2, x1, x2 = self.get_crop_points(frame)
+        return frame[y1: y2, x1: x2]
+
+    async def pipeline(self, message):
+        frame = message.image
         cropped = self.crop_frame(frame)
 
         t0 = time.time()
@@ -53,12 +71,7 @@ class InceptionPipeline(TexturePipeline):
         y1, y2, x1, x2 = self.get_crop_points(frame)
         cv2.rectangle(frame, (x1 - 1, y1 - 1), (x2 + 1, y2 + 1), (255, 0, 0))
 
-        self.broadcast_nowait((answer, top_k[0]), self.results_service_tag)
-
-        message = ImageMessage(cropped, self.frame_num)
-        self.broadcast_nowait(message, self.texture_service_tag)
-
-        self.frame_num += 1
+        await self.broadcast((answer, top_k[0]), self.results_service_tag)
 
         return frame
 

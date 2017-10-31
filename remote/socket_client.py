@@ -116,9 +116,9 @@ class NaborisSocketClient(Node):
             self.writer.close()
 
 
-class Commander(Node):
+class InceptionCommander(Node):
     def __init__(self, enabled=True):
-        super(Commander, self).__init__(enabled)
+        super(InceptionCommander, self).__init__(enabled)
 
         self.pipeline_queue = None
         self.pipeline = None
