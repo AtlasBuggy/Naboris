@@ -76,7 +76,7 @@ class NaborisWebsite(Website):
         self.camera_sub = self.define_subscription(self.camera_tag, message_type=ImageMessage,
                                                    required_attributes=("fps",), required_methods=("get_pause",))
         self.cmd_sub = self.define_subscription(self.cmd_tag, required_attributes=("handle_input",), queue_size=None)
-        self.bno055_sub = self.define_subscription(self.bno055_tag, service="bno055", queue_size=1)
+        self.bno055_sub = self.define_subscription(self.bno055_tag, service="bno055", queue_size=1, is_required=False)
 
         self.camera = None
         self.cmdline = None
@@ -91,7 +91,8 @@ class NaborisWebsite(Website):
     def take(self):
         self.camera = self.camera_sub.get_producer()
         self.camera_queue = self.camera_sub.get_queue()
-        self.bno055_queue = self.bno055_sub.get_queue()
+        if self.is_subscribed(self.bno055_tag):
+            self.bno055_queue = self.bno055_sub.get_queue()
 
         self.cmdline = self.cmd_sub.get_producer()
 
@@ -176,8 +177,9 @@ class NaborisWebsite(Website):
                 image_message = await self.camera_queue.get()
                 self.image_message = image_message
 
-            bno055_message = await self.bno055_queue.get()
-            self.bno055_message = bno055_message
+            if self.is_subscribed(self.bno055_tag):
+                bno055_message = await self.bno055_queue.get()
+                self.bno055_message = bno055_message
 
             await asyncio.sleep(0.5 / self.camera.fps)
 

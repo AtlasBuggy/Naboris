@@ -148,10 +148,10 @@ class BNO055:
                         elif segment[1] == "m":
                             message.mag_status = int(segment[2:])
                     else:
-                        self.logger.warning("Invalid segment type! Segment: '%s', packet: '%s'" % (segment[0], data))
+                        print("Invalid segment type! Segment: '%s', packet: '%s'" % (segment[0], data))
                 else:
-                    self.logger.warning("Empty segment! Packet: '%s'" % data)
+                    print("Empty segment! Packet: '%s'" % data)
         except ValueError:
-            self.logger.error("Failed to parse: '%s'" % segment)
+            print("Failed to parse: '%s'" % segment)
 
         return message

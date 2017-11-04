@@ -130,10 +130,10 @@ class Actuators(Arduino):
         self.turret_azimuth = azimuth
         self.set_turret(self.turret_yaw, self.turret_azimuth)
 
-    def look_up(self, azimuth=70):
+    def look_up(self, azimuth=0):
         self.set_azimuth(azimuth)
 
-    def look_down(self, azimuth=100):
+    def look_down(self, azimuth=180):
         self.set_azimuth(azimuth)
 
     def look_left(self, yaw=110):
@@ -144,7 +144,7 @@ class Actuators(Arduino):
 
     def look_straight(self):
         self.turret_yaw = 90
-        self.turret_azimuth = 90
+        self.turret_azimuth = 75
         self.set_turret(self.turret_yaw, self.turret_azimuth)
 
     @staticmethod

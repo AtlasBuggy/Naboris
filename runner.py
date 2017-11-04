@@ -44,7 +44,7 @@ class NaborisOrchestrator(Orchestrator):
 
         self.subscribe(cmdline, website, website.cmd_tag)
         self.subscribe(camera, website, website.camera_tag)
-        self.subscribe(actuators, website, website.bno055_tag)
+        # self.subscribe(actuators, website, website.bno055_tag)
 
 
 run(NaborisOrchestrator)

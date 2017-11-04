@@ -17,34 +17,40 @@ Connect a hobby servo to SERVO1
 #include <Adafruit_NeoPixel.h>
 #include "utility/Adafruit_MS_PWMServoDriver.h"
 #include <Servo.h>
-#include <Battery.h>
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
 
+#define ENCODER_OPTIMIZE_INTERRUPTS
+#include <Encoder.h>
+
 #include <Atlasbuggy.h>
 
 
-/* Set the delay between fresh samples */
-#define INCLUDE_FILTERED_DATA
-
-#ifdef INCLUDE_FILTERED_DATA
-int sample_rate_delay_ms = 10;
-#else
-int sample_rate_delay_ms = 100;
-#endif
-
-// Create the motor shield object with the default I2C address
-Adafruit_MotorShield AFMS = Adafruit_MotorShield();
-// Or, create it with a different I2C address (say for stacking)
-// Adafruit_MotorShield AFMS = Adafruit_MotorShield(0x61);
-
 Atlasbuggy robot("naboris actuators");
 
+/* ----------------------- *
+ * BNO055 global variables *
+ * ----------------------- */
+
+#define INCLUDE_FILTERED_DATA
+// #define INCLUDE_MAG_DATA
+// #define INCLUDE_GYRO_DATA
+// #define INCLUDE_ACCEL_DATA
+// #define INCLUDE_LINACCEL_DATA
 
 Adafruit_BNO055 bno = Adafruit_BNO055();
 
+int imu_buf_len = 25;
+
+char *imu_print_buffer;
+imu::Quaternion quat;
+imu::Vector<3> euler;
+imu::Vector<3> mag;
+imu::Vector<3> gyro;
+imu::Vector<3> accel;
+imu::Vector<3> linaccel;
 
 // Accelerometer & gyroscope only for getting relative orientation, subject to gyro drift
 // Adafruit_BNO055 bno = Adafruit_BNO055(0x08); // OPERATION_MODE_IMUPLUS
@@ -57,6 +63,15 @@ Adafruit_BNO055 bno = Adafruit_BNO055();
 
 // OPERATION_MODE_NDOF without fast magnetometer calibration
 // Adafruit_BNO055 bno = Adafruit_BNO055(OPERATION_MODE_NDOF_FMC_OFF);
+
+/* ----------------------------- *
+ * Motor shield global variables *
+ * ----------------------------- */
+
+ // Create the motor shield object with the default I2C address
+ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
+ // Or, create it with a different I2C address (say for stacking)
+ // Adafruit_MotorShield AFMS = Adafruit_MotorShield(0x61);
 
 struct MotorStruct {
     Adafruit_DCMotor* af_motor;
@@ -73,55 +88,89 @@ MotorStruct init_motor(int motor_num) {
     return new_motor;
 }
 
-#define AZIMUTH_PIN 9
-#define YAW_PIN 10
 #define NUM_MOTORS 4
-#define TOPLEFT_OFFSET 5
-#define BOTLEFT_OFFSET 5
-#define TOPRIGHT_OFFSET 0
-#define BOTRIGHT_OFFSET 0
-int speed_increment = 20;
-int speed_delay = 1;
 MotorStruct* motors = new MotorStruct[NUM_MOTORS];
 
+#define MOTOR_1 1
+#define MOTOR_2 0
+#define MOTOR_3 2
+#define MOTOR_4 3
+
+/* ------------------------ *
+ * Encoder global variables *
+ * ------------------------ */
+
+Encoder rightEncoder(2, 8);
+Encoder leftEncoder(3, 12);
+
+long oldLeftPosition = 0;
+long newRightPosition = 0;
+long oldRightPosition = 0;
+long newLeftPosition = 0;
+uint32_t prev_enc_time = 0;
+
+#define R_ENC_BUF_LEN 16
+#define L_ENC_BUF_LEN 16
+char r_enc_print_buffer[R_ENC_BUF_LEN];
+char l_enc_print_buffer[L_ENC_BUF_LEN];
+
+/* ----------------------------- *
+ * Servo turret global variables *
+ * ----------------------------- */
+
+#define AZIMUTH_PIN 9
+#define YAW_PIN 10
 Servo servo1;
 Servo servo2;
-int yaw = 0;
-int azimuth = 0;
-int goal_yaw = 0;
-int goal_azimuth = 0;
 bool attached = false;
-bool goal_available = false;
-uint32_t servo_timer = millis();
+uint32_t servo_ping_time = 0;
+
+/* -------------------------- *
+ * LED strip global variables *
+ * -------------------------- */
 
 #define NUM_LEDS 24
 #define LED_SIGNAL_PIN 6
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_SIGNAL_PIN, NEO_GRB + NEO_KHZ800);
-uint32_t led_time = millis();
-bool cycle_paused = true;
-
-uint16_t lower_V = 4800;
-uint16_t upper_V = 5000;
-Battery battery(lower_V, upper_V, A0);
 
 uint32_t ping_timer = millis();
 
 void setup() {
     robot.begin();
+
+    #ifdef INCLUDE_FILTERED_DATA
+    imu_buf_len += 51;
+    #endif
+
+    #ifdef INCLUDE_MAG_DATA
+    imu_buf_len += 22;
+    #endif
+
+    #ifdef INCLUDE_GYRO_DATA
+    imu_buf_len += 22;
+    #endif
+
+    #ifdef INCLUDE_ACCEL_DATA
+    imu_buf_len += 22;
+    #endif
+
+    #ifdef INCLUDE_LINACCEL_DATA
+    imu_buf_len += 22;
+    #endif
+
+    imu_print_buffer = (char *)malloc(sizeof(char) * imu_buf_len);
+
     AFMS.begin();
     strip.begin();
-    battery.begin();
+
     if(!bno.begin())
     {
         /* There was a problem detecting the BNO055 ... check your connections */
-        Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
+        Serial.print("Oops, no BNO055 detected ... Check your wiring or I2C ADDR!");
         while(1);
     }
     delay(1000);
     bno.setExtCrystalUse(true);
-
-    String temperature = String(bno.getTemp());
-    String sample_rate_delay_ms_str = String(sample_rate_delay_ms);
 
     strip.show();
 
@@ -129,26 +178,23 @@ void setup() {
         motors[motor_num - 1] = init_motor(motor_num);
     }
 
-    String ledNumStr = String(NUM_LEDS);
-    String speedIncreStr = String(speed_increment);
-    String speedDelayStr = String(speed_delay);
-    String lowerVstr = String(lower_V);
-    String upperVstr = String(upper_V);
-    String voltageLevelStr = String(battery.voltage());
-    String voltageValueStr = String(battery.level());
-    robot.setInitData(
-        ledNumStr + "\t" +
-        speedIncreStr + "\t" +
-        speedDelayStr + "\t" +
-        lowerVstr + "\t" +
-        upperVstr + "\t" +
-        voltageLevelStr + "\t" +
-        voltageValueStr + "\t" +
-        temperature + "\t" +
-        sample_rate_delay_ms_str
-    );
+    char init_data_buf[16];
+    snprintf(init_data_buf, 16, "%d\t%d", bno.getTemp(), NUM_LEDS);
+    robot.setInitData(init_data_buf);
 
+    Serial.println("setup complete");
 }
+
+float qw, qx, qy, qz;
+float ex, ey, ez;
+float mx, my, mz;
+float gx, gy, gz;
+float ax, ay, az;
+float lx, ly, lz;
+uint8_t sys_stat, gyro_stat, accel_stat, mag_stat = 0;
+
+
+uint16_t imu_skip_counter = 0;
 
 void updateIMU() {
     // Possible vector values can be:
@@ -159,102 +205,173 @@ void updateIMU() {
     // - VECTOR_LINEARACCEL   - m/s^2
     // - VECTOR_GRAVITY       - m/s^2
 
-    Serial.print("t");
+    Serial.print("imu\tt");
     Serial.print(millis());
 
     #ifdef INCLUDE_FILTERED_DATA
     // Quaternion data
     imu::Quaternion quat = bno.getQuat();
 
-    float qw = quat.w();
-    float qx = quat.x();
-    float qy = quat.y();
-    float qz = quat.z();
+    float new_qw = quat.w();
+    float new_qx = quat.x();
+    float new_qy = quat.y();
+    float new_qz = quat.z();
 
-    Serial.print("\tqw");
-    Serial.print(qw);
-    Serial.print("\tqx");
-    Serial.print(qx);
-    Serial.print("\tqy");
-    Serial.print(qy);
-    Serial.print("\tqz");
-    Serial.print(qz);
+    if (new_qw != qw) {
+        Serial.print("\tqw");
+        Serial.print(qw, 4);
+        qw = new_qw;
+    }
+
+    if (new_qx != qx) {
+        Serial.print("\tqx");
+        Serial.print(qx, 4);
+        qx = new_qx;
+    }
+
+    if (new_qy != qy) {
+        Serial.print("\tqy");
+        Serial.print(qy, 4);
+        qy = new_qy;
+    }
+
+    if (new_qz != qz) {
+        Serial.print("\tqz");
+        Serial.print(qz, 4);
+        qz = new_qz;
+    }
 
     imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
 
-    // xyz is yaw pitch roll for some reason... switching roll pitch yaw
-    Serial.print("\tex");
-    Serial.print(euler.z(), 4);
-    Serial.print("\tey");
-    Serial.print(euler.y(), 4);
-    Serial.print("\tez");
-    Serial.print(euler.x(), 4);
-    // float roll;
-    // float pitch;
-    // float yaw;
-    // float singularity_check = qx * qy + qz * qw;
-    // if (singularity_check == 0.5) {  // north pole
-    //     yaw = 2 * atan2(qx, qw);
-    //     pitch = PI / 2;
-    //     roll = 0.0;
-    // }
-    // else if (singularity_check == -0.5) {  // south pole
-    //     yaw = -2 * atan2(qx, qw);
-    //     pitch = -PI / 2;
-    //     roll = 0.0;
-    // }
-    // else {
-    //     yaw = atan2(2 * qy * qw - 2 * qx * qz, 1 - 2 * qy * qy - 2 * qz * qz);
-    //     pitch = asin(2 * qx * qy + 2 * qz * qw);
-    //     roll = atan2(2 * qx * qw - 2 * qy * qz, 1 - 2 * qx * qx - 2 * qz * qz);
-    // }
-    // Serial.print("\tex");
-    // Serial.print(roll);
-    // Serial.print("\tey");
-    // Serial.print(pitch);
-    // Serial.print("\tez");
-    // Serial.print(yaw);
+    float new_ex = euler.x();
+    float new_ey = euler.y();
+    float new_ez = euler.z();
 
+    // xyz is yaw pitch roll. switching roll pitch yaw
+    if (new_ex != ex) {
+        Serial.print("\tez");
+        Serial.print(ex, 4);
+        ex = new_ex;
+    }
+
+    if (new_ey != ey) {
+        Serial.print("\tey");
+        Serial.print(ey, 4);
+        ey = new_ey;
+    }
+
+    if (new_ez != ez) {
+        Serial.print("\tex");
+        Serial.print(ez, 4);
+        ez = new_ez;
+    }
     #endif
 
+    #ifdef INCLUDE_MAG_DATA
     imu::Vector<3> mag = bno.getVector(Adafruit_BNO055::VECTOR_MAGNETOMETER);
 
-    Serial.print("\tmx");
-    Serial.print(mag.x(), 4);
-    Serial.print("\tmy");
-    Serial.print(mag.y(), 4);
-    Serial.print("\tmz");
-    Serial.print(mag.z(), 4);
+    float new_mx = mag.x();
+    float new_my = mag.y();
+    float new_mz = mag.z();
 
+    if (new_mx != mx) {
+        Serial.print("\tmx");
+        Serial.print(mx, 4);
+        mx = new_mx;
+    }
+
+    if (new_my != my) {
+        Serial.print("\tmy");
+        Serial.print(my, 4);
+        my = new_my;
+    }
+
+    if (new_mz != mz) {
+        Serial.print("\tmz");
+        Serial.print(mz, 4);
+        mz = new_mz;
+    }
+    #endif
+
+    #ifdef INCLUDE_GYRO_DATA
     imu::Vector<3> gyro = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
 
-    Serial.print("\tgx");
-    Serial.print(gyro.x(), 4);
-    Serial.print("\tgy");
-    Serial.print(gyro.y(), 4);
-    Serial.print("\tgz");
-    Serial.print(gyro.z(), 4);
+    float new_gx = gyro.x();
+    float new_gy = gyro.y();
+    float new_gz = gyro.z();
 
+    if (new_gx != gx) {
+        Serial.print("\tgx");
+        Serial.print(gx, 4);
+        gx = new_gx;
+    }
+
+    if (new_gy != gy) {
+        Serial.print("\tgy");
+        Serial.print(gy, 4);
+        gy = new_gy;
+    }
+
+    if (new_gz != gz) {
+        Serial.print("\tgz");
+        Serial.print(gz, 4);
+        gz = new_gz;
+    }
+    #endif
+
+    #ifdef INCLUDE_ACCEL_DATA
     imu::Vector<3> accel = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
 
-    Serial.print("\tax");
-    Serial.print(accel.x(), 4);
-    Serial.print("\tay");
-    Serial.print(accel.y(), 4);
-    Serial.print("\taz");
-    Serial.print(accel.z(), 4);
+    float new_ax = accel.x();
+    float new_ay = accel.y();
+    float new_az = accel.z();
 
+    if (new_ax != ax) {
+        Serial.print("\tax");
+        Serial.print(ax, 4);
+        ax = new_ax;
+    }
+
+    if (new_ay != ay) {
+        Serial.print("\tay");
+        Serial.print(ay, 4);
+        ay = new_ay;
+    }
+
+    if (new_az != az) {
+        Serial.print("\taz");
+        Serial.print(az, 4);
+        az = new_az;
+    }
+    #endif
+
+    #ifdef INCLUDE_LINACCEL_DATA
     imu::Vector<3> linaccel = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
-    Serial.print("\tlx");
-    Serial.print(linaccel.x(), 4);
-    Serial.print("\tly");
-    Serial.print(linaccel.y(), 4);
-    Serial.print("\tlz");
-    Serial.print(linaccel.z(), 4);
 
+    float new_lx = linaccel.x();
+    float new_ly = linaccel.y();
+    float new_lz = linaccel.z();
+
+    if (new_lx != lx) {
+        Serial.print("\tlx");
+        Serial.print(lx, 4);
+        lx = new_lx;
+    }
+
+    if (new_ly != ly) {
+        Serial.print("\tly");
+        Serial.print(ly, 4);
+        ly = new_ly;
+    }
+
+    if (new_lz != lz) {
+        Serial.print("\tlz");
+        Serial.print(lz, 4);
+        lz = new_lz;
+    }
+    #endif
 
     /* Display calibration status for each sensor. */
-    uint8_t sys_stat, gyro_stat, accel_stat, mag_stat = 0;
     bno.getCalibration(&sys_stat, &gyro_stat, &accel_stat, &mag_stat);
     Serial.print("\tss");
     Serial.print(sys_stat, DEC);
@@ -267,7 +384,6 @@ void updateIMU() {
 
     Serial.print('\n');
 
-    delay(sample_rate_delay_ms);
 }
 
 void attach_turret()
@@ -310,69 +426,44 @@ void set_motor_speed(int motor_num)
     motors[motor_num].af_motor->setSpeed(abs(motors[motor_num].speed));
 }
 
-void set_motor_goal(int motor_num, int speed, int offset) {
+void set_motor_goal(int motor_num, int speed) {
     motors[motor_num].goal_speed = speed;
-    if (abs(motors[motor_num].goal_speed) > offset) {
-        if (motors[motor_num].goal_speed > 0) {
-            motors[motor_num].goal_speed -= offset;
-
-            if (motors[motor_num].goal_speed < 0) {
-                motors[motor_num].goal_speed = 0;
-            }
-            if (motors[motor_num].goal_speed > 255) {
-                motors[motor_num].goal_speed = 255;
-            }
+    if (motors[motor_num].goal_speed > 0) {
+        if (motors[motor_num].goal_speed < 0) {
+            motors[motor_num].goal_speed = 0;
         }
-        else {
-            motors[motor_num].goal_speed += offset;
-            if (motors[motor_num].goal_speed > 0) {
-                motors[motor_num].goal_speed = 0;
-            }
-            if (motors[motor_num].goal_speed < -255) {
-                motors[motor_num].goal_speed = -255;
-            }
+        if (motors[motor_num].goal_speed > 255) {
+            motors[motor_num].goal_speed = 255;
+        }
+    }
+    else {
+        if (motors[motor_num].goal_speed > 0) {
+            motors[motor_num].goal_speed = 0;
+        }
+        if (motors[motor_num].goal_speed < -255) {
+            motors[motor_num].goal_speed = -255;
         }
     }
 }
 
 // top left, top right, bottom left, bottom right
-void set_motor_goals(int speed2, int speed1, int speed3, int speed4)
+void set_motor_goals(int speed1, int speed2, int speed3, int speed4)
 {
-    set_motor_goal(0, speed1, TOPRIGHT_OFFSET);  // top right
-    set_motor_goal(1, speed2, TOPLEFT_OFFSET);  // top left
-    set_motor_goal(2, speed3, BOTLEFT_OFFSET);  // bottom left
-    set_motor_goal(3, speed4, BOTRIGHT_OFFSET);  // bottom right
+    set_motor_goal(MOTOR1, speed1);  // top left
+    set_motor_goal(MOTOR2, speed2);  // top right
+    set_motor_goal(MOTOR3, speed3);  // bottom left
+    set_motor_goal(MOTOR4, speed4);  // bottom right
 }
 
-void drive(int angle, int speed, int angular)
-{
-    angle %= 360;
-
-    if (0 <= angle && angle < 90) {
-        int fraction_speed = -2 * speed / 90 * angle + speed;
-        set_motor_goals(speed + angular, fraction_speed - angular, fraction_speed + angular, speed - angular);
-    }
-    else if (90 <= angle && angle < 180) {
-        int fraction_speed = -2 * speed / 90 * (angle - 90) + speed;
-        set_motor_goals(fraction_speed + angular, -speed - angular, -speed + angular, fraction_speed - angular);
-    }
-    else if (180 <= angle && angle < 270) {
-        int fraction_speed = 2 * speed / 90 * (angle - 180) - speed;
-        set_motor_goals(-speed + angular, fraction_speed - angular, fraction_speed + angular, -speed - angular);
-    }
-    else if (270 <= angle && angle < 360) {
-        int fraction_speed = 2 * speed / 90 * (angle - 270) - speed;
-        set_motor_goals(fraction_speed + angular, speed - angular, speed + angular, fraction_speed - angular);
-    }
-}
 
 void ping() {
     ping_timer = millis();
 }
 
-void spin(int speed) {
-    set_motor_goals(speed, -speed, speed, -speed);
+void ping_turret() {
+    servo_ping_timer = millis();
 }
+
 
 void stop_motors() {
     set_motor_goals(0, 0, 0, 0);
@@ -388,36 +479,25 @@ void release_motors()
     }
 }
 
-void update_motors()
+void updateEncoders()
 {
-    for (int motor_num = 0; motor_num < NUM_MOTORS; motor_num++)
-    {
-        set_motor_speed(motor_num);
+    uint32_t enc_time = millis();
+    newRightPosition = rightEncoder.read();
+    newLeftPosition = leftEncoder.read();
 
-        if (motors[motor_num].speed < motors[motor_num].goal_speed) {
-            motors[motor_num].speed += speed_increment;
-        }
-        else {
-            motors[motor_num].speed -= speed_increment;
-        }
+    if (newRightPosition != oldRightPosition) {
+        snprintf(r_enc_print_buffer, R_ENC_BUF_LEN, "er%lu\t%li\n", enc_time, newRightPosition);
 
-        if (abs(motors[motor_num].speed - motors[motor_num].goal_speed) < 2 * speed_increment) {
-            motors[motor_num].speed = motors[motor_num].goal_speed;
-        }
+        oldRightPosition = newRightPosition;
+        Serial.print(r_enc_print_buffer);
     }
-    delay(speed_delay);
-}
 
-int current_index = 0;
-int prev_index = 0;
-void update_leds()
-{
-    strip.setPixelColor(prev_index, strip.Color(5, 5, 5));
-    strip.setPixelColor(current_index, strip.Color(0, 5, 0));
+    if (newLeftPosition != oldLeftPosition) {
+        snprintf(l_enc_print_buffer, L_ENC_BUF_LEN, "el%lu\t%li\n", enc_time, newLeftPosition);
 
-    prev_index = current_index;
-    current_index = (current_index + 1) % NUM_LEDS;
-    strip.show();
+        oldLeftPosition = newLeftPosition;
+        Serial.print(l_enc_print_buffer);
+    }
 }
 
 void loop()
@@ -427,29 +507,12 @@ void loop()
         int status = robot.readSerial();
         if (status == 0) {  // user command
             String command = robot.getCommand();
-            if (command.charAt(0) == 'p') {  // drive command
-                int angle = 360 - command.substring(2, 5).toInt();
-                int speed = command.substring(5, 8).toInt();
-                int angular = command.substring(8, 11).toInt();
-                if (command.charAt(1) == '1') {
-                    speed *= -1;
-                }
-                else if (command.charAt(1) == '2') {
-                    angular *= -1;
-                }
-                else if (command.charAt(1) == '3') {
-                    speed *= -1;
-                    angular *= -1;
-                }
-                drive(angle, speed, angular * 2);
-                ping();
-            }
-            else if (command.charAt(0) == 'r') {  // spin command
-                int speed = command.substring(2, 5).toInt();
-                if (command.charAt(1) == '1') {
-                    speed *= -1;
-                }
-                spin(speed);
+            if (command.charAt(0) == 'd') {  // drive command
+                int m1 = command.substring(1, 5).toInt();
+                int m2 = command.substring(6, 9).toInt();
+                int m3 = command.substring(9, 13).toInt();
+                int m4 = command.substring(13, 17).toInt();
+                set_motor_goals(m1, m2, m3, m4);
                 ping();
             }
 
@@ -460,63 +523,41 @@ void loop()
                 release_motors();
             }
             else if (command.charAt(0) == 'c') {  // turret command
-                servo_timer = millis();
-                attach_turret();
+                int yaw = command.substring(1, 4).toInt();
+                int azimuth = command.substring(4, 7).toInt();
 
-                goal_yaw = command.substring(1, 4).toInt();
-                goal_azimuth = command.substring(4, 7).toInt();
-
-                set_yaw(goal_yaw);
-                set_azimuth(goal_azimuth);
-
-                servo_timer = millis();
-                goal_available = true;
+                set_yaw(yaw);
+                set_azimuth(azimuth);
+                ping_turret();
             }
             else if (command.charAt(0) == 'o') {  // pixel command
-                if (command.length() == 1) {
-                    cycle_paused = !cycle_paused;
+                int led_num = command.substring(1, 4).toInt();
+                if (led_num < 0) {
+                    led_num = 0;
                 }
-                else
+                int r = command.substring(4, 7).toInt();
+                int g = command.substring(7, 10).toInt();
+                int b = command.substring(10, 13).toInt();
+                if (command.length() > 13)
                 {
-                    int led_num = command.substring(1, 4).toInt();
-                    if (led_num < 0) {
-                        led_num = 0;
+                    int stop_num = command.substring(13, 16).toInt();
+                    if (stop_num > NUM_LEDS) {
+                        stop_num = NUM_LEDS;
                     }
-                    int r = command.substring(4, 7).toInt();
-                    int g = command.substring(7, 10).toInt();
-                    int b = command.substring(10, 13).toInt();
-                    if (command.length() > 13)
-                    {
-                        int stop_num = command.substring(13, 16).toInt();
-                        if (stop_num > NUM_LEDS) {
-                            stop_num = NUM_LEDS;
-                        }
-                        for (int index = led_num; index < stop_num; index++) {
-                            strip.setPixelColor(index, strip.Color(r, g, b));
-                        }
+                    for (int index = led_num; index < stop_num; index++) {
+                        strip.setPixelColor(index, strip.Color(r, g, b));
                     }
-                    else {
-                        strip.setPixelColor(led_num, strip.Color(r, g, b));
-                    }
+                }
+                else {
+                    strip.setPixelColor(led_num, strip.Color(r, g, b));
                 }
             }
             else if (command.charAt(0) == 'x') {  // show command
+                if (attached) {
+                    detach_turret();
+                    delay(50);
+                }
                 strip.show();
-            }
-            else if (command.charAt(0) == 'b') {
-                if (command.length() == 1)
-                {
-                    Serial.print('b');
-                    Serial.print(battery.voltage());
-                    Serial.print('\t');
-                    Serial.print(battery.level());
-                    Serial.print('\n');
-                }
-                else {
-                    lower_V = command.substring(1, 5).toInt();
-                    upper_V = command.substring(5, 9).toInt();
-                    battery.setMinMax(lower_V, upper_V);
-                }
             }
         }
         else if (status == 1) {  // stop event
@@ -530,34 +571,29 @@ void loop()
         }
         else if (status == 2) {  // start event
             stop_motors();
+            attach_turret();
+            rightEncoder.write(0);
+            leftEncoder.write(0);
+            oldLeftPosition = -1;
+            oldRightPosition = -1;
         }
     }
 
     if (!robot.isPaused()) {
-        update_motors();
-        updateIMU();
         if (ping_timer > millis())  ping_timer = millis();
-        if ((millis() - ping_timer) > 750) {
+        if ((millis() - ping_timer) > 500) {
             stop_motors();
-            detach_turret();
             ping_timer = millis();
         }
 
-        // Sequence of turret events to run (avoids use of delay)
-        if (servo_timer > millis())  servo_timer = millis();
-        if (goal_available && (millis() - servo_timer) > 500)
-        {
+        if (servo_ping_timer > millis())  servo_ping_timer = millis();
+        if (attached && (millis() - servo_ping_timer) > 750) {
             detach_turret();
-            goal_available = false;
-            servo_timer = millis();
+            servo_ping_timer = millis();
         }
 
-        if (!cycle_paused) {
-            if (led_time > millis()) led_time = millis();
-            if ((millis() - led_time) > 50) {
-                update_leds();
-                led_time = millis();
-            }
-        }
+        updateEncoders();
+        updateIMU();
+        delay(10);
     }
 }
