@@ -26,7 +26,6 @@ class Actuators(Arduino):
         self.bno055_service = "bno055"
         self.define_service(self.bno055_service, message_type=Bno055Message)
 
-
     async def loop(self):
         self.receive_first(self.first_packet)
 
@@ -84,7 +83,6 @@ class Actuators(Arduino):
             self.log_to_buffer(timestamp, message)
             self.bno055_packet_num += 1
             await self.broadcast(message, self.bno055_service)
-
 
     def drive(self, speed, angle, rotational_speed=0):
         direction_flag = 0

@@ -112,7 +112,8 @@ class TexturePipeline(OpenCVPipeline):
         y1, y2, x1, x2 = self.get_crop_points(frame)
         return frame[y1: y2, x1: x2]
 
-    def pipeline(self, frame):
+    def pipeline(self, message):
+        frame = message.image
         self.cropped = self.crop_frame(frame)
         gray = cv2.cvtColor(self.cropped, cv2.COLOR_BGR2GRAY)
         gray = cv2.equalizeHist(gray)
