@@ -100,6 +100,8 @@ MotorStruct* motors = new MotorStruct[NUM_MOTORS];
  * Encoder global variables *
  * ------------------------ */
 
+#define TICKS_TO_MM 100.0
+
 Encoder rightEncoder(2, 8);
 Encoder leftEncoder(3, 12);
 
@@ -134,6 +136,8 @@ uint32_t servo_ping_time = 0;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_SIGNAL_PIN, NEO_GRB + NEO_KHZ800);
 
 uint32_t ping_timer = millis();
+
+#define INIT_DATA_BUF_SIZE 255
 
 void setup() {
     robot.begin();
@@ -178,11 +182,9 @@ void setup() {
         motors[motor_num - 1] = init_motor(motor_num);
     }
 
-    char init_data_buf[16];
-    snprintf(init_data_buf, 16, "%d\t%d", bno.getTemp(), NUM_LEDS);
+    char init_data_buf[INIT_DATA_BUF_SIZE];
+    snprintf(init_data_buf, INIT_DATA_BUF_SIZE, "%d\t%d\t%s", bno.getTemp(), NUM_LEDS, String(TICKS_TO_MM));
     robot.setInitData(init_data_buf);
-
-    Serial.println("setup complete");
 }
 
 float qw, qx, qy, qz;
@@ -193,8 +195,9 @@ float ax, ay, az;
 float lx, ly, lz;
 uint8_t sys_stat, gyro_stat, accel_stat, mag_stat = 0;
 
-
+#ifdef INCLUDE_FILTERED_DATA
 uint16_t imu_skip_counter = 0;
+#endif
 
 void updateIMU() {
     // Possible vector values can be:
@@ -594,6 +597,8 @@ void loop()
 
         updateEncoders();
         updateIMU();
+
+        // 100Hz update rate for imu
         delay(10);
     }
 }

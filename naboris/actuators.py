@@ -6,20 +6,42 @@ from atlasbuggy.device.arduino import Arduino
 from naboris.bno055 import *
 
 
+class EncoderMessage(Message):
+    def __init__(self, encoder_time=0.0, right_tick=0, left_tick=0, ticks_to_mm=1.0, prev_message=None, timestamp=None, n=None):
+        self.encoder_time = encoder_time
+        self.right_tick = right_tick
+        self.left_tick = left_tick
+
+        if prev_message is None:
+            self.prev_encoder_time = encoder_time
+            self.prev_right_tick = right_tick
+            self.prev_left_tick = left_tick
+        else:
+            self.prev_encoder_time = prev_message.encoder_time
+            self.prev_right_tick = prev_message.right_tick
+            self.prev_left_tick = prev_message.left_tick
+
+        self.ticks_to_mm = ticks_to_mm
+
+        super(EncoderMessage, self).__init__(timestamp, n)
+
+
 class Actuators(Arduino):
     def __init__(self, enabled=True):
         super(Actuators, self).__init__("naboris actuators", enabled=enabled)
 
         self.num_leds = None
-        self.speed_increment = None
-        self.speed_delay = None
-        self.lower_V = None
-        self.upper_V = None
-        self.percentage_V = None
-        self.value_V = None
+        self.temperature = None
+        self.ticks_to_mm = 1.0
+
+        self.led_states = None
         self.turret_yaw = 90
         self.turret_azimuth = 90
-        self.led_states = None
+
+        self.encoder_message = None
+        self.enc_packet_num = 0
+        self.encoder_service = "encoder"
+        self.define_service(self.encoder_service, message_type=EncoderMessage)
 
         self.bno055_packet_num = 0
         self.bno055 = BNO055()
@@ -40,7 +62,7 @@ class Actuators(Arduino):
 
                 for packet in packets:
                     await self.receive(packet_time, packet)
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0.01)  # update rate of IMU (100 Hz)
 
     async def teardown(self):
         await super(Actuators, self).teardown()
@@ -53,59 +75,77 @@ class Actuators(Arduino):
 
     def receive_first(self, packet):
         data = packet.split("\t")
-        assert len(data) == 9
+        assert len(data) == 3
 
-        self.num_leds = int(data[0])
-        self.speed_increment = int(data[1])
-        self.speed_delay = int(data[2])
-        self.lower_V = int(data[3])
-        self.upper_V = int(data[4])
-        self.percentage_V = int(data[5])
-        self.value_V = int(data[6])
-        self.bno055.temperature = int(data[7])
-        self.bno055.sample_rate_delay_ms = int(data[8])
+        self.temperature = int(data[0])
+        self.num_leds = int(data[1])
+        self.ticks_to_mm = float(data[2])
 
         self.led_states = [[0, 0, 0] for _ in range(self.num_leds)]
 
         self.logger.info("Number of leds: %s" % self.num_leds)
 
     async def receive(self, timestamp, packet):
-        if packet[0] == 'b':
-            data = packet[1:].split('\t')
-            self.value_V = int(data[0])
-            self.percentage_V = int(data[1])
+        if packet[0] == "e":
+            header = packet[1]
+            data = packet[2:]
+            if header == "r":
+                encoder_time, self.right_tick = data.split("\t")
 
-            self.log_to_buffer(timestamp, "voltage: %s\tpercent: %s" % (self.value_V, self.percentage_V))
+            elif header == "l":
+                encoder_time, self.left_tick = data.split("\t")
+            else:
+                raise ValueError("Invalid encoder header. Packet: %s" % packet)
 
-            await asyncio.sleep(0.0)
-        else:
+            self.encoder_message = EncoderMessage(
+                encoder_time, self.right_tick, self.left_tick, self.ticks_to_mm, self.encoder_message,
+                timestamp, self.enc_packet_num
+            )
+            self.enc_packet_num += 1
+
+            await self.broadcast(message, self.encoder_service)
+
+        elif packet.startswith() == "imu":
             message = self.bno055.parse_packet(timestamp, packet, self.bno055_packet_num)
             self.log_to_buffer(timestamp, message)
             self.bno055_packet_num += 1
             await self.broadcast(message, self.bno055_service)
+        else:
+            raise ValueError("Unrecognized packet type: %s" % packet)
 
-    def drive(self, speed, angle, rotational_speed=0):
-        direction_flag = 0
-        if speed > 0:
-            direction_flag = 1
-        if rotational_speed > 0:
-            if direction_flag == 1:
-                direction_flag = 3
-            else:
-                direction_flag = 2
-        command = "p%d%03d%03d%03d" % (direction_flag, angle, abs(speed), abs(rotational_speed))
+    def drive(self, speed=0, angle=0, angular=0):
+        angle %= 360
+        speed = self.constrain_value(speed)
+        angular = self.constrain_value(angular)
 
-        self.write(command)
+        if (0 <= angle < 90):
+            fraction_speed = -2 * speed / 90 * angle + speed
+            self.command_motors(speed + angular, fraction_speed - angular, fraction_speed + angular, speed - angular)
+
+        else if (90 <= angle < 180):
+            fraction_speed = -2 * speed / 90 * (angle - 90) + speed
+            self.command_motors(fraction_speed + angular, -speed - angular, -speed + angular, fraction_speed - angular)
+
+        else if (180 <= angle < 270):
+            fraction_speed = 2 * speed / 90 * (angle - 180) - speed
+            self.command_motors(-speed + angular, fraction_speed - angular, fraction_speed + angular, -speed - angular)
+
+        else if (270 <= angle < 360):
+            fraction_speed = 2 * speed / 90 * (angle - 270) - speed
+            self.command_motors(fraction_speed + angular, speed - angular, speed + angular, fraction_speed - angular)
 
     def spin(self, speed):
-        command = "r%d%03d" % (int(-speed > 0), abs(speed))
+        self.drive(angular=speed)
+
+    def command_motors(m1, m2, m3, m4):
+        command = "d%04d%04d%04d%04d" % (int(m1), int(m2), int(m3), int(m4))
         self.write(command)
 
     def stop_motors(self):
         self.write("h")
 
     def release_motors(self):
-        self.write("d")
+        self.write("r")
 
     def set_turret(self, yaw, azimuth):
         if azimuth < 30:
@@ -205,14 +245,5 @@ class Actuators(Arduino):
     def get_led(self, index):
         return tuple(self.led_states[index])
 
-    def toggle_led_cycle(self):
-        self.write("o")
-
     def show(self):
         self.write("x")
-
-    def ask_battery(self):
-        self.write("b")
-
-    def set_battery(self, lower_V, upper_V):
-        self.write("b%03d%03d" % (lower_V, upper_V))
