@@ -117,7 +117,7 @@ class BNO055:
         self.temperature = None
 
     def parse_packet(self, packet_time, packet, packet_num):
-        data = packet.split("\t")
+        data = packet.split("\t")[1:]  # ignore packet header
         segment = ""
         message = Bno055Message(time.time(), packet_num)
         message.packet_time = packet_time

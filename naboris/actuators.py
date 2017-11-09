@@ -38,11 +38,14 @@ class Actuators(Arduino):
         self.turret_yaw = 90
         self.turret_azimuth = 90
 
+        self.right_tick = 0
+        self.left_tick = 0
         self.encoder_message = None
         self.enc_packet_num = 0
         self.encoder_service = "encoder"
         self.define_service(self.encoder_service, message_type=EncoderMessage)
 
+        self.bno055_packet_header = "imu"
         self.bno055_packet_num = 0
         self.bno055 = BNO055()
         self.bno055_service = "bno055"
@@ -51,8 +54,9 @@ class Actuators(Arduino):
     async def loop(self):
         self.receive_first(self.first_packet)
 
+        self.start()
+
         self.set_all_leds(15, 15, 15)
-        self.set_battery(5050, 5180)
         await asyncio.sleep(0.1)  # servos don't like being set at the same time as LEDs
         self.look_straight()
 
@@ -71,7 +75,7 @@ class Actuators(Arduino):
 
     def write(self, packet):
         self.device_write_queue.put(packet)
-        self.log_to_buffer(time.time(), "writing: " + str(packet))
+        self.log_to_buffer(time.time(), "putting: " + str(packet))
 
     def receive_first(self, packet):
         data = packet.split("\t")
@@ -103,9 +107,9 @@ class Actuators(Arduino):
             )
             self.enc_packet_num += 1
 
-            await self.broadcast(message, self.encoder_service)
+            await self.broadcast(self.encoder_message, self.encoder_service)
 
-        elif packet.startswith() == "imu":
+        elif packet.startswith(self.bno055_packet_header):
             message = self.bno055.parse_packet(timestamp, packet, self.bno055_packet_num)
             self.log_to_buffer(timestamp, message)
             self.bno055_packet_num += 1
@@ -116,30 +120,39 @@ class Actuators(Arduino):
     def drive(self, speed=0, angle=0, angular=0):
         angle %= 360
         speed = self.constrain_value(speed)
-        angular = self.constrain_value(angular)
+        angular *= -1
+        if angular > 255:
+            angular = 255
+        elif angular < -255:
+            angular = -255
 
         if (0 <= angle < 90):
             fraction_speed = -2 * speed / 90 * angle + speed
             self.command_motors(speed + angular, fraction_speed - angular, fraction_speed + angular, speed - angular)
 
-        else if (90 <= angle < 180):
+        elif (90 <= angle < 180):
             fraction_speed = -2 * speed / 90 * (angle - 90) + speed
             self.command_motors(fraction_speed + angular, -speed - angular, -speed + angular, fraction_speed - angular)
 
-        else if (180 <= angle < 270):
+        elif (180 <= angle < 270):
             fraction_speed = 2 * speed / 90 * (angle - 180) - speed
             self.command_motors(-speed + angular, fraction_speed - angular, fraction_speed + angular, -speed - angular)
 
-        else if (270 <= angle < 360):
+        elif (270 <= angle < 360):
             fraction_speed = 2 * speed / 90 * (angle - 270) - speed
             self.command_motors(fraction_speed + angular, speed - angular, speed + angular, fraction_speed - angular)
+
+        self.logger.info("speed=%s, angle=%s, angular=%s" % (speed, angle, angular))
 
     def spin(self, speed):
         self.drive(angular=speed)
 
-    def command_motors(m1, m2, m3, m4):
-        command = "d%04d%04d%04d%04d" % (int(m1), int(m2), int(m3), int(m4))
+    def command_motors(self, m1, m2, m3, m4):
+        m1, m2, m3, m4 = -int(m1), -int(m2), -int(m3), -int(m4)
+        command = "d%04d%04d%04d%04d" % (m1, m2, m3, m4)
         self.write(command)
+        self.logger.info("m1=%s, m2=%s, m3=%s, m4=%s" % (m1, m2, m3, m4))
+        self.logger.info("command: %s" % command)
 
     def stop_motors(self):
         self.write("h")

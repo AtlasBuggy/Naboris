@@ -45,7 +45,6 @@ class NaborisCLI(Node):
                 "look_right",
                 "set_turret",
                 "set_all_leds",
-                "ask_battery",
                 "stop_motors",
             )
         )
@@ -66,7 +65,6 @@ class NaborisCLI(Node):
             blue=self.blue,
             white=self.white,
             rgb=self.rgb,
-            battery=self.battery,
             hello=self.say_hello,
             alert=self.say_alert,
             sound=self.say_random_sound,
@@ -194,9 +192,6 @@ class NaborisCLI(Node):
     def white(self, params):
         value = int(params) if len(params) > 0 else 15
         self.actuators.set_all_leds(value, value, value)
-
-    def battery(self, params):
-        self.actuators.ask_battery()
 
     def exit(self, params):
         self.should_exit = True

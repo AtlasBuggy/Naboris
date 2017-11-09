@@ -76,7 +76,6 @@ imu::Vector<3> linaccel;
 struct MotorStruct {
     Adafruit_DCMotor* af_motor;
     int speed;
-    int goal_speed;
     byte run_state;
 };
 
@@ -84,17 +83,17 @@ MotorStruct init_motor(int motor_num) {
     MotorStruct new_motor;
     new_motor.af_motor = AFMS.getMotor(motor_num);
     new_motor.speed = 0;
-    new_motor.goal_speed = 0;
     return new_motor;
 }
 
 #define NUM_MOTORS 4
 MotorStruct* motors = new MotorStruct[NUM_MOTORS];
 
-#define MOTOR_1 1
-#define MOTOR_2 0
-#define MOTOR_3 2
-#define MOTOR_4 3
+
+#define MOTOR1 1
+#define MOTOR2 0
+#define MOTOR3 2
+#define MOTOR4 3
 
 /* ------------------------ *
  * Encoder global variables *
@@ -125,7 +124,7 @@ char l_enc_print_buffer[L_ENC_BUF_LEN];
 Servo servo1;
 Servo servo2;
 bool attached = false;
-uint32_t servo_ping_time = 0;
+uint32_t servo_ping_timer = 0;
 
 /* -------------------------- *
  * LED strip global variables *
@@ -182,8 +181,9 @@ void setup() {
         motors[motor_num - 1] = init_motor(motor_num);
     }
 
+
     char init_data_buf[INIT_DATA_BUF_SIZE];
-    snprintf(init_data_buf, INIT_DATA_BUF_SIZE, "%d\t%d\t%s", bno.getTemp(), NUM_LEDS, String(TICKS_TO_MM));
+    snprintf(init_data_buf, INIT_DATA_BUF_SIZE, "%d\t%d\t%s", bno.getTemp(), NUM_LEDS, String(TICKS_TO_MM).c_str());
     robot.setInitData(init_data_buf);
 }
 
@@ -430,27 +430,28 @@ void set_motor_speed(int motor_num)
 }
 
 void set_motor_goal(int motor_num, int speed) {
-    motors[motor_num].goal_speed = speed;
-    if (motors[motor_num].goal_speed > 0) {
-        if (motors[motor_num].goal_speed < 0) {
-            motors[motor_num].goal_speed = 0;
+    motors[motor_num].speed = speed;
+    if (motors[motor_num].speed > 0) {
+        if (motors[motor_num].speed < 0) {
+            motors[motor_num].speed = 0;
         }
-        if (motors[motor_num].goal_speed > 255) {
-            motors[motor_num].goal_speed = 255;
+        if (motors[motor_num].speed > 255) {
+            motors[motor_num].speed = 255;
         }
     }
     else {
-        if (motors[motor_num].goal_speed > 0) {
-            motors[motor_num].goal_speed = 0;
+        if (motors[motor_num].speed > 0) {
+            motors[motor_num].speed = 0;
         }
-        if (motors[motor_num].goal_speed < -255) {
-            motors[motor_num].goal_speed = -255;
+        if (motors[motor_num].speed < -255) {
+            motors[motor_num].speed = -255;
         }
     }
+    set_motor_speed(motor_num);
 }
 
 // top left, top right, bottom left, bottom right
-void set_motor_goals(int speed1, int speed2, int speed3, int speed4)
+void set_motors(int speed1, int speed2, int speed3, int speed4)
 {
     set_motor_goal(MOTOR1, speed1);  // top left
     set_motor_goal(MOTOR2, speed2);  // top right
@@ -469,14 +470,14 @@ void ping_turret() {
 
 
 void stop_motors() {
-    set_motor_goals(0, 0, 0, 0);
+    set_motors(0, 0, 0, 0);
 }
 
 void release_motors()
 {
     for (int motor_num = 0; motor_num < NUM_MOTORS; motor_num++)
     {
-        motors[motor_num].goal_speed = 0;
+        motors[motor_num].speed = 0;
         motors[motor_num].speed = 0;
         motors[motor_num].af_motor->run(RELEASE);
     }
@@ -512,10 +513,11 @@ void loop()
             String command = robot.getCommand();
             if (command.charAt(0) == 'd') {  // drive command
                 int m1 = command.substring(1, 5).toInt();
-                int m2 = command.substring(6, 9).toInt();
+                int m2 = command.substring(5, 9).toInt();
                 int m3 = command.substring(9, 13).toInt();
                 int m4 = command.substring(13, 17).toInt();
-                set_motor_goals(m1, m2, m3, m4);
+
+                set_motors(m1, m2, m3, m4);
                 ping();
             }
 
@@ -529,6 +531,7 @@ void loop()
                 int yaw = command.substring(1, 4).toInt();
                 int azimuth = command.substring(4, 7).toInt();
 
+                attach_turret();
                 set_yaw(yaw);
                 set_azimuth(azimuth);
                 ping_turret();

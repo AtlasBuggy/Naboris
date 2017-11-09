@@ -28,6 +28,7 @@ class NaborisOrchestrator(Orchestrator):
 
         camera = PiCamera(enabled=True, record=record_video, file_name=video_file_name, directory=video_directory)
         actuators = Actuators(enabled=True)
+
         sounds = Sounds("sounds", "/home/pi/Music/Bastion/",
                         ("humming", "curiousity", "nothing", "confusion", "concern", "sleepy", "vibrating"),
                         enabled=True)
