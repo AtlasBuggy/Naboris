@@ -36,8 +36,9 @@ class ActuatorsPlayback(PlaybackNode):
 
         message = EncoderMessage.parse(line.message)
         if message is not None:
-            message.prev_message = self.encoder_message
+            message.compute_deltas(self.encoder_message)
             self.encoder_message = message
+
             await self.broadcast(message, self.encoder_service)
             return
 

@@ -5,31 +5,47 @@ from atlasbuggy.device.arduino import Arduino
 
 from naboris.bno055 import *
 
+counts_per_revolution = 12
+gear_ratio = 150
+wheel_radius_mm = 27
+
+ticks_to_mm = wheel_radius_mm * 2 * math.pi / (gear_ratio * counts_per_revolution)
+dist_between_wheels_mm = 120.0
 
 class EncoderMessage(Message):
     message_regex = r"EncoderMessage\(t: (\d.*), n: (\d*), pt: (\d.*), et: (\d.*), r: (-?[0-9]\d*), l: (-?[0-9]\d*), " \
                     r"dr: (-?[0-9]\d*\.\d+), dl: (-?[0-9]\d*\.\d+)\)"
 
-    def __init__(self, encoder_time=0.0, right_tick=0, left_tick=0, ticks_to_mm=1.0, prev_message=None,
-                 timestamp=None, packet_time=None, n=None):
+    def __init__(self, encoder_time=0.0, right_tick=0, left_tick=0,
+                 prev_message=None, timestamp=None, packet_time=None, n=None):
         self.encoder_time = encoder_time
         self.packet_time = packet_time
         self.right_tick = right_tick
         self.left_tick = left_tick
 
-        self.prev_message = prev_message
-
-        if self.right_tick is not None:
-            self.right_dist = self.right_tick * ticks_to_mm
-        else:
-            self.right_dist = None
-
-        if self.left_tick is not None:
-            self.left_dist = self.left_tick * ticks_to_mm
-        else:
-            self.left_tick = None
+        self.compute_deltas(prev_message)
 
         super(EncoderMessage, self).__init__(timestamp, n)
+
+    def compute_deltas(self, prev_message):
+        self.right_dist = None if self.right_tick is None else self.right_tick * ticks_to_mm
+        self.left_dist = None if self.left_tick is None else self.left_tick * ticks_to_mm
+
+        self.left_delta_tick = None if prev_message is None else self.left_tick - prev_message.left_tick
+        self.right_delta_tick = None if prev_message is None else self.right_tick - prev_message.right_tick
+
+        self.delta_theta = None
+        self.avg_dist = None
+        self.right_delta_dist = None
+        self.left_delta_dist = None
+        if prev_message is not None:
+            self.right_delta_dist = self.right_delta_tick * ticks_to_mm
+            self.left_delta_dist = self.left_delta_tick * ticks_to_mm
+
+            self.delta_theta = (self.right_delta_dist - self.left_delta_dist) / dist_between_wheels_mm
+            self.delta_dist = (self.right_delta_tick + self.left_delta_tick) / 2
+
+            print(self.delta_theta, self.delta_dist)
 
     def __str__(self):
         return "%s(t: %s, n: %s, pt: %s, et: %s, r: %s, l: %s, dr: %s, dl: %s)" % (
@@ -62,7 +78,6 @@ class Actuators(Arduino):
 
         self.num_leds = None
         self.temperature = None
-        self.ticks_to_mm = 1.0
 
         self.led_states = None
         self.turret_yaw = 90
@@ -70,6 +85,8 @@ class Actuators(Arduino):
 
         self.right_tick = 0
         self.left_tick = 0
+        self.right_updated = False
+        self.left_updated = False
         self.encoder_message = None
         self.enc_packet_num = 0
         self.encoder_service = "encoder"
@@ -126,23 +143,29 @@ class Actuators(Arduino):
             if header == "r":
                 encoder_time, self.right_tick = data.split("\t")
                 self.right_tick = int(self.right_tick)
+                self.right_updated = True
 
             elif header == "l":
                 encoder_time, self.left_tick = data.split("\t")
                 self.left_tick = int(self.left_tick)
+                self.left_updated = True
 
             else:
                 raise ValueError("Invalid encoder header. Packet: %s" % packet)
 
-            encoder_time = float(encoder_time) / 1000
-            self.encoder_message = EncoderMessage(
-                encoder_time, self.right_tick, self.left_tick, self.ticks_to_mm, self.encoder_message,
-                time.time(), packet_time, self.enc_packet_num,
-            )
-            self.enc_packet_num += 1
+            if self.right_updated and self.left_updated:
+                encoder_time = float(encoder_time) / 1000
+                self.encoder_message = EncoderMessage(
+                    encoder_time, self.right_tick, self.left_tick,
+                    self.encoder_message, time.time(), packet_time, self.enc_packet_num,
+                )
+                self.enc_packet_num += 1
 
-            self.log_to_buffer(packet_time, self.encoder_message)
-            await self.broadcast(self.encoder_message, self.encoder_service)
+                self.log_to_buffer(packet_time, self.encoder_message)
+                await self.broadcast(self.encoder_message, self.encoder_service)
+
+                self.right_updated = False
+                self.left_updated = False
 
         elif packet.startswith(self.bno055_packet_header):
             message = self.bno055.parse_packet(packet_time, packet, self.bno055_packet_num)
@@ -163,19 +186,19 @@ class Actuators(Arduino):
         elif angular < -255:
             angular = -255
 
-        if (0 <= angle < 90):
+        if 0 <= angle < 90:
             fraction_speed = -2 * speed / 90 * angle + speed
             self.command_motors(speed + angular, fraction_speed - angular, fraction_speed + angular, speed - angular)
 
-        elif (90 <= angle < 180):
+        elif 90 <= angle < 180:
             fraction_speed = -2 * speed / 90 * (angle - 90) + speed
             self.command_motors(fraction_speed + angular, -speed - angular, -speed + angular, fraction_speed - angular)
 
-        elif (180 <= angle < 270):
+        elif 180 <= angle < 270:
             fraction_speed = 2 * speed / 90 * (angle - 180) - speed
             self.command_motors(-speed + angular, fraction_speed - angular, fraction_speed + angular, -speed - angular)
 
-        elif (270 <= angle < 360):
+        elif 270 <= angle < 360:
             fraction_speed = 2 * speed / 90 * (angle - 270) - speed
             self.command_motors(fraction_speed + angular, speed - angular, speed + angular, fraction_speed - angular)
 

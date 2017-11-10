@@ -112,7 +112,7 @@ class Bno055Message(Message):
 
 
 class BNO055:
-    def __init__(self, enabled=True):
+    def __init__(self):
         self.sample_rate_delay_ms = None
         self.temperature = None
         self.message = None
@@ -122,8 +122,9 @@ class BNO055:
         segment = ""
         if self.message is None:
             self.message = Bno055Message(time.time(), packet_num)
-            
+
         message = self.message
+        message.timestamp = time.time()
         message.packet_time = packet_time
         try:
             for segment in data:
