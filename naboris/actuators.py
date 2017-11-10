@@ -45,6 +45,7 @@ class Actuators(Arduino):
         self.encoder_service = "encoder"
         self.define_service(self.encoder_service, message_type=EncoderMessage)
 
+        self.print_bno055_output = False
         self.bno055_packet_header = "imu"
         self.bno055_packet_num = 0
         self.bno055 = BNO055()
@@ -114,13 +115,15 @@ class Actuators(Arduino):
             self.log_to_buffer(timestamp, message)
             self.bno055_packet_num += 1
             await self.broadcast(message, self.bno055_service)
+
+            if self.print_bno055_output:
+                print("%0.4f, %0.4f, %0.4f" % message.euler.get_tuple())
         else:
             raise ValueError("Unrecognized packet type: %s" % packet)
 
     def drive(self, speed=0, angle=0, angular=0):
-        angle %= 360
+        angle = (180 - angle) % 360
         speed = self.constrain_value(speed)
-        angular *= -1
         if angular > 255:
             angular = 255
         elif angular < -255:
@@ -148,7 +151,7 @@ class Actuators(Arduino):
         self.drive(angular=speed)
 
     def command_motors(self, m1, m2, m3, m4):
-        m1, m2, m3, m4 = -int(m1), -int(m2), -int(m3), -int(m4)
+        m1, m2, m3, m4 = int(m1), int(m2), int(m3), int(m4)
         command = "d%04d%04d%04d%04d" % (m1, m2, m3, m4)
         self.write(command)
         self.logger.info("m1=%s, m2=%s, m3=%s, m4=%s" % (m1, m2, m3, m4))

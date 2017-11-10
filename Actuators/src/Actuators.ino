@@ -35,16 +35,13 @@ Atlasbuggy robot("naboris actuators");
  * ----------------------- */
 
 #define INCLUDE_FILTERED_DATA
-// #define INCLUDE_MAG_DATA
-// #define INCLUDE_GYRO_DATA
-// #define INCLUDE_ACCEL_DATA
-// #define INCLUDE_LINACCEL_DATA
+#define INCLUDE_MAG_DATA
+#define INCLUDE_GYRO_DATA
+#define INCLUDE_ACCEL_DATA
+#define INCLUDE_LINACCEL_DATA
 
 Adafruit_BNO055 bno = Adafruit_BNO055();
 
-int imu_buf_len = 25;
-
-char *imu_print_buffer;
 imu::Quaternion quat;
 imu::Vector<3> euler;
 imu::Vector<3> mag;
@@ -141,28 +138,6 @@ uint32_t ping_timer = millis();
 void setup() {
     robot.begin();
 
-    #ifdef INCLUDE_FILTERED_DATA
-    imu_buf_len += 51;
-    #endif
-
-    #ifdef INCLUDE_MAG_DATA
-    imu_buf_len += 22;
-    #endif
-
-    #ifdef INCLUDE_GYRO_DATA
-    imu_buf_len += 22;
-    #endif
-
-    #ifdef INCLUDE_ACCEL_DATA
-    imu_buf_len += 22;
-    #endif
-
-    #ifdef INCLUDE_LINACCEL_DATA
-    imu_buf_len += 22;
-    #endif
-
-    imu_print_buffer = (char *)malloc(sizeof(char) * imu_buf_len);
-
     AFMS.begin();
     strip.begin();
 
@@ -180,7 +155,6 @@ void setup() {
     for (int motor_num = 1; motor_num <= NUM_MOTORS; motor_num++) {
         motors[motor_num - 1] = init_motor(motor_num);
     }
-
 
     char init_data_buf[INIT_DATA_BUF_SIZE];
     snprintf(init_data_buf, INIT_DATA_BUF_SIZE, "%d\t%d\t%s", bno.getTemp(), NUM_LEDS, String(TICKS_TO_MM).c_str());

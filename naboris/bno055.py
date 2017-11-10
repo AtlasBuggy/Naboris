@@ -115,11 +115,15 @@ class BNO055:
     def __init__(self, enabled=True):
         self.sample_rate_delay_ms = None
         self.temperature = None
+        self.message = None
 
     def parse_packet(self, packet_time, packet, packet_num):
         data = packet.split("\t")[1:]  # ignore packet header
         segment = ""
-        message = Bno055Message(time.time(), packet_num)
+        if self.message is None:
+            self.message = Bno055Message(time.time(), packet_num)
+            
+        message = self.message
         message.packet_time = packet_time
         try:
             for segment in data:

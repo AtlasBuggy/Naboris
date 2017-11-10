@@ -1,4 +1,5 @@
 import os
+import io
 import time
 import asyncio
 from PIL import Image
@@ -76,7 +77,6 @@ class PiCamera(Node):
         else:
             self.logger.info("Camera isn't ready yet")
 
-
     @property
     def is_recording(self):
         return self.should_record or self._is_recording
@@ -124,7 +124,7 @@ class PiCamera(Node):
     async def loop(self):
         while True:
             if self.frame_is_ready and not self.paused:
-                message = ImageMessage(self.frame, self.num_frames)
+                message = ImageMessage(self.frame, self.num_frames, self.width, self.height)
                 self.log_to_buffer(time.time(), "PiCamera image received: %s" % message)
                 num_broadcasts = await self.broadcast(message)
                 self.frame_is_ready = False
@@ -133,29 +133,39 @@ class PiCamera(Node):
 
     def run(self):
         with self.capture:
-            while not self.exit_event.is_set():
-                self.logger.info("Warming up camera")
-                self.capture.start_preview()
-                time.sleep(2)
+            self.logger.info("Warming up camera")
+            self.capture.start_preview()
+            time.sleep(2)
 
-                if self.should_record:
-                    self.start_recording(self.file_name, self.directory)
+            if self.should_record:
+                self.start_recording(self.file_name, self.directory)
 
-                raw_capture = PiRGBArray(self.capture, size=self.capture.resolution)
-                for frame in self.capture.capture_continuous(raw_capture, format="bgr", use_video_port=True):
+            raw_capture = PiRGBArray(self.capture, size=self.capture.resolution)
+            # stream = io.BytesIO()
+            for frame in self.capture.capture_continuous(raw_capture, format="bgr", use_video_port=True):
+            # for frame in self.capture.capture_continuous(stream, format="jpeg", use_video_port=True):
 
-                    self.frame = frame.array
-                    raw_capture.truncate(0)
+                # stream.seek(0)
+                # self.frame = stream.read()
+                # stream.seek(0)
+                # stream.truncate()
 
-                    self.poll_for_fps()
-                    self.frame_is_ready = True
+                self.frame = frame.array
+                raw_capture.truncate(0)
 
-                    if self.exit_event.is_set():
-                        return
+                if self.exit_event.is_set():
+                    self.logger.debug("Breaking out of picamera loop")
+                    break
 
-                    if self.paused:
-                        time.sleep(0.1)
-                        continue
+                self.poll_for_fps()
+                self.frame_is_ready = True
+
+                if self.paused:
+                    time.sleep(0.1)
+                    continue
+            self.logger.debug("Closing capture")
+        self.logger.debug("Closed")
+
 
     def poll_for_fps(self):
         if self.prev_t is None:
@@ -194,6 +204,7 @@ class PiCamera(Node):
             self.logger.info("Wrote video to '%s'" % self.full_path)
 
     async def teardown(self):
+        self.logger.debug("Tearing down")
         # self.capture.stop_preview()  # picamera complains when this is called while recording
         self.stop_recording()
         self.exit_event.set()

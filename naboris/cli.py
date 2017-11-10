@@ -36,6 +36,9 @@ class NaborisCLI(Node):
         self.actuators_sub = self.define_subscription(
             self.actuators_tag,
             queue_size=None,
+            required_attributes=(
+                "print_bno055_output",
+            ),
             required_methods=(
                 "drive",
                 "look_straight",
@@ -49,7 +52,7 @@ class NaborisCLI(Node):
             )
         )
         self.bno055_sub = self.define_subscription(self.bno055_tag, service="bno055")
-        self.sounds_sub = self.define_subscription(self.sounds_tag, queue_size=None)
+        self.sounds_sub = self.define_subscription(self.sounds_tag, queue_size=None, is_required=False)
 
         self.available_commands = dict(
             q=self.exit,
@@ -58,6 +61,7 @@ class NaborisCLI(Node):
             d=self.drive,
             h=self.help,
             euler=self.get_orientation,
+            toggle_bno=self.toggle_print_bno,
             look=self.look,
             s=self.my_stop,
             red=self.red,
@@ -139,6 +143,8 @@ class NaborisCLI(Node):
         else:
             print("No BNO055 messages received!!")
 
+    def toggle_print_bno(self, params):
+        self.actuators.print_bno055_output = not self.actuators.print_bno055_output
 
     def look(self, params):
         data = params.split(" ")
@@ -200,7 +206,8 @@ class NaborisCLI(Node):
         self.actuators.stop_motors()
 
     def say_hello(self, params):
-        self.sounds.play("emotes/hello")
+        if self.is_subscribed(self.sounds_tag):
+            self.sounds.play("emotes/hello")
         self.actuators.pause(0.5)
         self.actuators.set_all_leds(0, 0, 15)
         self.actuators.look_straight()
@@ -214,7 +221,8 @@ class NaborisCLI(Node):
         self.actuators.set_all_leds(15, 15, 15)
 
     def say_alert(self, params):
-        self.sounds.play("alert/high_alert")
+        if self.is_subscribed(self.sounds_tag):
+            self.sounds.play("alert/high_alert")
         self.actuators.pause(0.5)
         self.actuators.set_all_leds(15, 0, 0)
         self.actuators.pause(0.05)
@@ -229,7 +237,8 @@ class NaborisCLI(Node):
         self.actuators.set_all_leds(15, 15, 15)
 
     def say_random_sound(self, params):
-        self.sounds.play_random_sound()
+        if self.is_subscribed(self.sounds_tag):
+            self.sounds.play_random_sound()
 
     def start_new_video(self, params):
         if not self.capture.is_recording:
