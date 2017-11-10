@@ -96,8 +96,6 @@ MotorStruct* motors = new MotorStruct[NUM_MOTORS];
  * Encoder global variables *
  * ------------------------ */
 
-#define TICKS_TO_MM 100.0
-
 Encoder rightEncoder(2, 8);
 Encoder leftEncoder(3, 12);
 
@@ -157,7 +155,7 @@ void setup() {
     }
 
     char init_data_buf[INIT_DATA_BUF_SIZE];
-    snprintf(init_data_buf, INIT_DATA_BUF_SIZE, "%d\t%d\t%s", bno.getTemp(), NUM_LEDS, String(TICKS_TO_MM).c_str());
+    snprintf(init_data_buf, INIT_DATA_BUF_SIZE, "%d\t%d", bno.getTemp(), NUM_LEDS);
     robot.setInitData(init_data_buf);
 }
 

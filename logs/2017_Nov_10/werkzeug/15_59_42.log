@@ -1,0 +1,68 @@
+[werkzeug @ factory.py:85][DEBUG] 2017-11-10 15:59:42,867: Logging to: logs/2017_Nov_10/werkzeug/15_59_42.log
+[werkzeug @ website.py:44][INFO] 2017-11-10 15:59:46,904: starting website thread
+[werkzeug @ website.py:69][DEBUG] 2017-11-10 15:59:46,904: Running website on 0.0.0.0:5000
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:46,970:  * Running on http://0.0.0.0:5000/ (Press CTRL+C to quit)
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:49,767: 192.168.200.138 - - [10/Nov/2017 15:59:49] "GET /angle HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:49,814: 192.168.200.138 - - [10/Nov/2017 15:59:49] "GET /video_feed HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:50,076: 192.168.200.138 - - [10/Nov/2017 15:59:50] "GET / HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:50,404: 192.168.200.138 - - [10/Nov/2017 15:59:50] "GET /video_feed HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:50,453: 192.168.200.138 - - [10/Nov/2017 15:59:50] "GET /angle HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:51,413: 192.168.200.138 - - [10/Nov/2017 15:59:51] "POST /cmd?command=l_75 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:51,777: 192.168.200.138 - - [10/Nov/2017 15:59:51] "POST /cmd?command=l_79 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:51,838: 192.168.200.138 - - [10/Nov/2017 15:59:51] "POST /cmd?command=l_83 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:51,914: 192.168.200.138 - - [10/Nov/2017 15:59:51] "POST /cmd?command=l_87 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:52,002: 192.168.200.138 - - [10/Nov/2017 15:59:52] "POST /cmd?command=l_91 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:52,095: 192.168.200.138 - - [10/Nov/2017 15:59:52] "POST /cmd?command=l_95 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:52,395: 192.168.200.138 - - [10/Nov/2017 15:59:52] "POST /cmd?command=l_99 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:52,464: 192.168.200.138 - - [10/Nov/2017 15:59:52] "POST /cmd?command=l_103 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:52,467: 192.168.200.138 - - [10/Nov/2017 15:59:52] "POST /cmd?command=l_107 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:52,479: 192.168.200.138 - - [10/Nov/2017 15:59:52] "POST /cmd?command=l_111 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:52,532: 192.168.200.138 - - [10/Nov/2017 15:59:52] "POST /cmd?command=l_115 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:52,603: 192.168.200.138 - - [10/Nov/2017 15:59:52] "POST /cmd?command=l_119 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:52,687: 192.168.200.138 - - [10/Nov/2017 15:59:52] "POST /cmd?command=l_123 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:52,798: 192.168.200.138 - - [10/Nov/2017 15:59:52] "POST /cmd?command=l_127 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:52,866: 192.168.200.138 - - [10/Nov/2017 15:59:52] "POST /cmd?command=l_131 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:52,937: 192.168.200.138 - - [10/Nov/2017 15:59:52] "POST /cmd?command=l_135 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:53,018: 192.168.200.138 - - [10/Nov/2017 15:59:53] "POST /cmd?command=l_139 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:53,095: 192.168.200.138 - - [10/Nov/2017 15:59:53] "POST /cmd?command=l_143 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:53,199: 192.168.200.138 - - [10/Nov/2017 15:59:53] "POST /cmd?command=l_147 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:53,478: 192.168.200.138 - - [10/Nov/2017 15:59:53] "POST /cmd?command=l_151 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:53,492: 192.168.200.138 - - [10/Nov/2017 15:59:53] "POST /cmd?command=l_155 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:53,496: 192.168.200.138 - - [10/Nov/2017 15:59:53] "POST /cmd?command=l_159 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:53,541: 192.168.200.138 - - [10/Nov/2017 15:59:53] "POST /cmd?command=l_163 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:53,611: 192.168.200.138 - - [10/Nov/2017 15:59:53] "POST /cmd?command=l_167 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:53,721: 192.168.200.138 - - [10/Nov/2017 15:59:53] "POST /cmd?command=l_171 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:53,853: 192.168.200.138 - - [10/Nov/2017 15:59:53] "POST /cmd?command=l_175 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:53,880: 192.168.200.138 - - [10/Nov/2017 15:59:53] "POST /cmd?command=l_179 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:53,930: 192.168.200.138 - - [10/Nov/2017 15:59:53] "POST /cmd?command=l_183 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:54,039: 192.168.200.138 - - [10/Nov/2017 15:59:54] "POST /cmd?command=l_187 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:54,108: 192.168.200.138 - - [10/Nov/2017 15:59:54] "POST /cmd?command=l_191 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:54,185: 192.168.200.138 - - [10/Nov/2017 15:59:54] "POST /cmd?command=l_195 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:54,492: 192.168.200.138 - - [10/Nov/2017 15:59:54] "POST /cmd?command=l_199 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:54,548: 192.168.200.138 - - [10/Nov/2017 15:59:54] "POST /cmd?command=l_203 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:54,568: 192.168.200.138 - - [10/Nov/2017 15:59:54] "POST /cmd?command=l_207 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:54,574: 192.168.200.138 - - [10/Nov/2017 15:59:54] "POST /cmd?command=l_211 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:54,608: 192.168.200.138 - - [10/Nov/2017 15:59:54] "POST /cmd?command=l_215 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:54,780: 192.168.200.138 - - [10/Nov/2017 15:59:54] "POST /cmd?command=s HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:54,785: 192.168.200.138 - - [10/Nov/2017 15:59:54] "POST /cmd?command=l_219 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:55,264: 192.168.200.138 - - [10/Nov/2017 15:59:55] "POST /cmd?command=l_75 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:55,780: 192.168.200.138 - - [10/Nov/2017 15:59:55] "POST /cmd?command=l_79 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:55,961: 192.168.200.138 - - [10/Nov/2017 15:59:55] "POST /cmd?command=l_83 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:55,977: 192.168.200.138 - - [10/Nov/2017 15:59:55] "POST /cmd?command=l_87 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:56,018: 192.168.200.138 - - [10/Nov/2017 15:59:56] "POST /cmd?command=l_91 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:56,104: 192.168.200.138 - - [10/Nov/2017 15:59:56] "POST /cmd?command=l_95 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:56,192: 192.168.200.138 - - [10/Nov/2017 15:59:56] "POST /cmd?command=l_99 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:56,303: 192.168.200.138 - - [10/Nov/2017 15:59:56] "POST /cmd?command=l_103 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:56,363: 192.168.200.138 - - [10/Nov/2017 15:59:56] "POST /cmd?command=l_107 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:56,604: 192.168.200.138 - - [10/Nov/2017 15:59:56] "POST /cmd?command=s HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:56,613: 192.168.200.138 - - [10/Nov/2017 15:59:56] "POST /cmd?command=l_111 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:57,642: 192.168.200.138 - - [10/Nov/2017 15:59:57] "POST /cmd?command=r_75 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:58,102: 192.168.200.138 - - [10/Nov/2017 15:59:58] "POST /cmd?command=s HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:58,943: 192.168.200.138 - - [10/Nov/2017 15:59:58] "POST /cmd?command=r_75 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:59,088: 192.168.200.138 - - [10/Nov/2017 15:59:59] "POST /cmd?command=s HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:59,752: 192.168.200.138 - - [10/Nov/2017 15:59:59] "POST /cmd?command=r_75 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 15:59:59,895: 192.168.200.138 - - [10/Nov/2017 15:59:59] "POST /cmd?command=s HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 16:00:01,205: 192.168.200.138 - - [10/Nov/2017 16:00:01] "POST /cmd?command=r_75 HTTP/1.1" 200 -
+[werkzeug @ _internal.py:87][INFO] 2017-11-10 16:00:01,211: 192.168.200.138 - - [10/Nov/2017 16:00:01] "POST /cmd?command=s HTTP/1.1" 200 -
+[werkzeug @ node.py:102][INFO] 2017-11-10 16:00:07,297: Node took 24.428811073303223s to run
+[werkzeug @ node.py:97][INFO] 2017-11-10 16:00:07,305: teardown

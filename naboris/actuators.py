@@ -7,23 +7,53 @@ from naboris.bno055 import *
 
 
 class EncoderMessage(Message):
-    def __init__(self, encoder_time=0.0, right_tick=0, left_tick=0, ticks_to_mm=1.0, prev_message=None, timestamp=None, n=None):
+    message_regex = r"EncoderMessage\(t: (\d.*), n: (\d*), pt: (\d.*), et: (\d.*), r: (-?[0-9]\d*), l: (-?[0-9]\d*), " \
+                    r"dr: (-?[0-9]\d*\.\d+), dl: (-?[0-9]\d*\.\d+)\)"
+
+    def __init__(self, encoder_time=0.0, right_tick=0, left_tick=0, ticks_to_mm=1.0, prev_message=None,
+                 timestamp=None, packet_time=None, n=None):
         self.encoder_time = encoder_time
+        self.packet_time = packet_time
         self.right_tick = right_tick
         self.left_tick = left_tick
 
-        if prev_message is None:
-            self.prev_encoder_time = encoder_time
-            self.prev_right_tick = right_tick
-            self.prev_left_tick = left_tick
-        else:
-            self.prev_encoder_time = prev_message.encoder_time
-            self.prev_right_tick = prev_message.right_tick
-            self.prev_left_tick = prev_message.left_tick
+        self.prev_message = prev_message
 
-        self.ticks_to_mm = ticks_to_mm
+        if self.right_tick is not None:
+            self.right_dist = self.right_tick * ticks_to_mm
+        else:
+            self.right_dist = None
+
+        if self.left_tick is not None:
+            self.left_dist = self.left_tick * ticks_to_mm
+        else:
+            self.left_tick = None
 
         super(EncoderMessage, self).__init__(timestamp, n)
+
+    def __str__(self):
+        return "%s(t: %s, n: %s, pt: %s, et: %s, r: %s, l: %s, dr: %s, dl: %s)" % (
+            self.name, self.timestamp, self.n, self.packet_time, self.encoder_time,
+            self.right_tick, self.left_tick, self.right_dist, self.left_dist
+        )
+
+    @classmethod
+    def parse(cls, message):
+        match = re.match(cls.message_regex, message)
+        if match is not None:
+            message = cls()
+            message.timestamp = float(match.group(1))
+            message.n = int(match.group(2))
+            message.packet_time = float(match.group(3))
+            message.encoder_time = float(match.group(4))
+            message.right_tick = int(match.group(5))
+            message.left_tick = int(match.group(6))
+            message.right_dist = float(match.group(7))
+            message.left_dist = float(match.group(7))
+
+            return message
+        else:
+            return None
 
 
 class Actuators(Arduino):
@@ -80,39 +110,43 @@ class Actuators(Arduino):
 
     def receive_first(self, packet):
         data = packet.split("\t")
-        assert len(data) == 3
+        assert len(data) == 2
 
         self.temperature = int(data[0])
         self.num_leds = int(data[1])
-        self.ticks_to_mm = float(data[2])
 
         self.led_states = [[0, 0, 0] for _ in range(self.num_leds)]
 
         self.logger.info("Number of leds: %s" % self.num_leds)
 
-    async def receive(self, timestamp, packet):
+    async def receive(self, packet_time, packet):
         if packet[0] == "e":
             header = packet[1]
             data = packet[2:]
             if header == "r":
                 encoder_time, self.right_tick = data.split("\t")
+                self.right_tick = int(self.right_tick)
 
             elif header == "l":
                 encoder_time, self.left_tick = data.split("\t")
+                self.left_tick = int(self.left_tick)
+
             else:
                 raise ValueError("Invalid encoder header. Packet: %s" % packet)
 
+            encoder_time = float(encoder_time) / 1000
             self.encoder_message = EncoderMessage(
                 encoder_time, self.right_tick, self.left_tick, self.ticks_to_mm, self.encoder_message,
-                timestamp, self.enc_packet_num
+                time.time(), packet_time, self.enc_packet_num,
             )
             self.enc_packet_num += 1
 
+            self.log_to_buffer(packet_time, self.encoder_message)
             await self.broadcast(self.encoder_message, self.encoder_service)
 
         elif packet.startswith(self.bno055_packet_header):
-            message = self.bno055.parse_packet(timestamp, packet, self.bno055_packet_num)
-            self.log_to_buffer(timestamp, message)
+            message = self.bno055.parse_packet(packet_time, packet, self.bno055_packet_num)
+            self.log_to_buffer(packet_time, message)
             self.bno055_packet_num += 1
             await self.broadcast(message, self.bno055_service)
 
@@ -254,6 +288,8 @@ class Actuators(Arduino):
         self.write("o%03d%03d%03d%03d%03d" % (start, r, g, b, end))
         if show:
             self.show()
+
+        self.log_to_buffer(time.time(), "led s: %s, end: %s, r: %s, g: %s, b: %s" % (start, end, r, g, b))
 
     def set_all_leds(self, *rgb, show=True):
         self.set_leds(0, self.num_leds, rgb, show=show)
