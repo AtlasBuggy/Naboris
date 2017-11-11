@@ -12,22 +12,23 @@ wheel_radius_mm = 27.0
 ticks_to_mm = wheel_radius_mm * 2 * math.pi / (gear_ratio * counts_per_revolution)
 dist_between_wheels_mm = 109.0
 
+
 class EncoderMessage(Message):
     message_regex = r"EncoderMessage\(t: (\d.*), n: (\d*), pt: (\d.*), et: (\d.*), r: (-?[0-9]\d*), l: (-?[0-9]\d*), " \
                     r"dr: (-?[0-9]\d*\.\d+), dl: (-?[0-9]\d*\.\d+)\)"
 
-    def __init__(self, encoder_time=0.0, right_tick=0, left_tick=0,
+    def __init__(self, encoder_time=0.0, right_tick=0, left_tick=0, commanded_angle_deg=0,
                  prev_message=None, timestamp=None, packet_time=None, n=None):
         self.encoder_time = encoder_time
         self.packet_time = packet_time
         self.right_tick = right_tick
         self.left_tick = left_tick
 
-        self.compute_deltas(prev_message)
+        self.compute_deltas(prev_message, commanded_angle_deg)
 
         super(EncoderMessage, self).__init__(timestamp, n)
 
-    def compute_deltas(self, prev_message):
+    def compute_deltas(self, prev_message, commanded_angle_deg):
         self.right_dist = None if self.right_tick is None else self.right_tick * ticks_to_mm
         self.left_dist = None if self.left_tick is None else self.left_tick * ticks_to_mm
 
@@ -42,8 +43,30 @@ class EncoderMessage(Message):
             self.right_delta_dist = self.right_delta_tick * ticks_to_mm
             self.left_delta_dist = self.left_delta_tick * ticks_to_mm
 
+            tick_magnitude = max(abs(self.right_delta_tick), abs(self.left_delta_tick))
+            # if abs(self.right_delta_tick) > abs(self.left_delta_tick):
+            #     tick_magnitude = self.right_delta_tick
+            # else:
+            #     tick_magnitude = self.left_delta_tick
+
+            offset_factor = ticks_to_mm * tick_magnitude / dist_between_wheels_mm
+            if 0 <= commanded_angle_deg < 90:
+                angle_offset = offset_factor * commanded_angle_deg / 90
+            elif 90 <= commanded_angle_deg < 270:
+                angle_offset = offset_factor * (1 - (commanded_angle_deg - 90) / 90)
+            else:
+                angle_offset = offset_factor * (-1 + (commanded_angle_deg - 270) / 90)
+
             self.delta_theta = (self.right_delta_dist - self.left_delta_dist) / (dist_between_wheels_mm * 2)
-            self.delta_dist = (self.right_delta_tick + self.left_delta_tick) / 2
+
+            if commanded_angle_deg == 0 or commanded_angle_deg == 180:
+                self.delta_dist = abs(self.right_delta_dist + self.left_delta_dist) / 2
+            else:
+                self.delta_dist = tick_magnitude * ticks_to_mm
+
+            print("%0.4f -> " % self.delta_theta, end="")
+            self.delta_theta -= angle_offset
+            print("%0.4f, %s" % (self.delta_theta, commanded_angle_deg))
 
     def __str__(self):
         return "%s(t: %s, n: %s, pt: %s, et: %s, r: %s, l: %s, dr: %s, dl: %s)" % (
@@ -81,10 +104,15 @@ class Actuators(Arduino):
         self.turret_yaw = 90
         self.turret_azimuth = 90
 
+        self.commanded_speed = 0
+        self.commanded_angle = 0
+        self.commanded_angular = 0
+
         self.right_tick = 0
         self.left_tick = 0
         self.right_updated = False
         self.left_updated = False
+
         self.encoder_message = None
         self.enc_packet_num = 0
         self.encoder_service = "encoder"
@@ -157,7 +185,7 @@ class Actuators(Arduino):
             if self.right_updated and self.left_updated:
                 encoder_time = float(encoder_time) / 1000
                 self.encoder_message = EncoderMessage(
-                    encoder_time, self.right_tick, self.left_tick,
+                    encoder_time, self.right_tick, self.left_tick, self.commanded_angle,
                     self.encoder_message, time.time(), packet_time, self.enc_packet_num,
                 )
                 self.enc_packet_num += 1
@@ -180,12 +208,17 @@ class Actuators(Arduino):
             raise ValueError("Unrecognized packet type: %s" % packet)
 
     def drive(self, speed=0, angle=0, angular=0):
+        self.commanded_angle = angle % 360
+
         angle = (180 - angle) % 360
         speed = self.constrain_value(speed)
         if angular > 255:
             angular = 255
         elif angular < -255:
             angular = -255
+
+        self.commanded_speed = speed
+        self.commanded_angular = angular
 
         if 0 <= angle < 90:
             fraction_speed = -2 * speed / 90 * angle + speed
