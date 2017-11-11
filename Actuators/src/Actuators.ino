@@ -35,9 +35,9 @@ Atlasbuggy robot("naboris actuators");
  * ----------------------- */
 
 #define INCLUDE_FILTERED_DATA
-#define INCLUDE_MAG_DATA
-#define INCLUDE_GYRO_DATA
-#define INCLUDE_ACCEL_DATA
+// #define INCLUDE_MAG_DATA
+// #define INCLUDE_GYRO_DATA
+// #define INCLUDE_ACCEL_DATA
 #define INCLUDE_LINACCEL_DATA
 
 Adafruit_BNO055 bno = Adafruit_BNO055();

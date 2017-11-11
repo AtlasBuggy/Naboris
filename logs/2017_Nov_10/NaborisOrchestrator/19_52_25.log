@@ -1,0 +1,33 @@
+[NaborisOrchestrator @ factory.py:85][DEBUG] 2017-11-10 19:52:25,663: Logging to: logs/2017_Nov_10/NaborisOrchestrator/19_52_25.log
+[NaborisOrchestrator @ orchestrator.py:247][INFO] 2017-11-10 19:52:25,690: 'NaborisCLI' is subscribing to 'Actuators' with the tag 'actuators'
+[NaborisOrchestrator @ orchestrator.py:247][INFO] 2017-11-10 19:52:25,691: 'NaborisCLI' is subscribing to 'Actuators' with the tag 'bno055'
+[NaborisOrchestrator @ orchestrator.py:247][INFO] 2017-11-10 19:52:25,691: 'NaborisCLI' is subscribing to 'PiCamera' with the tag 'capture'
+[NaborisOrchestrator @ orchestrator.py:217][INFO] 2017-11-10 19:52:25,692: Producer 'Sounds' isn't enabled! Ignoring consumer 'NaborisCLI' subscription
+[NaborisOrchestrator @ orchestrator.py:247][INFO] 2017-11-10 19:52:25,692: 'werkzeug' is subscribing to 'NaborisCLI' with the tag 'cmdline'
+[NaborisOrchestrator @ orchestrator.py:247][INFO] 2017-11-10 19:52:25,692: 'werkzeug' is subscribing to 'PiCamera' with the tag 'camera'
+[NaborisOrchestrator @ orchestrator.py:247][INFO] 2017-11-10 19:52:25,693: 'werkzeug' is subscribing to 'Actuators' with the tag 'bno055'
+[NaborisOrchestrator @ orchestrator.py:108][DEBUG] 2017-11-10 19:52:25,693: Adding setup tasks. Apply subscriptions
+[NaborisOrchestrator @ orchestrator.py:114][DEBUG] 2017-11-10 19:52:25,695: Running set up tasks (5). [<naboris.picamera.PiCamera object at 0x76998350>, <naboris.actuators.Actuators object at 0x6de58830>, <naboris.cli.NaborisCLI object at 0x6de6ded0>, <naboris.naboris_site.NaborisWebsite object at 0x6de742d0>] and orchestrator setup
+[NaborisOrchestrator @ orchestrator.py:68][INFO] 2017-11-10 19:52:25,695: setup
+[NaborisOrchestrator @ orchestrator.py:146][DEBUG] 2017-11-10 19:52:29,718: Cancelling <Task finished coro=<Orchestrator.setup() done, defined at /usr/lib/python3.5/asyncio/coroutines.py:208> result=None>: False
+[NaborisOrchestrator @ orchestrator.py:146][DEBUG] 2017-11-10 19:52:29,719: Cancelling <Task finished coro=<PiCamera.setup() done, defined at /home/pi/Naboris/naboris/picamera.py:49> result=None>: False
+[NaborisOrchestrator @ orchestrator.py:146][DEBUG] 2017-11-10 19:52:29,720: Cancelling <Task finished coro=<Arduino.setup() done, defined at /usr/lib/python3.5/asyncio/coroutines.py:208> result=None>: False
+[NaborisOrchestrator @ orchestrator.py:146][DEBUG] 2017-11-10 19:52:29,720: Cancelling <Task finished coro=<NaborisCLI.setup() done, defined at /home/pi/Naboris/naboris/cli.py:80> result=None>: False
+[NaborisOrchestrator @ orchestrator.py:146][DEBUG] 2017-11-10 19:52:29,721: Cancelling <Task finished coro=<Website.setup() done, defined at /home/pi/Naboris/naboris/website.py:43> result=None>: False
+[NaborisOrchestrator @ orchestrator.py:132][DEBUG] 2017-11-10 19:52:29,721: Adding loop tasks
+[NaborisOrchestrator @ orchestrator.py:136][DEBUG] 2017-11-10 19:52:29,724: Appending PiCamera's loop task
+[NaborisOrchestrator @ orchestrator.py:136][DEBUG] 2017-11-10 19:52:29,725: Appending Actuators's loop task
+[NaborisOrchestrator @ orchestrator.py:136][DEBUG] 2017-11-10 19:52:29,726: Appending NaborisCLI's loop task
+[NaborisOrchestrator @ orchestrator.py:136][DEBUG] 2017-11-10 19:52:29,727: Appending werkzeug's loop task
+[NaborisOrchestrator @ orchestrator.py:141][DEBUG] 2017-11-10 19:52:29,728: Running loop tasks (5)
+[NaborisOrchestrator @ orchestrator.py:266][INFO] 2017-11-10 19:53:17,022: loop finished
+[NaborisOrchestrator @ orchestrator.py:270][INFO] 2017-11-10 19:53:17,023: closing orchestrator
+[NaborisOrchestrator @ orchestrator.py:164][DEBUG] 2017-11-10 19:53:17,025: 5 tasks to cancel
+[NaborisOrchestrator @ orchestrator.py:146][DEBUG] 2017-11-10 19:53:17,027: Cancelling <Task cancelling coro=<Orchestrator.loop() running at /usr/local/lib/python3.5/dist-packages/atlasbuggy/orchestrator.py:73> wait_for=<Future finished result=True>>: True
+[NaborisOrchestrator @ orchestrator.py:146][DEBUG] 2017-11-10 19:53:17,028: Cancelling <Task pending coro=<PiCamera.loop() running at /home/pi/Naboris/naboris/picamera.py:132> wait_for=<Future cancelled>>: True
+[NaborisOrchestrator @ orchestrator.py:146][DEBUG] 2017-11-10 19:53:17,028: Cancelling <Task pending coro=<Actuators.loop() running at /home/pi/Naboris/naboris/actuators.py:117> wait_for=<Future cancelled>>: True
+[NaborisOrchestrator @ orchestrator.py:146][DEBUG] 2017-11-10 19:53:17,029: Cancelling <Task finished coro=<NaborisCLI.loop() done, defined at /home/pi/Naboris/naboris/cli.py:87> result=None>: False
+[NaborisOrchestrator @ orchestrator.py:146][DEBUG] 2017-11-10 19:53:17,030: Cancelling <Task pending coro=<NaborisWebsite.loop() running at /home/pi/Naboris/naboris/naboris_site.py:183> wait_for=<Future cancelled>>: True
+[NaborisOrchestrator @ orchestrator.py:89][INFO] 2017-11-10 19:53:17,031: halting
+[NaborisOrchestrator @ orchestrator.py:92][INFO] 2017-11-10 19:53:17,032: Session took 51.36747169494629s to complete
+[NaborisOrchestrator @ orchestrator.py:78][INFO] 2017-11-10 19:53:17,037: teardown

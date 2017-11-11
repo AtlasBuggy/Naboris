@@ -45,8 +45,6 @@ class EncoderMessage(Message):
             self.delta_theta = (self.right_delta_dist - self.left_delta_dist) / (dist_between_wheels_mm * 2)
             self.delta_dist = (self.right_delta_tick + self.left_delta_tick) / 2
 
-            print(self.delta_theta, self.delta_dist)
-
     def __str__(self):
         return "%s(t: %s, n: %s, pt: %s, et: %s, r: %s, l: %s, dr: %s, dl: %s)" % (
             self.name, self.timestamp, self.n, self.packet_time, self.encoder_time,
