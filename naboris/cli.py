@@ -38,6 +38,7 @@ class NaborisCLI(Node):
             queue_size=None,
             required_attributes=(
                 "print_bno055_output",
+                "print_position_output"
             ),
             required_methods=(
                 "drive",
@@ -62,6 +63,8 @@ class NaborisCLI(Node):
             h=self.help,
             euler=self.get_orientation,
             toggle_bno=self.toggle_print_bno,
+            toggle_pos=self.toggle_print_pos,
+            goto=self.goto_pos,
             look=self.look,
             s=self.my_stop,
             red=self.red,
@@ -145,6 +148,23 @@ class NaborisCLI(Node):
 
     def toggle_print_bno(self, params):
         self.actuators.print_bno055_output = not self.actuators.print_bno055_output
+
+    def toggle_print_pos(self, params):
+        self.actuators.print_position_output = not self.actuators.print_position_output
+
+    def goto_pos(self, params):
+        data = params.split(" ")
+        theta = None
+        if len(data) >= 2:
+            x = float(data[0])
+            y = float(data[1])
+            print("going to %0.4f, %0.4f" % (x, y), end="")
+        if len(data) >= 3:
+            theta = float(data[2])
+            print(", %0.4f" % theta, end="")
+        print()
+
+        self.actuators.set_goal(x, y, theta)
 
     def look(self, params):
         data = params.split(" ")

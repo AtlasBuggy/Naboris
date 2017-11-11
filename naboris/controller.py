@@ -53,16 +53,13 @@ class PID:
 
 
 class NaborisController:
-    def __init__(self, dist_pid, th_pid, current_time=None):
+    def __init__(self, dist_pid, th_pid, current_time):
         self.dist_pid = dist_pid
         self.th_pid = th_pid
 
         self.prev_time = current_time
 
     def update(self, current_state, goal_state, current_time):
-        if self.prev_time is None:
-            self.prev_time = current_time
-            return 0, 0, 0
         x_c, y_c, theta_c = current_state
         x_g, y_g, theta_g = goal_state
         x_err = x_g - x_c
@@ -77,4 +74,4 @@ class NaborisController:
         command_speed = self.dist_pid.update(distance_error, dt)
         command_angular = self.th_pid.update(theta_error, dt)
 
-        return int(command_speed), int(command_angular), int(math.degrees(theta_error))
+        return int(command_speed), int(math.degrees(theta_error)), int(command_angular), distance_error, theta_error

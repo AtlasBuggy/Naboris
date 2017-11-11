@@ -4,6 +4,7 @@ import asyncio
 from atlasbuggy.device.arduino import Arduino
 
 from naboris.bno055 import *
+from naboris.controller import *
 
 counts_per_revolution = 12
 gear_ratio = 150.58
@@ -44,10 +45,6 @@ class EncoderMessage(Message):
             self.left_delta_dist = self.left_delta_tick * ticks_to_mm
 
             tick_magnitude = max(abs(self.right_delta_tick), abs(self.left_delta_tick))
-            # if abs(self.right_delta_tick) > abs(self.left_delta_tick):
-            #     tick_magnitude = self.right_delta_tick
-            # else:
-            #     tick_magnitude = self.left_delta_tick
 
             offset_factor = ticks_to_mm * tick_magnitude / dist_between_wheels_mm
             if 0 <= commanded_angle_deg < 90:
@@ -64,9 +61,7 @@ class EncoderMessage(Message):
             else:
                 self.delta_dist = tick_magnitude * ticks_to_mm
 
-            print("%0.4f -> " % self.delta_theta, end="")
             self.delta_theta -= angle_offset
-            print("%0.4f, %s" % (self.delta_theta, commanded_angle_deg))
 
     def __str__(self):
         return "%s(t: %s, n: %s, pt: %s, et: %s, r: %s, l: %s, dr: %s, dl: %s)" % (
@@ -113,6 +108,11 @@ class Actuators(Arduino):
         self.right_updated = False
         self.left_updated = False
 
+        self.x = 0.0
+        self.y = 0.0
+        self.theta = 0.0
+
+        self.print_position_output = False
         self.encoder_message = None
         self.enc_packet_num = 0
         self.encoder_service = "encoder"
@@ -121,9 +121,18 @@ class Actuators(Arduino):
         self.print_bno055_output = False
         self.bno055_packet_header = "imu"
         self.bno055_packet_num = 0
+        self.bno055_message = None
         self.bno055 = BNO055()
         self.bno055_service = "bno055"
         self.define_service(self.bno055_service, message_type=Bno055Message)
+
+        self.goal_x = 0.0
+        self.goal_y = 0.0
+        self.goal_theta = 0.0
+        self.goal_available = False
+        self.th_pid = PID(10.0, 0.0, "tuning")
+        self.dist_pid = PID(10.0, 0.0, "tuning")
+        self.controller = NaborisController(self.dist_pid, self.th_pid, time.time())
 
     async def loop(self):
         self.receive_first(self.first_packet)
@@ -143,7 +152,27 @@ class Actuators(Arduino):
                         await self.receive(packet_time, packet)
                     except ValueError:
                         self.logger.exception("Failed to parse packet: %s" % packet)
+                self.update_controller()
+            self.update_controller()
+
             await asyncio.sleep(0.01)  # update rate of IMU (100 Hz)
+
+    def update_controller(self):
+        if self.goal_available:
+            command_speed, command_angular, command_angle, distance_error, theta_error = \
+                self.controller.update(
+                    (self.x, self.y, self.theta), (self.goal_x, self.goal_y, self.goal_theta), time.time()
+                )
+
+            if abs(distance_error) < 5.0 and abs(theta_error) < 0.01:
+                self.goal_available = False
+                print("goal reached! current: (%0.4f, %0.4f, %0.4f), goal: (%0.4f, %0.4f, %0.4f)" % (
+                    self.x, self.y, self.theta, self.goal_x, self.goal_y, self.goal_theta)
+                )
+                self.stop_motors()
+            else:
+                print("error:", distance_error, theta_error)
+                self.drive(command_speed, command_angle, command_angular)
 
     async def teardown(self):
         await super(Actuators, self).teardown()
@@ -190,22 +219,45 @@ class Actuators(Arduino):
                 )
                 self.enc_packet_num += 1
 
+                if self.encoder_message.delta_theta is not None:
+                    strafe_angle = math.radians(self.commanded_angle)
+                    angle = (self.theta + strafe_angle) % (2 * math.pi)
+
+                    self.x += self.encoder_message.delta_dist * math.cos(angle)
+                    self.y += self.encoder_message.delta_dist * math.sin(angle)
+
                 self.log_to_buffer(packet_time, self.encoder_message)
                 await self.broadcast(self.encoder_message, self.encoder_service)
+
+                if self.print_position_output:
+                    print("x=%0.4f, y=%0.4f, th=%0.4f" % (self.x, self.y, self.theta))
 
                 self.right_updated = False
                 self.left_updated = False
 
         elif packet.startswith(self.bno055_packet_header):
             message = self.bno055.parse_packet(packet_time, packet, self.bno055_packet_num)
+            self.bno055_message = message
+            self.theta = self.bno055_message.euler.z
+
             self.log_to_buffer(packet_time, message)
             self.bno055_packet_num += 1
             await self.broadcast(message, self.bno055_service)
 
             if self.print_bno055_output:
-                print("%0.4f, %0.4f, %0.4f" % message.euler.get_tuple())
+                print("r=%0.4f, p=%0.4f, y=%0.4f" % message.euler.get_tuple())
         else:
             raise ValueError("Unrecognized packet type: %s" % packet)
+
+    def set_goal(self, goal_x, goal_y, goal_theta=None):
+        self.goal_x = goal_x
+        self.goal_y = goal_y
+        if goal_theta is None:
+            self.goal_theta = self.theta
+        else:
+            self.goal_theta = goal_theta
+        self.goal_available = True
+        self.controller.prev_time = time.time()
 
     def drive(self, speed=0, angle=0, angular=0):
         self.commanded_angle = angle % 360
