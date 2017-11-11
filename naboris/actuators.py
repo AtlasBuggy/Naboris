@@ -6,11 +6,11 @@ from atlasbuggy.device.arduino import Arduino
 from naboris.bno055 import *
 
 counts_per_revolution = 12
-gear_ratio = 150
-wheel_radius_mm = 27
+gear_ratio = 150.58
+wheel_radius_mm = 27.0
 
 ticks_to_mm = wheel_radius_mm * 2 * math.pi / (gear_ratio * counts_per_revolution)
-dist_between_wheels_mm = 120.0
+dist_between_wheels_mm = 109.0
 
 class EncoderMessage(Message):
     message_regex = r"EncoderMessage\(t: (\d.*), n: (\d*), pt: (\d.*), et: (\d.*), r: (-?[0-9]\d*), l: (-?[0-9]\d*), " \
@@ -42,7 +42,7 @@ class EncoderMessage(Message):
             self.right_delta_dist = self.right_delta_tick * ticks_to_mm
             self.left_delta_dist = self.left_delta_tick * ticks_to_mm
 
-            self.delta_theta = (self.right_delta_dist - self.left_delta_dist) / dist_between_wheels_mm
+            self.delta_theta = (self.right_delta_dist - self.left_delta_dist) / (dist_between_wheels_mm * 2)
             self.delta_dist = (self.right_delta_tick + self.left_delta_tick) / 2
 
             print(self.delta_theta, self.delta_dist)
@@ -113,7 +113,10 @@ class Actuators(Arduino):
                 packet_time, packets = self.read()
 
                 for packet in packets:
-                    await self.receive(packet_time, packet)
+                    try:
+                        await self.receive(packet_time, packet)
+                    except ValueError:
+                        self.logger.exception("Failed to parse packet: %s" % packet)
             await asyncio.sleep(0.01)  # update rate of IMU (100 Hz)
 
     async def teardown(self):
@@ -142,7 +145,7 @@ class Actuators(Arduino):
             data = packet[2:]
             if header == "r":
                 encoder_time, self.right_tick = data.split("\t")
-                self.right_tick = int(self.right_tick)
+                self.right_tick = -int(self.right_tick)  # right encoder reversed
                 self.right_updated = True
 
             elif header == "l":

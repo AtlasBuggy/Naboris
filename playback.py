@@ -1,3 +1,5 @@
+import math
+
 from atlasbuggy import Orchestrator, run
 from atlasbuggy.plotters import LivePlotter, PlotMessage
 
@@ -9,7 +11,7 @@ class PlaybackOrchestrator(Orchestrator):
         self.set_default(level=10)
         super(PlaybackOrchestrator, self).__init__(event_loop)
 
-        actuators = ActuatorsPlayback("logs/2017_Nov_10/Actuators/15_59_42.log")
+        actuators = ActuatorsPlayback("logs/2017_Nov_10/Actuators/18_28_59.log")
         plotter = LivePlotter()
 
         bno055_plot_name = plotter.add_plot("bno055", service=actuators.bno055_service)
@@ -28,6 +30,8 @@ class PlaybackOrchestrator(Orchestrator):
     def enc_to_plot(self, enc_message):
         if enc_message.delta_theta is not None:
             self.theta += enc_message.delta_theta
+
+        self.theta %= 2 * math.pi
         return PlotMessage(enc_message.timestamp, self.theta)
 
 
