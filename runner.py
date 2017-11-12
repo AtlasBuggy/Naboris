@@ -8,6 +8,7 @@ from naboris.actuators import Actuators
 from naboris.picamera import PiCamera
 from naboris.cli import NaborisCLI
 from naboris.naboris_site import NaborisWebsite
+from naboris.autonomous import Autonomous
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-l", "--log", help="disable logging", action="store_false")
@@ -28,6 +29,7 @@ class NaborisOrchestrator(Orchestrator):
 
         camera = PiCamera(enabled=True, record=record_video, file_name=video_file_name, directory=video_directory)
         actuators = Actuators(enabled=True)
+        autonomous = Autonomous()
 
         sounds = Sounds("sounds", "/home/pi/Music/Bastion/",
                         ("humming", "curiousity", "nothing", "confusion", "concern", "sleepy", "vibrating"),
@@ -36,12 +38,17 @@ class NaborisOrchestrator(Orchestrator):
         cmdline = NaborisCLI()
         website = NaborisWebsite("templates", "static")
 
-        self.add_nodes(camera, actuators, sounds, cmdline, website)
+        self.add_nodes(camera, actuators, sounds, cmdline, website, autonomous)
 
         self.subscribe(actuators, cmdline, cmdline.actuators_tag)
         self.subscribe(actuators, cmdline, cmdline.bno055_tag)
+        self.subscribe(autonomous, cmdline, cmdline.autonomous_tag)
         self.subscribe(camera, cmdline, cmdline.capture_tag)
         self.subscribe(sounds, cmdline, cmdline.sounds_tag)
+
+        self.subscribe(actuators, autonomous, autonomous.actuators_tag)
+        self.subscribe(actuators, autonomous, autonomous.bno055_tag)
+        self.subscribe(actuators, autonomous, autonomous.encoder_tag)
 
         self.subscribe(cmdline, website, website.cmd_tag)
         self.subscribe(camera, website, website.camera_tag)

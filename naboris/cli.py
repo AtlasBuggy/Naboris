@@ -11,35 +11,25 @@ class NaborisCLI(Node):
         self.prompt_text = prompt_text
         self.queue = asyncio.Queue()
 
-        self.actuators = None
-        self.sounds = None
-        self.capture = None
-
-        self.bno055_queue = None
         self.prev_bno055_message = None
-
-        self.actuators_tag = "actuators"
-        self.sounds_tag = "sounds"
-        self.capture_tag = "capture"
-        self.bno055_tag = "bno055"
 
         self.should_exit = False
 
         self.video_num_counter_regex = r"([\s\S]*)-([0-9]*)\.([\S]*)"
         self.video_name_regex = r"([\s\S]*)\.([\S]*)"
 
+        self.capture_tag = "capture"
         self.capture_sub = self.define_subscription(
             self.capture_tag, queue_size=None,
             required_methods=("save_image", "stop_recording", "start_recording"),
             required_attributes=("directory", "file_name")
         )
+        self.capture = None
+
+        self.actuators_tag = "actuators"
         self.actuators_sub = self.define_subscription(
             self.actuators_tag,
             queue_size=None,
-            required_attributes=(
-                "print_bno055_output",
-                "print_position_output"
-            ),
             required_methods=(
                 "drive",
                 "look_straight",
@@ -52,8 +42,26 @@ class NaborisCLI(Node):
                 "stop_motors",
             )
         )
+        self.actuators = None
+
+        self.bno055_tag = "bno055"
         self.bno055_sub = self.define_subscription(self.bno055_tag, service="bno055")
+        self.bno055_queue = None
+
+        self.sounds_tag = "sounds"
         self.sounds_sub = self.define_subscription(self.sounds_tag, queue_size=None, is_required=False)
+        self.sounds = None
+
+        self.autonomous_tag = "autonomous"
+        self.autonomous_sub = self.define_subscription(
+            self.autonomous_tag,
+            required_attributes=(
+                "set_goal",
+            ),
+            queue_size=None,
+            is_required=False
+        )
+        self.autonomous = None
 
         self.available_commands = dict(
             q=self.exit,
@@ -62,8 +70,6 @@ class NaborisCLI(Node):
             d=self.drive,
             h=self.help,
             euler=self.get_orientation,
-            toggle_bno=self.toggle_print_bno,
-            toggle_pos=self.toggle_print_pos,
             goto=self.goto_pos,
             look=self.look,
             s=self.my_stop,
@@ -75,8 +81,8 @@ class NaborisCLI(Node):
             hello=self.say_hello,
             alert=self.say_alert,
             sound=self.say_random_sound,
-            start_video=self.start_new_video,
-            stop_video=self.stop_recording,
+            startvideo=self.start_new_video,
+            stopvideo=self.stop_recording,
             photo=self.take_a_photo
         )
 
@@ -104,8 +110,11 @@ class NaborisCLI(Node):
     def take(self):
         self.capture = self.capture_sub.get_producer()
         self.actuators = self.actuators_sub.get_producer()
-        self.sounds = self.sounds_sub.get_producer()
+        if self.is_subscribed(self.sounds_tag):
+            self.sounds = self.sounds_sub.get_producer()
         self.bno055_queue = self.bno055_sub.get_queue()
+        if self.is_subscribed(self.autonomous_tag):
+            self.autonomous = self.autonomous_sub.get_producer()
 
     def spin_left(self, params):
         value = int(params) if len(params) > 0 else 75
@@ -146,13 +155,10 @@ class NaborisCLI(Node):
         else:
             print("No BNO055 messages received!!")
 
-    def toggle_print_bno(self, params):
-        self.actuators.print_bno055_output = not self.actuators.print_bno055_output
-
-    def toggle_print_pos(self, params):
-        self.actuators.print_position_output = not self.actuators.print_position_output
-
     def goto_pos(self, params):
+        if not self.is_subscribed(self.autonomous_tag):
+            print("autonomous mode not enabled.")
+            return
         data = params.split(" ")
         theta = None
         if len(data) >= 2:
@@ -164,7 +170,7 @@ class NaborisCLI(Node):
             print(", %0.4f" % theta, end="")
         print()
 
-        self.actuators.set_goal(x, y, theta)
+        self.autonomous.set_goal(x, y, theta)
 
     def look(self, params):
         data = params.split(" ")

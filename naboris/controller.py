@@ -53,25 +53,43 @@ class PID:
 
 
 class NaborisController:
-    def __init__(self, dist_pid, th_pid, current_time):
-        self.dist_pid = dist_pid
+    def __init__(self, x_pid, y_pid, th_pid, x_criterion, y_criterion, th_criterion, current_time):
+        self.x_pid = x_pid
+        self.y_pid = y_pid
         self.th_pid = th_pid
+
+        self.x_criterion = x_criterion
+        self.y_criterion = y_criterion
+        self.th_criterion = th_criterion
 
         self.prev_time = current_time
 
-    def update(self, current_state, goal_state, current_time):
-        x_c, y_c, theta_c = current_state
-        x_g, y_g, theta_g = goal_state
-        x_err = x_g - x_c
-        y_err = y_g - y_c
+        self.goal_reached = False
 
-        distance_error = math.sqrt(x_err * x_err + y_err * y_err)
-        theta_error = theta_g - theta_c
+    def reset(self, current_time):
+        self.prev_time = current_time
+        self.goal_reached = False
+        self.x_pid.reset()
+        self.y_pid.reset()
+        self.th_pid.reset()
 
+
+    def update(self, x_error, y_error, theta_error, current_time):
         dt = current_time - self.prev_time
         self.prev_time = current_time
 
-        command_speed = self.dist_pid.update(distance_error, dt)
-        command_angular = self.th_pid.update(theta_error, dt)
+        strafe_angle = math.atan2(y_error, x_error)
 
-        return int(command_speed), int(math.degrees(theta_error)), int(command_angular), distance_error, theta_error
+        x_power = self.x_pid.update(math.copysign(x_error * x_error, x_error), dt)
+        y_power = self.th_pid.update(math.copysign(y_error * y_error, y_error), dt)
+        # command_angular = int(self.th_pid.update(math.copysign(th_error * th_error, th_error), dt))
+        command_speed = math.sqrt(x_power * x_power + y_power * y_power)
+        command_angle = int(math.degrees(strafe_angle))
+        command_angular = 0
+
+        if abs(x_error) < self.x_criterion and abs(y_error) < self.y_criterion: # and abs(theta_error) < self.th_criterion:
+            self.goal_reached = True
+            return 0, 0, 0
+
+        else:
+            return command_speed, command_angle, command_angular

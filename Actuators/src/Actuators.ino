@@ -70,18 +70,22 @@ imu::Vector<3> linaccel;
  // Or, create it with a different I2C address (say for stacking)
  // Adafruit_MotorShield AFMS = Adafruit_MotorShield(0x61);
 
-struct MotorStruct {
-    Adafruit_DCMotor* af_motor;
-    int speed;
-    byte run_state;
-};
+unsigned int speed_increment = 40;
 
-MotorStruct init_motor(int motor_num) {
-    MotorStruct new_motor;
-    new_motor.af_motor = AFMS.getMotor(motor_num);
-    new_motor.speed = 0;
-    return new_motor;
-}
+ struct MotorStruct {
+     Adafruit_DCMotor* af_motor;
+     int speed;
+     int goal_speed;
+     byte run_state;
+ };
+
+ MotorStruct init_motor(int motor_num) {
+     MotorStruct new_motor;
+     new_motor.af_motor = AFMS.getMotor(motor_num);
+     new_motor.speed = 0;
+     new_motor.goal_speed = 0;
+     return new_motor;
+ }
 
 #define NUM_MOTORS 4
 MotorStruct* motors = new MotorStruct[NUM_MOTORS];
@@ -402,24 +406,23 @@ void set_motor_speed(int motor_num)
 }
 
 void set_motor_goal(int motor_num, int speed) {
-    motors[motor_num].speed = speed;
-    if (motors[motor_num].speed > 0) {
-        if (motors[motor_num].speed < 0) {
-            motors[motor_num].speed = 0;
+    motors[motor_num].goal_speed = speed;
+    if (motors[motor_num].goal_speed > 0) {
+        if (motors[motor_num].goal_speed < 0) {
+            motors[motor_num].goal_speed = 0;
         }
-        if (motors[motor_num].speed > 255) {
-            motors[motor_num].speed = 255;
+        if (motors[motor_num].goal_speed > 255) {
+            motors[motor_num].goal_speed = 255;
         }
     }
     else {
-        if (motors[motor_num].speed > 0) {
-            motors[motor_num].speed = 0;
+        if (motors[motor_num].goal_speed > 0) {
+            motors[motor_num].goal_speed = 0;
         }
-        if (motors[motor_num].speed < -255) {
-            motors[motor_num].speed = -255;
+        if (motors[motor_num].goal_speed < -255) {
+            motors[motor_num].goal_speed = -255;
         }
     }
-    set_motor_speed(motor_num);
 }
 
 // top left, top right, bottom left, bottom right
@@ -449,9 +452,28 @@ void release_motors()
 {
     for (int motor_num = 0; motor_num < NUM_MOTORS; motor_num++)
     {
-        motors[motor_num].speed = 0;
+        motors[motor_num].goal_speed = 0;
         motors[motor_num].speed = 0;
         motors[motor_num].af_motor->run(RELEASE);
+    }
+}
+
+void updateMotors()
+{
+    for (int motor_num = 0; motor_num < NUM_MOTORS; motor_num++)
+    {
+        set_motor_speed(motor_num);
+
+        if (motors[motor_num].speed < motors[motor_num].goal_speed) {
+            motors[motor_num].speed += speed_increment;
+        }
+        else {
+            motors[motor_num].speed -= speed_increment;
+        }
+
+        if (abs(motors[motor_num].speed - motors[motor_num].goal_speed) < 2 * speed_increment) {
+            motors[motor_num].speed = motors[motor_num].goal_speed;
+        }
     }
 }
 
@@ -570,6 +592,7 @@ void loop()
             servo_ping_timer = millis();
         }
 
+        updateMotors();
         updateEncoders();
         updateIMU();
 
