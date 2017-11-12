@@ -47,6 +47,12 @@ class State:
 
         return global_x, global_y, global_angle
 
+    def reset(self):
+        self.x = 0.0
+        self.y = 0.0
+        self.theta = 0.0
+        self.compute_H()
+
 
 class Autonomous(Node):
     def __init__(self, enabled=True):
@@ -58,10 +64,18 @@ class Autonomous(Node):
         self.goal_frame_strafe = State()
 
         self.goal_available = False
-        self.x_pid = PID(0.01, 0.0, "tuning")
-        self.y_pid = PID(0.01, 0.0, "tuning")
-        self.th_pid = PID(15.0, 0.0, "tuning")
-        self.controller = NaborisController(self.x_pid, self.y_pid, self.th_pid, 50.0, 50.0, 0.01, time.time())
+
+        use_holonomic = False
+
+        if use_holonomic:
+            self.x_pid = PID(1.0, 0.0, "tuning")
+            self.y_pid = PID(1.0, 0.0, "tuning")
+            self.th_pid = PID(40.0, 0.0, "tuning")
+            self.controller = HolonomicController(self.x_pid, self.y_pid, self.th_pid, 15.0, 15.0, 0.01, time.time())
+        else:
+            self.dist_pid = PID(1.0, 0.0, "tuning")
+            self.th_pid = PID(40.0, 0.0, "tuning")
+            self.controller = NonholonomicController(self.dist_pid, self.th_pid, 15.0, 15.0, 0.01, time.time())
 
         self.actuators_tag = "actuators"
         self.actuators_sub = self.define_subscription(
@@ -130,7 +144,7 @@ class Autonomous(Node):
     def update_controller(self):
         if self.goal_available:
             if self.controller.goal_reached:
-                self.actuators.stop_motors()
+                self.stop_goal()
             else:
                 # gx_rframe, gy_rframe, gth_rframe = self.goal_frame_strafe.to_robot_frame()
                 x_error, y_error, th_error = self.global_frame_strafe.to_robot_frame(
@@ -157,9 +171,7 @@ class Autonomous(Node):
         self.goal_frame_strafe.x = self.goal_frame_heading.x
         self.goal_frame_strafe.y = self.goal_frame_heading.y
 
-        curr_x = self.global_frame_strafe.x
-        curr_y = self.global_frame_strafe.y
-        self.goal_frame_strafe.theta = np.arctan2(goal_y - curr_y, goal_x - curr_x)
+        self.goal_frame_strafe.theta = self.global_frame_heading.theta
 
         if goal_theta is None:
             self.goal_frame_heading.theta = self.global_frame_strafe.theta
@@ -170,4 +182,17 @@ class Autonomous(Node):
         self.goal_frame_strafe.compute_H()
 
         self.goal_available = True
+        self.controller.reset(time.time())
+
+    def stop_goal(self):
+        self.goal_available = False
+        self.controller.goal_reached = True
+        self.actuators.stop_motors()
+
+    def reset(self):
+        self.stop_goal()
+        self.global_frame_heading.reset()
+        self.global_frame_strafe.reset()
+        self.goal_frame_heading.reset()
+        self.goal_frame_strafe.reset()
         self.controller.reset(time.time())

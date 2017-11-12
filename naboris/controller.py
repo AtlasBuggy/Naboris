@@ -52,7 +52,46 @@ class PID:
         return p_term + i_term + d_term
 
 
-class NaborisController:
+class NonholonomicController:
+    def __init__(self, dist_pid, th_pid, x_criterion, y_criterion, th_criterion, current_time):
+        self.dist_pid = dist_pid
+        self.th_pid = th_pid
+
+        self.x_criterion = x_criterion
+        self.y_criterion = y_criterion
+        self.th_criterion = th_criterion
+
+        self.prev_time = current_time
+
+        self.goal_reached = False
+
+    def reset(self, current_time):
+        self.prev_time = current_time
+        self.goal_reached = False
+        self.dist_pid.reset()
+        self.th_pid.reset()
+
+
+    def update(self, x_error, y_error, theta_error, current_time):
+        dt = current_time - self.prev_time
+        self.prev_time = current_time
+
+        dist_error = math.sqrt(x_error * x_error + y_error * y_error)
+        command_speed = int(self.dist_pid.update(dist_error, dt))
+        theta_error += math.atan2(y_error, x_error)
+        command_angular = int(self.th_pid.update(theta_error, dt))
+
+        if abs(x_error) < self.x_criterion and abs(y_error) < self.y_criterion and abs(theta_error) < self.th_criterion:
+            self.goal_reached = True
+            return 0, 0, 0
+
+        # if command_speed < 25:
+            # command_speed = 25
+
+        return command_speed, 0, command_angular
+    
+
+class HolonomicController:
     def __init__(self, x_pid, y_pid, th_pid, x_criterion, y_criterion, th_criterion, current_time):
         self.x_pid = x_pid
         self.y_pid = y_pid
@@ -69,10 +108,8 @@ class NaborisController:
     def reset(self, current_time):
         self.prev_time = current_time
         self.goal_reached = False
-        self.x_pid.reset()
-        self.y_pid.reset()
+        self.dist_pid.reset()
         self.th_pid.reset()
-
 
     def update(self, x_error, y_error, theta_error, current_time):
         dt = current_time - self.prev_time
@@ -80,14 +117,18 @@ class NaborisController:
 
         strafe_angle = math.atan2(y_error, x_error)
 
-        x_power = self.x_pid.update(math.copysign(x_error * x_error, x_error), dt)
-        y_power = self.th_pid.update(math.copysign(y_error * y_error, y_error), dt)
-        # command_angular = int(self.th_pid.update(math.copysign(th_error * th_error, th_error), dt))
+        x_power = self.x_pid.update(x_error, dt)
+        y_power = self.y_pid.update(y_error, dt)
+        command_angular = int(self.th_pid.update(theta_error, dt))
+
         command_speed = math.sqrt(x_power * x_power + y_power * y_power)
         command_angle = int(math.degrees(strafe_angle))
-        command_angular = 0
+        # command_angular = 0
 
-        if abs(x_error) < self.x_criterion and abs(y_error) < self.y_criterion: # and abs(theta_error) < self.th_criterion:
+        if command_speed < 25:
+            command_speed = 25
+
+        if abs(x_error) < self.x_criterion and abs(y_error) < self.y_criterion and abs(theta_error) < self.th_criterion:
             self.goal_reached = True
             return 0, 0, 0
 

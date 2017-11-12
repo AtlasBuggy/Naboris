@@ -71,6 +71,7 @@ class NaborisCLI(Node):
             h=self.help,
             euler=self.get_orientation,
             goto=self.goto_pos,
+            resetauto=self.reset_autonomous,
             look=self.look,
             s=self.my_stop,
             red=self.red,
@@ -172,6 +173,10 @@ class NaborisCLI(Node):
 
         self.autonomous.set_goal(x, y, theta)
 
+    def reset_autonomous(self, param):
+        if not self.is_subscribed(self.autonomous_tag):
+            self.autonomous.reset()
+
     def look(self, params):
         data = params.split(" ")
         if data[0] == "":
@@ -230,6 +235,8 @@ class NaborisCLI(Node):
 
     def my_stop(self, params):
         self.actuators.stop_motors()
+        if not self.is_subscribed(self.autonomous_tag):
+            self.autonomous.stop_goal()
 
     def say_hello(self, params):
         if self.is_subscribed(self.sounds_tag):
